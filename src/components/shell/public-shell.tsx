@@ -80,9 +80,9 @@ export function PublicShell({
           ))}
         </div>
         <a className="mx-school" href={EVENT.web} target="_blank" rel="noopener noreferrer">
-          {/* 学校のロゴ（学校のサイトの画像を SVG に描き直したもの。public/brand/school-logo.svg） */}
+          {/* 学校のロゴ（学校のサイトの画像を SVG に描き直したもの）。紺の帯になじむよう白一色の版 school-logo-white.svg */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/school-logo.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ）" width={480} height={60} />
+          <img src="/brand/school-logo-white.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ）" width={480} height={60} />
         </a>
         <p className="shell-pfoot-copy">
           主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ <AppVersion />

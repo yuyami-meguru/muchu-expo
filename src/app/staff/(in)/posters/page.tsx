@@ -82,11 +82,7 @@ export default async function StaffPostersPage() {
           <Sprite name="guitar" size={120} className="pst-sp pst-sp--b" />
           <Sprite name="ball" size={120} className="pst-sp pst-sp--c" />
           <Sprite name="cube" size={120} className="pst-sp pst-sp--d" />
-          <p className="pst-org pst-org--logo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/school-logo.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］" />
-            <span>エンカレッジコース</span>
-          </p>
+          <p className="pst-org">{EVENT.organizer}</p>
           <div className="pst-main">
             <h2 className="pst-title">
               <span className="pst-title-1">エンカレ</span>
@@ -114,7 +110,12 @@ export default async function StaffPostersPage() {
                 ))}
             </ul>
           </div>
-          <p className="pst-url">{host}</p>
+          {/* 学校のロゴは札にのせず、パンフの裏面のようにいちばん下に小さく */}
+          <div className="pst-foot">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/school-logo.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］" />
+            <p className="pst-url">{host}</p>
+          </div>
         </section>
 
         {/* 2 枚目から：お店ごと */}

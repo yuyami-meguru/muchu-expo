@@ -61,7 +61,6 @@
   .pst-sheet { page: pst; width: 210mm; height: 297mm; aspect-ratio: auto; border-radius: 0; box-shadow: none; margin: 0; break-inside: avoid; page-break-inside: avoid; break-after: page; page-break-after: always; }
   .pst-sheet:last-child { break-after: auto; page-break-after: auto; }
 }
-/* 会場全体のポスターの学校のロゴ（白い札の上） */
-.pst-org--logo { display: flex; flex-direction: column; align-items: center; gap: 0.6cqw; background: #fff; padding: 1.6cqw 3cqw; }
-.pst-org--logo img { display: block; width: 52cqw; height: auto; }
-.pst-org--logo span { font-size: 2.4cqw; }
+/* 会場全体のポスターのいちばん下：学校のロゴ（札なし）とアドレス */
+.pst-foot { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1cqw; }
+.pst-foot img { display: block; width: 46cqw; height: auto; }

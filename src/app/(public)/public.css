@@ -39,6 +39,7 @@
 .mx-notice { display: flex; gap: 10px; align-items: baseline; margin: 8px 0 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--taiken-soft); font-weight: 700; }
 .mx-notice-k { flex: none; font-size: 0.72rem; color: var(--taiken); }
 
-/* 学校のロゴ（下の帯）。黒い文字なので白い札にのせる */
-.mx-school { display: block; width: fit-content; max-width: calc(100% - 32px); margin: 28px auto 0; padding: 12px 16px; background: #fff; border-radius: var(--r-md); }
-.mx-school img { display: block; width: min(480px, 100%); height: auto; }
+/* 学校のロゴ（下の帯）。札にのせず、白一色の版を帯の中に */
+.mx-school { display: block; width: fit-content; max-width: calc(100% - 40px); margin: 28px auto 0; opacity: 0.92; }
+.mx-school:hover { opacity: 1; }
+.mx-school img { display: block; width: min(380px, 100%); height: auto; }
