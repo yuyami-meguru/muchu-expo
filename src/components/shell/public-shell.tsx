@@ -80,7 +80,7 @@ export function PublicShell({
           ))}
         </div>
         <a className="mx-school" href={EVENT.web} target="_blank" rel="noopener noreferrer">
-          {/* 学校のロゴ（学校のサイトの画像を SVG に描き直したもの）。紺の帯になじむよう白一色の版 school-logo-white.svg */}
+          {/* 学校のロゴ（学校のサイトの画像を SVG に描き直したもの）。紺の帯用の版 school-logo-white.svg（マークの灰色・赤は元の色、黒だけ白） */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/school-logo-white.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ）" width={480} height={60} />
         </a>
