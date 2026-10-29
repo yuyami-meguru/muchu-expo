@@ -1,0 +1,313 @@
+/* エンカレ夢中万博 ― 「万博」をテーマに、ポスターの紅葉・刷毛文字の色で */
+:root {
+  --paper: #fbf3e4;
+  --paper-2: #f4e4c6;
+  --card: #fffaf1;
+  --ink: #241b14;
+  --ink-2: #5b4a3a;
+  --line: #e2cca6;
+  --night: #16213f;
+  --night-ink: #f6ead8;
+  --orange: #d9560f;
+  --blue: #1f4fb0;
+  --green: #3b7f2a;
+  --red: #c23b2a;
+  --purple: #6a43a8;
+  --yellow: #f2b21b;
+  --tbd-bg: #fff0b3;
+  --tbd-ink: #5e4500;
+  --shadow: 0 2px 0 rgba(120, 80, 30, .12), 0 10px 30px rgba(120, 80, 30, .10);
+  --radius: 22px;
+  --fs: 18px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1c1712; --paper-2: #261f18; --card: #2b231b;
+    --ink: #f6ead8; --ink-2: #d2bfa6; --line: #4a3c2e;
+    --night: #0f1630;
+    --orange: #ff8a45; --blue: #93b4ff; --green: #8fd27a; --red: #ff8f7f; --purple: #c6a8ff; --yellow: #ffcb4d;
+    --tbd-bg: #4a3c10; --tbd-ink: #ffe28a;
+    --shadow: 0 2px 0 rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1c1712; --paper-2: #261f18; --card: #2b231b;
+  --ink: #f6ead8; --ink-2: #d2bfa6; --line: #4a3c2e;
+  --night: #0f1630;
+  --orange: #ff8a45; --blue: #93b4ff; --green: #8fd27a; --red: #ff8f7f; --purple: #c6a8ff; --yellow: #ffcb4d;
+  --tbd-bg: #4a3c10; --tbd-ink: #ffe28a;
+  --shadow: 0 2px 0 rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+:root.big { --fs: 22px; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: var(--fs); scroll-behavior: smooth; scroll-padding-top: 7rem; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-weight: 500; line-height: 1.85; overflow-x: clip;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--blue); }
+strong { font-weight: 900; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 8px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--ink); color: var(--paper); padding: .5rem 1rem; z-index: 99; }
+.skip:focus { left: 8px; top: 8px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+.narrow { max-width: 780px; }
+
+.p-blue { --c: var(--blue); } .p-orange { --c: var(--orange); } .p-green { --c: var(--green); }
+.p-red { --c: var(--red); } .p-purple { --c: var(--purple); }
+
+/* ── 上の帯 ── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1.5px solid var(--line);
+}
+.topbar-in { max-width: 1120px; margin: 0 auto; padding: .35rem 16px; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.brand { font-family: "Dela Gothic One", sans-serif; font-size: 1.1rem; text-decoration: none; white-space: nowrap; }
+.b1 { color: var(--blue); } .b2 { color: var(--orange); } .b3 { color: var(--green); }
+.textsize {
+  font: inherit; font-size: .78rem; font-weight: 700; color: var(--ink);
+  background: var(--card); border: 2px solid var(--ink); border-radius: 999px;
+  padding: .3rem .9rem; min-height: 44px; cursor: pointer; white-space: nowrap;
+}
+.textsize[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+@media (max-width: 360px) { .brand { font-size: .95rem; } .textsize { font-size: .7rem; padding: .3rem .65rem; } }
+.nav { max-width: 1120px; margin: 0 auto; padding: 0 16px .4rem; display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a {
+  flex: none; font-size: .78rem; font-weight: 700; color: var(--ink); text-decoration: none;
+  border-radius: 999px; padding: .3rem .8rem; min-height: 40px; display: inline-flex; align-items: center;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.nav a:hover { background: var(--ink); color: var(--paper); }
+
+/* ── 表紙 ── */
+.hero { position: relative; padding: 2.4rem 0 2.6rem; overflow: hidden; isolation: isolate; }
+.blobs { position: absolute; inset: 0; z-index: -1; filter: blur(50px); opacity: .5; }
+.blobs i { position: absolute; border-radius: 50%; animation: drift 18s ease-in-out infinite alternate; }
+.bl1 { width: 46vmax; height: 46vmax; background: #ffb070; top: -18vmax; right: -12vmax; }
+.bl2 { width: 34vmax; height: 34vmax; background: #a9d98f; bottom: -14vmax; left: -10vmax; animation-delay: -6s !important; }
+.bl3 { width: 26vmax; height: 26vmax; background: #9fbaff; top: 30%; left: 40%; animation-delay: -12s !important; opacity: .7; }
+@keyframes drift { to { transform: translate(4vmax, 3vmax) scale(1.08); } }
+
+.hero-grid { display: grid; gap: 1.6rem; align-items: end; }
+@media (min-width: 920px) { .hero-grid { grid-template-columns: 1.25fr .9fr; gap: 2.4rem; } }
+.hero-title { position: relative; }
+.pre { margin: 0 0 .5rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.pre .no { background: var(--ink); color: var(--paper); font-weight: 900; padding: .05rem .8rem; border-radius: 999px; font-size: .9rem; }
+.pre .en { font-family: "Dela Gothic One", sans-serif; font-size: .72rem; letter-spacing: .18em; color: var(--ink-2); }
+.title { margin: 0; font-family: "Dela Gothic One", sans-serif; font-weight: 400; line-height: .98; letter-spacing: -.01em; }
+.title span { display: block; }
+.title .t1 { color: var(--blue); font-size: clamp(2.6rem, 13vw, 5.2rem); }
+.title .t2, .title .t3 { font-size: clamp(5.2rem, 30vw, 10.5rem); }
+.title .t2 { color: var(--orange); }
+.title .t3 { color: var(--green); margin-left: .5em; margin-top: -.06em; }
+.js .title span { opacity: 0; transform: translateY(.3em) rotate(-4deg); animation: pop .8s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+.js .title .t2 { animation-delay: .12s; } .js .title .t3 { animation-delay: .24s; }
+@keyframes pop { to { opacity: 1; transform: none; } }
+.tagline {
+  font-family: "Yusei Magic", sans-serif; font-size: clamp(1.3rem, 5.5vw, 1.9rem); margin: .6rem 0 0;
+  transform: rotate(-2deg); transform-origin: left;
+}
+.tagline span { display: inline-block; }
+.tagline em { font-style: normal; }
+.tagline .o { color: var(--orange); } .tagline .g { color: var(--green); }
+
+.badge { position: absolute; top: 2.2rem; right: 0; width: clamp(104px, 28vw, 168px); height: auto; }
+.badge-bg { fill: var(--yellow); }
+.badge text { font-family: "Dela Gothic One", sans-serif; fill: #241b14; }
+.badge textPath { font-size: 16px; }
+.badge-big { font-size: 34px; } .badge-sm { font-size: 18px; letter-spacing: 4px; }
+.spin { transform-origin: 100px 100px; animation: spin 22s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* チケット */
+.ticket {
+  display: grid; grid-template-columns: 1fr auto; background: var(--card); color: var(--ink);
+  border-radius: var(--radius); box-shadow: var(--shadow); position: relative;
+  -webkit-mask: radial-gradient(circle 14px at calc(100% - 7.2rem) 0, #0000 98%, #000) top/100% 51% no-repeat,
+                radial-gradient(circle 14px at calc(100% - 7.2rem) 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+          mask: radial-gradient(circle 14px at calc(100% - 7.2rem) 0, #0000 98%, #000) top/100% 51% no-repeat,
+                radial-gradient(circle 14px at calc(100% - 7.2rem) 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+}
+.ticket-main { padding: 1.1rem 1.2rem 1rem; min-width: 0; }
+.ticket-k { margin: 0 0 .5rem; font-family: "Dela Gothic One", sans-serif; font-size: .7rem; letter-spacing: .14em; color: var(--orange); }
+.ticket dl { margin: 0; display: grid; gap: .55rem; }
+.ticket dl div { display: grid; grid-template-columns: auto 1fr; gap: .7rem; align-items: baseline; }
+.ticket dt { font-size: .75rem; font-weight: 900; color: var(--paper); background: var(--ink); border-radius: 6px; padding: 0 .45rem; }
+.ticket dd { margin: 0; line-height: 1.45; }
+.ticket dd strong { display: block; font-size: 1.12rem; }
+.ticket dd span { font-size: 1rem; font-weight: 700; }
+.ticket-who { margin: .7rem 0 0; font-size: .82rem; color: var(--ink-2); }
+.ticket-stub {
+  width: 7.2rem; border-left: 3px dashed var(--line); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; padding: .8rem .4rem; line-height: 1.2;
+  background: color-mix(in srgb, var(--orange) 10%, transparent); border-radius: 0 var(--radius) var(--radius) 0;
+}
+.cd-l { font-size: .72rem; font-weight: 700; color: var(--ink-2); }
+.cd-n { font-family: "Dela Gothic One", sans-serif; font-size: 3rem; color: var(--orange); line-height: 1.05; }
+.cd-n.cd-today { font-size: 1.5rem; margin: .2rem 0; }
+.cd-u { font-size: .8rem; font-weight: 700; }
+
+.cta { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.4rem auto 0; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 54px;
+  padding: .55rem 1.4rem; border-radius: 999px; font-weight: 900; text-decoration: none;
+  background: var(--ink); color: var(--paper); border: 2px solid var(--ink);
+  transition: transform .15s, box-shadow .15s; box-shadow: 4px 4px 0 var(--orange);
+}
+.btn::after { content: "→"; }
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--orange); }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: none; }
+.btn.ghost:hover { background: var(--ink); color: var(--paper); transform: none; }
+
+/* 流れる帯 */
+.marquee-clip { overflow: hidden; padding: 1rem 0; }
+.marquee { background: var(--ink); color: var(--paper); overflow: hidden; padding: .7rem 0; transform: rotate(-1.2deg); margin: 0 -2vw; }
+.track { display: flex; width: max-content; gap: 1.1rem; align-items: center; animation: slide 38s linear infinite; font-weight: 900; font-size: 1.05rem; white-space: nowrap; }
+.track b { color: var(--yellow); font-weight: 400; }
+@keyframes slide { to { transform: translateX(-50%); } }
+
+/* ── 各セクション共通 ── */
+.sec { padding: 3.6rem 0; }
+.sec.alt { background: var(--paper-2); }
+.sec-h { margin-bottom: 1.4rem; }
+.eyebrow { margin: 0; font-family: "Dela Gothic One", sans-serif; font-size: .75rem; letter-spacing: .22em; color: var(--orange); }
+h2 { font-family: "Dela Gothic One", sans-serif; font-weight: 400; font-size: clamp(1.7rem, 7vw, 2.5rem); line-height: 1.25; margin: .1rem 0 .5rem; }
+.lead { margin: 0; color: var(--ink-2); }
+.note { color: var(--ink-2); font-size: .9rem; margin: 1rem 0 0; }
+.tbd {
+  display: inline-block; font-size: .8rem; font-weight: 700; line-height: 1.5;
+  background: var(--tbd-bg); color: var(--tbd-ink); border-radius: 6px; padding: .05rem .5rem; margin: 0 .2rem;
+}
+.js .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .8, .2, 1); }
+.js .reveal.in { opacity: 1; transform: none; }
+
+/* どこで何を */
+.where { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; counter-reset: w; }
+@media (min-width: 760px) { .where { grid-template-columns: 1fr 1fr; } }
+.where li {
+  counter-increment: w; position: relative; background: var(--card); border-radius: 16px;
+  padding: .7rem 1rem .7rem 3.6rem; display: flex; flex-direction: column; box-shadow: var(--shadow);
+}
+.where li::before {
+  content: counter(w); position: absolute; left: .8rem; top: .8rem; width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--c); color: #fff; display: grid; place-items: center; font-family: "Dela Gothic One", sans-serif; font-size: .9rem;
+}
+.where .what { font-weight: 900; font-size: 1.05rem; line-height: 1.5; }
+.where .place { color: var(--ink-2); font-size: .92rem; }
+.where .place::before { content: "場所："; font-weight: 700; }
+
+/* 出し物（パビリオン） */
+.dark-paper { background: var(--paper-2); }
+.filter { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: 0 0 1.6rem; }
+.filter-q { font-family: "Yusei Magic", sans-serif; font-size: 1.2rem; margin-right: .3rem; }
+.filter button {
+  font: inherit; font-size: .9rem; font-weight: 900; color: var(--ink); cursor: pointer;
+  background: var(--card); border: 2px solid var(--ink); border-radius: 999px; padding: .35rem 1rem; min-height: 46px;
+}
+.filter button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.pav { margin: 0 0 1.4rem; border-radius: 28px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+.pav[hidden] { display: none; }
+.pav-head {
+  background: var(--c); color: #fff; padding: 1rem 1.3rem 1.1rem; display: grid;
+  grid-template-columns: auto 1fr; column-gap: .9rem; align-items: center; position: relative; overflow: hidden;
+}
+.pav-head::after {
+  content: ""; position: absolute; right: -40px; top: -50px; width: 160px; height: 160px; border-radius: 50%;
+  border: 22px solid rgba(255, 255, 255, .16);
+}
+.pav-no { grid-row: span 2; font-family: "Dela Gothic One", sans-serif; font-size: 2.6rem; line-height: 1; opacity: .9; }
+.pav-head h3 { margin: 0; font-size: 1.35rem; font-weight: 900; line-height: 1.3; }
+.pav-head p { margin: 0; font-size: .88rem; opacity: .95; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pav-head { color: #1c1712; } }
+:root[data-theme="dark"] .pav-head { color: #1c1712; }
+.items { display: grid; gap: 0; }
+@media (min-width: 700px) { .items { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
+.item { padding: 1rem 1.3rem 1.1rem; border-top: 1.5px solid var(--line); display: flex; flex-direction: column; }
+@media (min-width: 700px) { .item { border-left: 1.5px solid var(--line); margin-left: -1.5px; } }
+.item[hidden] { display: none; }
+.item h4 { margin: 0 0 .3rem; font-size: 1.12rem; font-weight: 900; line-height: 1.45; }
+.item p { margin: 0 0 .5rem; }
+.price { font-weight: 900; color: var(--c); }
+.price::after { content: "（予定）"; font-weight: 700; font-size: .8rem; color: var(--ink-2); }
+.price:has(.tbd)::after { content: none; }
+.meta { margin-top: auto !important; padding-top: .5rem; font-size: .88rem; color: var(--ink-2); font-weight: 700; }
+.meta::before { content: "場所："; }
+
+/* ラジオ */
+.onair { background: var(--night); color: var(--night-ink); padding: 3.6rem 0; position: relative; overflow: hidden; }
+.onair h2 { color: #fff; }
+.lamp {
+  display: inline-flex; align-items: center; gap: .5rem; margin: 0; font-family: "Dela Gothic One", sans-serif;
+  letter-spacing: .18em; font-size: .85rem; color: #ff6b5a; border: 2px solid #ff6b5a; border-radius: 8px; padding: .1rem .7rem;
+}
+.lamp .dot { width: .7rem; height: .7rem; border-radius: 50%; background: #ff6b5a; box-shadow: 0 0 12px #ff6b5a; animation: blink 1.6s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.eq { display: flex; gap: 5px; align-items: flex-end; height: 44px; margin: .2rem 0 1rem; }
+.eq i { width: 8px; border-radius: 4px; background: var(--yellow); height: 30%; animation: eq 1.1s ease-in-out infinite alternate; }
+.eq i:nth-child(3n) { animation-duration: .8s; background: #ffb070; }
+.eq i:nth-child(4n+1) { animation-duration: 1.4s; background: #a9d98f; }
+.eq i:nth-child(2) { animation-delay: -.3s; } .eq i:nth-child(5) { animation-delay: -.6s; } .eq i:nth-child(7) { animation-delay: -.2s; }
+.eq i:nth-child(9) { animation-delay: -.9s; } .eq i:nth-child(11) { animation-delay: -.4s; }
+@keyframes eq { to { height: 100%; } }
+.onair .dots li::marker { color: var(--yellow); }
+.onair .note { color: #cdd6ef; }
+.dots { padding-left: 1.3rem; margin: .4rem 0; }
+.dots li { margin: .3rem 0; }
+
+/* 夢中万博って？ */
+.about-grid { display: grid; gap: 2rem; align-items: center; }
+@media (min-width: 860px) { .about-grid { grid-template-columns: 1.3fr .7fr; gap: 3rem; } }
+.big-quote {
+  font-family: "Dela Gothic One", sans-serif; font-size: clamp(1.6rem, 7vw, 2.6rem); line-height: 1.35; margin: .6rem 0 1.2rem;
+  background: linear-gradient(90deg, var(--orange), var(--red) 55%, var(--purple));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.poster { margin: 0 auto; max-width: 300px; transform: rotate(3deg); }
+.poster img { border-radius: 10px; border: 8px solid #fff; box-shadow: var(--shadow); }
+.poster figcaption { text-align: center; font-size: .8rem; color: var(--ink-2); margin-top: .4rem; transform: rotate(-3deg); }
+
+/* ご来場の方へ */
+.notices { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.notices li { display: flex; gap: 1rem; align-items: flex-start; background: var(--card); border-radius: 18px; padding: .9rem 1.1rem; box-shadow: var(--shadow); }
+.kb {
+  flex: none; width: 2.6rem; height: 2.6rem; border-radius: 12px; display: grid; place-items: center;
+  background: var(--ink); color: var(--paper); font-weight: 900; font-size: 1.15rem;
+}
+.notices li:nth-child(1) .kb { background: var(--blue); color: #fff; }
+.notices li:nth-child(3) .kb { background: var(--red); color: #fff; }
+.notices li:nth-child(4) .kb { background: var(--green); color: #fff; }
+.notices h3 { margin: 0 0 .15rem; font-size: 1.05rem; font-weight: 900; line-height: 1.5; }
+.notices p { margin: 0; }
+
+/* アクセス */
+.addr { display: grid; grid-template-columns: auto 1fr; gap: .5rem 1.2rem; margin: 0 0 .6rem; background: var(--card); border-radius: 18px; padding: 1rem 1.2rem; box-shadow: var(--shadow); }
+.addr dt { font-weight: 900; color: var(--ink-2); }
+.addr dd { margin: 0; font-weight: 700; }
+@media (max-width: 420px) { .addr { grid-template-columns: 1fr; gap: 0; } .addr dd { margin-bottom: .6rem; } }
+
+/* 下の帯 */
+.foot { padding: 2.6rem 0 3rem; background: #241b14; color: #d9cbb6; font-size: .9rem; --paper: #f6ead8; }
+.foot p { margin: 0 0 .3rem; }
+.foot-title { font-family: "Dela Gothic One", sans-serif; font-size: 1.6rem; margin-bottom: .6rem !important; }
+.foot .b1 { color: #93b4ff; } .foot .b2 { color: #ff8a45; } .foot .b3 { color: #8fd27a; }
+.org { font-weight: 700; color: var(--paper); }
+.log summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
+.log ul { margin: .2rem 0 0; padding-left: 1.2rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .js .title span, .js .reveal { opacity: 1; transform: none; }
+}
