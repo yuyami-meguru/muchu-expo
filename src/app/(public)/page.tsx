@@ -4,6 +4,7 @@ import { Icon } from "@/components/icons";
 import { LiveBoard, LiveShopBadges } from "@/components/live/live-parts";
 import { loadAll } from "@/lib/store";
 
+import { EVENT, VENUE } from "@/lib/venue";
 import { Countdown } from "./_components/countdown";
 import "./home.css";
 
@@ -69,15 +70,15 @@ export default async function HomePage() {
                 <div>
                   <dt>日時</dt>
                   <dd>
-                    <strong>2026年11月28日（土）</strong>
-                    <span>11:00〜14:00</span>
+                    <strong>{EVENT.date}</strong>
+                    <span>{EVENT.hours}</span>
                   </dd>
                 </div>
                 <div>
                   <dt>場所</dt>
                   <dd>
-                    <strong>広島工業大学高等学校</strong>
-                    <span>沼田校舎</span>
+                    <strong>{VENUE.name}</strong>
+                    <span>〒{VENUE.postal} {VENUE.address}</span>
                   </dd>
                 </div>
               </dl>
@@ -131,7 +132,7 @@ export default async function HomePage() {
           <Link href="/info" className="hm-door tone-green">
             <Icon name="情報" size={28} />
             <span className="hm-door-t">ご来場の方へ</span>
-            <span className="hm-door-s">アクセス・注意すること</span>
+            <span className="hm-door-s">無料送迎バス・駐車場・行き方</span>
           </Link>
         </div>
       </section>
@@ -187,7 +188,7 @@ export default async function HomePage() {
               表現する。
             </p>
             <p>
-              「エンカレ祭」と「学習発表会」がひとつになった、<strong>今年はじめての行事</strong>です。生徒一人ひとりが夢中になっていることを、展示・発表・お店・体験のかたちでお見せします。
+              「エンカレ祭」と「学習発表会」がひとつになった、<strong>今年はじめての行事</strong>です。体験・エンカレ茶屋・地域の 3 つの部門に分かれた全体での取り組みだけでなく、演奏・絵画・工作・昆虫・古銭など、個人の夢中もさまざまなカタチで表現します。
             </p>
             <p>
               おそろいのバンダナは<strong>白</strong>。「みんなで同じスタート地点から」という想いと、一日の頑張りが見えるように、という理由で選びました。

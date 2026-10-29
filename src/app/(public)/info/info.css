@@ -12,3 +12,12 @@
 .if-addr dt { font-weight: 900; color: var(--ink-2); }
 .if-addr dd { margin: 0; font-weight: 700; }
 @media (max-width: 420px) { .if-addr { grid-template-columns: 1fr; gap: 0; } .if-addr dd { margin-bottom: 10px; } }
+.if-when { margin: 4px 0 20px; font-size: 1.05rem; }
+.if-card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 16px 18px; margin-bottom: 12px; }
+.if-card h3 { font-size: 1.1rem; margin-bottom: 6px; }
+.if-card p { margin: 0 0 6px; }
+.if-sub { font-weight: 900; color: var(--primary); margin-top: 10px !important; }
+.if-times { list-style: none; margin: 4px 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.if-times li { min-width: 4.2em; text-align: center; padding: 4px 10px; border-radius: var(--r-sm); background: var(--surface-2); font-weight: 900; font-variant-numeric: tabular-nums; }
+.if-note { font-size: 0.85rem; color: var(--ink-3); }
+.if-sns { margin-top: 16px; }

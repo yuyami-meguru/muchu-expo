@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   openGraph: { type: "website", siteName: "エンカレ夢中万博", locale: "ja_JP", images: ["/img/poster.jpg"] },
   title: { default: "エンカレ夢中万博", template: "%s | エンカレ夢中万博" },
-  description: "第1回 エンカレ夢中万博 ― 2026年11月28日（土）11:00〜14:00、広島工業大学高等学校 沼田校舎。生徒が夢中になっていることを、展示・発表・お店・体験で表現します。",
+  description: "第1回 エンカレ夢中万博 ― 2026年11月28日（土）10:00〜14:00、広島工業大学 沼田校舎。生徒が夢中になっていることを、展示・発表・お店・体験で表現します。",
 };
 
 export const viewport: Viewport = {

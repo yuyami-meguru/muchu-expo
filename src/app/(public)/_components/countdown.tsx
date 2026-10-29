@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { EVENT } from "@/lib/venue";
 
 function daysLeft() {
   const jst = new Date(Date.now() + 9 * 3600e3);
@@ -26,7 +27,7 @@ export function Countdown() {
       <>
         <span className="cd-l">本日</span>
         <span className="cd-n cd-today">開催中！</span>
-        <span className="cd-u">11:00〜14:00</span>
+        <span className="cd-u">{EVENT.hours}</span>
       </>
     );
   return (

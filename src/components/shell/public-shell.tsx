@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
+import { EVENT, VENUE } from "@/lib/venue";
 import type { FooterColumn, NavItem } from "./nav-items";
 import { BottomTabs } from "./bottom-tabs";
 import { AppVersion } from "./app-version";
@@ -55,8 +56,15 @@ export function PublicShell({
           <div className="shell-pfoot-brand">
             <Logo tone="dark" href="/" label="エンカレ夢中万博 トップへ" />
             <p className="shell-pfoot-motto">つながる夢、広がる未来！</p>
-            <p className="shell-pfoot-line">2026年11月28日（土）11:00〜14:00</p>
-            <p className="shell-pfoot-line">広島工業大学高等学校 沼田校舎</p>
+            <p className="shell-pfoot-line">
+              {EVENT.date} {EVENT.hours}
+            </p>
+            <p className="shell-pfoot-line">{VENUE.name}</p>
+            <p className="shell-pfoot-line">
+              <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
+                準備の様子は Instagram（新しいタブ）
+              </a>
+            </p>
           </div>
           {footer.map((col) => (
             <nav key={col.title} className="shell-pfoot-col" aria-label={col.title}>
@@ -72,7 +80,7 @@ export function PublicShell({
           ))}
         </div>
         <p className="shell-pfoot-copy">
-          主催：エンカレ夢中万博 実行委員会 ・ <AppVersion />
+          主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ <AppVersion />
         </p>
       </footer>
 
