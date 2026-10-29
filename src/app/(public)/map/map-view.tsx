@@ -6,18 +6,18 @@ import { Icon } from "@/components/icons";
 import { LiveShopBadges } from "@/components/live/live-parts";
 import { useLive } from "@/components/live/live-provider";
 import { SchoolMap } from "@/components/map/school-map";
-import { DEPTS, type DeptId, type Place } from "@/lib/types";
+import { deptLookup, type Dept, type Place } from "@/lib/types";
 
-type MapShop = { id: string; name: string; dept: DeptId; placeId: string; placeNote: string; catch: string };
+type MapShop = { id: string; name: string; dept: string; placeId: string; placeNote: string; catch: string };
 
-export function MapView({ shops, places, initial }: { shops: MapShop[]; places: Place[]; initial: string | null }) {
+export function MapView({ shops, places, depts, initial }: { shops: MapShop[]; places: Place[]; depts: Dept[]; initial: string | null }) {
+  const dept = deptLookup(depts);
   const [sel, setSel] = useState<string | null>(initial ?? places[0]?.id ?? null);
   const live = useLive();
   const pins = places.map((p) => {
     const here = shops.filter((s) => s.placeId === p.id);
-    const depts = [...new Set(here.map((s) => s.dept))];
     const alert = here.some((s) => Object.values(live.shops[s.id]?.stock ?? {}).includes("out"));
-    return { id: p.id, name: p.name, x: p.x, y: p.y, count: here.length, tone: depts.length === 1 ? `d-${depts[0]}` : undefined, alert };
+    return { id: p.id, name: p.name, x: p.x, y: p.y, count: here.length, tone: here.length && new Set(here.map((s) => dept(s.dept).color)).size === 1 ? `tone-${dept(here[0].dept).color}` : undefined, alert };
   });
   const place = places.find((p) => p.id === sel);
   const here = shops.filter((s) => s.placeId === sel);
@@ -28,10 +28,10 @@ export function MapView({ shops, places, initial }: { shops: MapShop[]; places: 
       <SchoolMap pins={pins} selected={sel} onSelect={setSel} />
       <div className="mp-side">
         <ul className="mp-legend" aria-label="部門の色">
-          {(Object.keys(DEPTS) as DeptId[]).map((d) => (
-            <li key={d} className={`d-${d}`}>
+          {depts.map((d) => (
+            <li key={d.id} className={`tone-${d.color}`}>
               <span aria-hidden="true" />
-              {DEPTS[d].short}
+              {d.short}
             </li>
           ))}
         </ul>
@@ -45,9 +45,9 @@ export function MapView({ shops, places, initial }: { shops: MapShop[]; places: 
             {here.length ? (
               <ul className="mp-list">
                 {here.map((s) => (
-                  <li key={s.id} className={`d-${s.dept}`}>
+                  <li key={s.id} className={`tone-${dept(s.dept).color}`}>
                     <Link href={`/shops/${s.id}`}>
-                      <span className="mp-dept">{DEPTS[s.dept].short}</span>
+                      <span className="mp-dept">{dept(s.dept).short}</span>
                       <span className="mp-name">{s.name}</span>
                       {s.placeNote && <span className="mp-pnote">{s.placeNote}</span>}
                       <LiveShopBadges shopId={s.id} />

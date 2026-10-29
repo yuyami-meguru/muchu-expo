@@ -70,7 +70,7 @@ export const shopPatch = z.object({
 /** 実行委員が変えられるもの（お店の人の分も含む） */
 export const adminShopPatch = shopPatch.extend({
   name: text(40).min(1).optional(),
-  dept: z.enum(["taiken", "chaya", "chiiki", "kojin", "unei"]).optional(),
+  dept: zId.optional(),
   kind: z.enum(["eat", "play", "see"]).optional(),
   catch: text(60).optional(),
   description: text(600).optional(),
@@ -91,6 +91,14 @@ export const placeBody = z.object({
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
   note: text(60),
+});
+
+export const deptBody = z.object({
+  name: text(20).min(1),
+  short: text(8).min(1),
+  tagline: text(40),
+  color: z.enum(["blue", "orange", "red", "purple", "green", "teal", "pink", "brown"]),
+  order: z.number().int().min(0).max(9999),
 });
 
 export const newsBody = z.object({ text: text(140).min(1), pinned: z.boolean().default(false) });

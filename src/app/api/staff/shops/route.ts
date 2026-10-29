@@ -12,14 +12,15 @@ export async function POST(req: NextRequest) {
     if (s?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
     const b = await readBody(
       req,
-      z.object({ id: zId, name: z.string().trim().min(1).max(40), dept: z.enum(["taiken", "chaya", "chiiki", "kojin", "unei"]) }),
+      z.object({ id: zId, name: z.string().trim().min(1).max(40), dept: zId }),
     );
     if ("error" in b) return b.error;
     if (await getShop(b.data.id, { fresh: true })) return fail(409, "その英字の名前はもう使われています");
-    const { shops } = await loadAll({ fresh: true });
+    const { shops, depts } = await loadAll({ fresh: true });
+    if (!depts.some((d) => d.id === b.data.dept)) return fail(400, "その部門はありません");
     const shop: Shop = {
       ...b.data,
-      kind: b.data.dept === "chaya" ? "eat" : b.data.dept === "taiken" ? "play" : "see",
+      kind: "see",
       catch: "",
       description: "",
       message: "",

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { adminShopPatch, fail, guarded, ok, readBody, sameOrigin, shopPatch } from "@/lib/api";
 import { canEditShop, getSession } from "@/lib/auth";
-import { deleteShop, getShop, saveShop } from "@/lib/store";
+import { deleteShop, getShop, loadAll, saveShop } from "@/lib/store";
 import type { Shop } from "@/lib/types";
 
 /*
@@ -22,6 +22,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/staff/shop
     if (!shop) return fail(404, "お店が見つかりません");
 
     const { stock, ...rest } = b.data as typeof b.data & Partial<Shop>;
+    if (rest.dept && rest.dept !== shop.dept && !(await loadAll({ fresh: true })).depts.some((d) => d.id === rest.dept))
+      return fail(400, "その部門はありません");
     const next: Shop = { ...shop, ...rest };
     if (stock?.length) {
       const by = new Map(stock.map((x) => [x.id, x.stock]));

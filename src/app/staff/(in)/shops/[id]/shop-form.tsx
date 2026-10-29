@@ -7,11 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Checkbox, Select, TextArea, TextField } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
-  DEPTS,
-  DEPT_ORDER,
   KIND_LABEL,
   STATE_LABEL,
   STOCK_LABEL,
+  type Dept,
   type Kind,
   type MenuItem,
   type Place,
@@ -40,7 +39,7 @@ function menuIds(menu: MenuItem[]): MenuItem[] {
 }
 
 /** 実行委員の、お店をまるごと編集する画面 */
-export function ShopForm({ shop, places }: { shop: Shop; places: Place[] }) {
+export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[]; depts: Dept[] }) {
   const router = useRouter();
   const [f, setF] = useState(shop);
   const [pending, setPending] = useState(false);
@@ -100,7 +99,7 @@ export function ShopForm({ shop, places }: { shop: Shop; places: Place[] }) {
         <div className="st-form-grid">
           <TextField label="お店の名前" value={f.name} maxLength={40} onChange={(e) => set("name", e.target.value)} />
           <TextField label="ひとこと（一覧のカードに出る）" value={f.catch} maxLength={60} onChange={(e) => set("catch", e.target.value)} />
-          <Select label="部門" value={f.dept} onChange={(e) => set("dept", e.target.value as Shop["dept"])} options={DEPT_ORDER.map((d) => ({ value: d, label: DEPTS[d].name }))} />
+          <Select label="部門" value={f.dept} onChange={(e) => set("dept", e.target.value as Shop["dept"])} options={[...depts.map((d) => ({ value: d.id, label: d.name })), ...(depts.some((d) => d.id === f.dept) ? [] : [{ value: f.dept, label: "（消した部門）" }])]} />
           <Select
             label="「何したい？」の分け方"
             value={f.kind}

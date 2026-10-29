@@ -9,7 +9,7 @@ export type MapPin = {
   name: string;
   x: number;
   y: number;
-  /** 部門の色のクラス（d-taiken など）。いくつもの部門がある場所は空 */
+  /** 部門の色のクラス（tone-blue など）。いくつもの色の部門がある場所は空 */
   tone?: string;
   /** ピンの上の小さな数（お店の数） */
   count?: number;

@@ -61,10 +61,20 @@ check("お店の人は店名を変えられない（送っても捨てる）", r
 check("お店の人はお知らせを出せない", (await a.req("POST", "/api/staff/news", { text: "x" })).status === 403);
 check("お店の人は地図を変えられない", (await a.req("PUT", "/api/staff/places/x1", { name: "x", x: 1, y: 1, note: "" })).status === 403);
 check("お店の人は QR を作り直せない", (await a.req("POST", `/api/staff/shops/${A}/key`)).status === 403);
+check("お店の人は部門を変えられない", (await a.req("PUT", "/api/staff/depts/zz", { name: "x", short: "x", tagline: "", color: "blue", order: 1 })).status === 403);
 check("お店の人はお店を足せない", (await a.req("POST", "/api/staff/shops", { id: "zz", name: "x", dept: "taiken" })).status === 403);
 check("ほかのサイトからは断る", (await a.req("PATCH", `/api/staff/shops/${A}`, { state: "open" }, { origin: "https://evil.example" })).status === 403);
 check("フォームの送りつけは断る", (await a.req("PATCH", `/api/staff/shops/${A}`, "state=open", { "content-type": "application/x-www-form-urlencoded" })).status === 415);
 check("A の売り切れを元に戻す", (await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: itemA, stock: "on" }] })).status === 200);
+
+// 部門：足す → 名前と色を変える → お店がいる部門は消せない → 空なら消せる
+check("実行委員は部門を足せる", (await admin.req("PUT", "/api/staff/depts/check-dept", { name: "テスト部門", short: "テスト", tagline: "", color: "teal", order: 999 })).status === 200);
+check("ない部門にはお店を入れられない", (await admin.req("PATCH", `/api/staff/shops/${B}`, { dept: "nai-dept" })).status === 400);
+const oldDept = (await admin.req("PATCH", `/api/staff/shops/${B}`, {})).json?.shop?.dept;
+check("お店を新しい部門へ移せる", (await admin.req("PATCH", `/api/staff/shops/${B}`, { dept: "check-dept" })).status === 200);
+check("お店がいる部門は消せない", (await admin.req("DELETE", "/api/staff/depts/check-dept")).status === 409);
+check("お店を元の部門へ戻す", (await admin.req("PATCH", `/api/staff/shops/${B}`, { dept: oldDept })).status === 200);
+check("空の部門は消せる", (await admin.req("DELETE", "/api/staff/depts/check-dept")).status === 200);
 
 check("実行委員は QR を作り直せる", (await admin.req("POST", `/api/staff/shops/${A}/key`)).status === 200);
 check("作り直したら前の QR の人は入れない", (await a.req("PATCH", `/api/staff/shops/${A}`, { state: "open" })).status === 401);

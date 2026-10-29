@@ -1,6 +1,6 @@
 /* エンカレ夢中万博。色・余白・角の丸み・文字の大きさは、すべてここの変数から使う。
    部品（ui-）と枠（shell-）は AVERIX ハブのものを持ってきた。変数の名前は AVERIX と同じで、値だけポスターの色（生成り紙・紅葉・刷毛文字）に変えた。
-   部門の色：体験＝青・エンカレ茶屋＝オレンジ・地域＝赤・個人発表＝紫・実行委員（運営）＝緑。ダークモードは下でまとめて入れかえる。 */
+   部門の色は 8 色の見本（--blue〜--brown）から実行委員の画面で選ぶ（.tone-○○）。ダークモードは下でまとめて入れかえる。 */
 @import "../components/ui/ui.css";
 @import "../components/shell/shell.css";
 
@@ -28,17 +28,32 @@
   --line-green: #06c755;
   --on-line: #ffffff;
   --navy: #241b14;
-  /* 部門の色（文字にも使える濃さ） */
-  --taiken: #1f4fb0;
-  --taiken-soft: #e3ebfb;
-  --chaya: #c64d0c;
-  --chaya-soft: #fde3cf;
-  --chiiki: #b8321f;
-  --chiiki-soft: #fbe3de;
-  --kojin: #6a43a8;
-  --kojin-soft: #eee6fa;
-  --unei: #2f7a22;
-  --unei-soft: #e3f2dc;
+  /* 部門の色見本（文字にも使える濃さ） */
+  --blue: #1f4fb0;
+  --blue-soft: #e3ebfb;
+  --orange: #c64d0c;
+  --orange-soft: #fde3cf;
+  --red: #b8321f;
+  --red-soft: #fbe3de;
+  --purple: #6a43a8;
+  --purple-soft: #eee6fa;
+  --green: #2f7a22;
+  --green-soft: #e3f2dc;
+  --teal: #0b7068;
+  --teal-soft: #dcf2ef;
+  --pink: #b02a68;
+  --pink-soft: #fbe2ee;
+  --brown: #7a5230;
+  --brown-soft: #f1e4d6;
+  /* ポスターの 3 色（ロゴ・題字に使う） */
+  --taiken: var(--blue);
+  --taiken-soft: var(--blue-soft);
+  --chaya: var(--orange);
+  --chaya-soft: var(--orange-soft);
+  --unei: var(--green);
+  --unei-soft: var(--green-soft);
+  --chiiki: var(--red);
+  --kojin: var(--purple);
   /* AVERIX の部品が使う名前（ライフ＝オレンジ） */
   --life: var(--chaya);
   --life-soft: var(--chaya-soft);
@@ -106,16 +121,22 @@
     --warn: #ffcb4d;
     --warn-soft: #4a3c10;
     --navy: #f6ead8;
-    --taiken: #93b4ff;
-    --taiken-soft: #1c2a4a;
-    --chaya: #ff8a45;
-    --chaya-soft: #4a2b17;
-    --chiiki: #ff8f7f;
-    --chiiki-soft: #44201a;
-    --kojin: #c6a8ff;
-    --kojin-soft: #2f2447;
-    --unei: #8fd27a;
-    --unei-soft: #1f3318;
+    --blue: #93b4ff;
+    --blue-soft: #1c2a4a;
+    --orange: #ff8a45;
+    --orange-soft: #4a2b17;
+    --red: #ff8f7f;
+    --red-soft: #44201a;
+    --purple: #c6a8ff;
+    --purple-soft: #2f2447;
+    --green: #8fd27a;
+    --green-soft: #1f3318;
+    --teal: #6fd6cb;
+    --teal-soft: #12302d;
+    --pink: #ff9cc8;
+    --pink-soft: #45192d;
+    --brown: #d9b48c;
+    --brown-soft: #3a2c1f;
     --footer-bg: #120e0b;
     --scrim: rgb(0 0 0 / 60%);
     --shadow-card: none;
@@ -171,12 +192,15 @@ strong { font-weight: 900; }
 :focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
 
-/* 部門の色を --c に入れる（カード・札・ピンで使う） */
-.d-taiken { --c: var(--taiken); --c-soft: var(--taiken-soft); }
-.d-chaya { --c: var(--chaya); --c-soft: var(--chaya-soft); }
-.d-chiiki { --c: var(--chiiki); --c-soft: var(--chiiki-soft); }
-.d-kojin { --c: var(--kojin); --c-soft: var(--kojin-soft); }
-.d-unei { --c: var(--unei); --c-soft: var(--unei-soft); }
+/* 部門の色を --c に入れる（カード・札・ピンで使う）。名前は types.ts の Tone と同じ */
+.tone-blue { --c: var(--blue); --c-soft: var(--blue-soft); }
+.tone-orange { --c: var(--orange); --c-soft: var(--orange-soft); }
+.tone-red { --c: var(--red); --c-soft: var(--red-soft); }
+.tone-purple { --c: var(--purple); --c-soft: var(--purple-soft); }
+.tone-green { --c: var(--green); --c-soft: var(--green-soft); }
+.tone-teal { --c: var(--teal); --c-soft: var(--teal-soft); }
+.tone-pink { --c: var(--pink); --c-soft: var(--pink-soft); }
+.tone-brown { --c: var(--brown); --c-soft: var(--brown-soft); }
 
 /* 決まっていないこと */
 .tbd {

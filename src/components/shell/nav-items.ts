@@ -55,6 +55,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
     label: "準備",
     items: [
       { key: "shops", label: "お店の情報", href: "/staff/shops", icon: "一覧" },
+      { key: "depts", label: "部門", href: "/staff/depts", icon: "しぼる" },
       { key: "places", label: "地図のピン", href: "/staff/places", icon: "地図" },
       { key: "qr", label: "お店の QR", href: "/staff/qr", icon: "QR" },
     ],
@@ -66,7 +67,7 @@ export const ADMIN_TABS: NavItem[] = [
   { key: "news", label: "お知らせ", href: "/staff/news", icon: "お知らせ" },
   { key: "shops", label: "お店", href: "/staff/shops", icon: "一覧" },
   { key: "places", label: "地図", href: "/staff/places", icon: "地図" },
-  { key: "qr", label: "QR", href: "/staff/qr", icon: "QR" },
+  { key: "more", label: "その他", href: "/staff/more", icon: "その他" },
 ];
 
 /** お店の人（お店の QR でログイン）。自分のお店だけ */

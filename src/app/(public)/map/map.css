@@ -20,3 +20,5 @@
 .mp-nowhere h2 { font-size: 1rem; }
 .mp-nowhere ul { margin: 0; padding-left: 1.2rem; }
 .mp-nowhere a { display: inline-block; min-height: 36px; padding: 4px 0; font-weight: 700; }
+.mp-access { margin-top: 40px; }
+.mp-access h2 { font-size: 1.2rem; }

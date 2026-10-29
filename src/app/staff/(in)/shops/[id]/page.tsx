@@ -14,7 +14,7 @@ export default async function StaffShopEditPage({ params }: PageProps<"/staff/sh
   const { id } = await params;
   const shop = await getShop(id, { fresh: true });
   if (!shop) notFound();
-  const { places } = await loadAll();
+  const { places, depts } = await loadAll();
   return (
     <div className="st-page st-stack">
       <PageHeader
@@ -26,7 +26,7 @@ export default async function StaffShopEditPage({ params }: PageProps<"/staff/sh
           </Button>
         }
       />
-      <ShopForm shop={shop} places={places} />
+      <ShopForm shop={shop} places={places} depts={depts} />
     </div>
   );
 }

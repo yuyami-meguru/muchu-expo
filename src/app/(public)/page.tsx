@@ -3,12 +3,12 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { LiveBoard, LiveShopBadges } from "@/components/live/live-parts";
 import { loadAll } from "@/lib/store";
-import { DEPT_ORDER, DEPTS } from "@/lib/types";
+
 import { Countdown } from "./_components/countdown";
 import "./home.css";
 
 export default async function HomePage() {
-  const { shops } = await loadAll();
+  const { shops, depts } = await loadAll();
   const visible = shops.filter((s) => !s.hidden);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));
   const marquee = visible.flatMap((s) => (s.menu.length ? s.menu.map((m) => m.name) : [s.name])).slice(0, 14);
@@ -118,17 +118,17 @@ export default async function HomePage() {
       {/* 入口のカード */}
       <section className="hm-sec hm-sec--alt" aria-label="見たいものをえらぶ">
         <div className="hm-wrap hm-doors">
-          <Link href="/shops" className="hm-door d-chaya">
+          <Link href="/shops" className="hm-door tone-orange">
             <Icon name="一覧" size={28} />
             <span className="hm-door-t">お店・出し物</span>
             <span className="hm-door-s">メニュー・値段・スケジュール・お店の思い</span>
           </Link>
-          <Link href="/map" className="hm-door d-taiken">
+          <Link href="/map" className="hm-door tone-blue">
             <Icon name="地図" size={28} />
             <span className="hm-door-t">マップ</span>
             <span className="hm-door-s">どの部門がどこにあるか</span>
           </Link>
-          <Link href="/info" className="hm-door d-unei">
+          <Link href="/info" className="hm-door tone-green">
             <Icon name="情報" size={28} />
             <span className="hm-door-t">ご来場の方へ</span>
             <span className="hm-door-s">アクセス・注意すること</span>
@@ -144,15 +144,16 @@ export default async function HomePage() {
             部門
           </h2>
           <div className="hm-pavs">
-            {DEPT_ORDER.map((d, i) => {
-              const list = visible.filter((s) => s.dept === d);
-              if (!list.length) return null;
+            {depts
+              .filter((d) => visible.some((s) => s.dept === d.id))
+              .map((d, i) => {
+              const list = visible.filter((s) => s.dept === d.id);
               return (
-                <div key={d} className={`hm-pav d-${d}`}>
+                <div key={d.id} className={`hm-pav tone-${d.color}`}>
                   <div className="hm-pav-head">
                     <span className="hm-pav-no">{String(i + 1).padStart(2, "0")}</span>
-                    <h3>{DEPTS[d].name}</h3>
-                    <p>{DEPTS[d].tagline}</p>
+                    <h3>{d.name}</h3>
+                    {d.tagline && <p>{d.tagline}</p>}
                   </div>
                   <ul>
                     {list.map((s) => (

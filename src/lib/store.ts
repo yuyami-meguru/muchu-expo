@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Redis } from "@upstash/redis";
 import { SEED } from "./seed";
-import type { News, Place, Shop, SiteData } from "./types";
+import type { Dept, News, Place, Shop, SiteData } from "./types";
 
 /*
  * 保存先。本番は Upstash Redis（Vercel で Upstash をつなぐと KV_REST_API_URL・KV_REST_API_TOKEN が入る）。
@@ -12,11 +12,12 @@ import type { News, Place, Shop, SiteData } from "./types";
  * 本番で設定がないときは、はじめのデータを見せるだけで書き換えはできない（StoreNotReady を投げる）。
  *
  * Redis の中身：
+ *   muchu:dept   ハッシュ（部門の id → Dept の JSON）
  *   muchu:shop   ハッシュ（お店の id → Shop の JSON）
  *   muchu:place  ハッシュ（場所の id → Place の JSON）
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
- *   muchu:seeded はじめのデータを入れたかどうか
+ *   muchu:seeded はじめのデータを入れたかどうか（部門は v0.4.0 から。muchu:seeded:dept）
  */
 
 export class StoreNotReady extends Error {
@@ -25,14 +26,21 @@ export class StoreNotReady extends Error {
   }
 }
 
-type Raw = { shop: Record<string, string>; place: Record<string, string>; news: Record<string, string>; key: Record<string, string> };
+type Raw = {
+  dept: Record<string, string>;
+  shop: Record<string, string>;
+  place: Record<string, string>;
+  news: Record<string, string>;
+  key: Record<string, string>;
+};
+const TABLES = ["dept", "shop", "place", "news", "key"] as const;
 
 interface Backend {
   readAll(): Promise<Raw>;
   hset(table: keyof Raw, id: string, value: string): Promise<void>;
   hdel(table: keyof Raw, id: string): Promise<void>;
-  /** はじめのデータを入れる（まだなら）。入れたら true */
-  seedOnce(raw: Raw): Promise<boolean>;
+  /** はじめのデータを入れる（flag がまだなら）。入れたら true */
+  seedOnce(flag: string, raw: Partial<Raw>): Promise<boolean>;
   incr(key: string, ttlSec: number): Promise<number>;
 }
 
@@ -49,12 +57,9 @@ class RedisBackend implements Backend {
   }
   async readAll(): Promise<Raw> {
     const p = this.r.pipeline();
-    p.hgetall("muchu:shop");
-    p.hgetall("muchu:place");
-    p.hgetall("muchu:news");
-    p.hgetall("muchu:key");
-    const [shop, place, news, key] = (await p.exec()) as (Record<string, string> | null)[];
-    return { shop: shop ?? {}, place: place ?? {}, news: news ?? {}, key: key ?? {} };
+    for (const t of TABLES) p.hgetall(`muchu:${t}`);
+    const res = (await p.exec()) as (Record<string, string> | null)[];
+    return Object.fromEntries(TABLES.map((t, i) => [t, res[i] ?? {}])) as Raw;
   }
   async hset(table: keyof Raw, id: string, value: string) {
     await this.r.hset(`muchu:${table}`, { [id]: value });
@@ -62,11 +67,11 @@ class RedisBackend implements Backend {
   async hdel(table: keyof Raw, id: string) {
     await this.r.hdel(`muchu:${table}`, id);
   }
-  async seedOnce(raw: Raw) {
-    const first = await this.r.set("muchu:seeded", String(Date.now()), { nx: true });
+  async seedOnce(flag: string, raw: Partial<Raw>) {
+    const first = await this.r.set(`muchu:${flag}`, String(Date.now()), { nx: true });
     if (first !== "OK") return false;
     const p = this.r.pipeline();
-    for (const t of ["shop", "place", "news", "key"] as const) if (Object.keys(raw[t]).length) p.hset(`muchu:${t}`, raw[t]);
+    for (const t of TABLES) if (raw[t] && Object.keys(raw[t]).length) p.hset(`muchu:${t}`, raw[t]);
     await p.exec();
     return true;
   }
@@ -82,7 +87,7 @@ class RedisBackend implements Backend {
 /** 手元用。プロセスの中に持ち、.data/dev.json にも書く（next dev を止めても残る） */
 class FileBackend implements Backend {
   private file = join(process.cwd(), ".data", "dev.json");
-  private data: (Raw & { seeded?: boolean }) | null = null;
+  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean }) | null = null;
   private counters = new Map<string, { n: number; until: number }>();
   constructor(private readonly writable: boolean) {}
   private load() {
@@ -90,8 +95,11 @@ class FileBackend implements Backend {
       try {
         this.data = JSON.parse(readFileSync(this.file, "utf8"));
       } catch {
-        this.data = { shop: {}, place: {}, news: {}, key: {} };
+        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {} };
       }
+      // v0.3.0 の手元データには部門の表が無い
+      this.data!.dept ??= {};
+      this.data!.flags ??= this.data!.seeded ? { seeded: true } : {};
     }
     return this.data!;
   }
@@ -102,7 +110,7 @@ class FileBackend implements Backend {
   }
   async readAll() {
     const d = this.load();
-    return { shop: { ...d.shop }, place: { ...d.place }, news: { ...d.news }, key: { ...d.key } };
+    return Object.fromEntries(TABLES.map((t) => [t, { ...d[t] }])) as Raw;
   }
   async hset(table: keyof Raw, id: string, value: string) {
     if (!this.writable) throw new StoreNotReady();
@@ -114,10 +122,11 @@ class FileBackend implements Backend {
     delete this.load()[table][id];
     this.save();
   }
-  async seedOnce(raw: Raw) {
+  async seedOnce(flag: string, raw: Partial<Raw>) {
     const d = this.load();
-    if (d.seeded) return false;
-    Object.assign(d, raw, { seeded: true });
+    if (d.flags![flag]) return false;
+    for (const t of TABLES) if (raw[t]) Object.assign(d[t], raw[t]);
+    d.flags![flag] = true;
     this.save();
     return true;
   }
@@ -130,13 +139,14 @@ class FileBackend implements Backend {
   }
 }
 
-const g = globalThis as unknown as { __muchuBackend?: Backend };
+// 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
+const g = globalThis as unknown as { __muchuBackendV4?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackend) {
+  if (!g.__muchuBackendV4) {
     const env = redisEnv();
-    g.__muchuBackend = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV4 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackend;
+  return g.__muchuBackendV4;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -149,13 +159,17 @@ export function newKey() {
 }
 
 function seedRaw(): Raw {
-  const raw: Raw = { shop: {}, place: {}, news: {}, key: {} };
+  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {} };
   for (const s of SEED.shops) {
     raw.shop[s.id] = JSON.stringify(s);
     raw.key[s.id] = newKey();
   }
   for (const p of SEED.places) raw.place[p.id] = JSON.stringify(p);
   return raw;
+}
+
+function seedDepts() {
+  return Object.fromEntries(SEED.depts.map((d) => [d.id, JSON.stringify(d)]));
 }
 
 function parseAll<T>(rec: Record<string, string>): T[] {
@@ -180,10 +194,18 @@ async function raw(fresh = false): Promise<Raw> {
   let r = await b.readAll();
   if (!Object.keys(r.shop).length) {
     if (storeReady()) {
-      await b.seedOnce(seedRaw());
+      await b.seedOnce("seeded", seedRaw());
       r = await b.readAll();
     } else {
       r = { ...seedRaw(), key: {} };
+    }
+  }
+  // v0.3.0 で始めたデータには部門が無い → はじめの部門を 1 度だけ入れる（そのあと全部消しても入れ直さない）
+  if (!Object.keys(r.dept).length) {
+    if (storeReady()) {
+      if (await b.seedOnce("seeded:dept", { dept: seedDepts() })) r = await b.readAll();
+    } else {
+      r = { ...r, dept: seedDepts() };
     }
   }
   cache = { at: Date.now(), raw: r };
@@ -193,6 +215,7 @@ async function raw(fresh = false): Promise<Raw> {
 export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData> {
   const r = await raw(opts.fresh);
   return {
+    depts: parseAll<Dept>(r.dept).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
     shops: parseAll<Shop>(r.shop).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
     places: parseAll<Place>(r.place).sort((a, b) => a.name.localeCompare(b.name, "ja")),
     news: parseAll<News>(r.news).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at),
@@ -218,6 +241,16 @@ export async function deleteShop(id: string) {
   guard();
   await backend().hdel("shop", id);
   await backend().hdel("key", id);
+  cache = null;
+}
+export async function saveDept(d: Dept) {
+  guard();
+  await backend().hset("dept", d.id, JSON.stringify(d));
+  cache = null;
+}
+export async function deleteDept(id: string) {
+  guard();
+  await backend().hdel("dept", id);
   cache = null;
 }
 export async function savePlace(p: Place) {

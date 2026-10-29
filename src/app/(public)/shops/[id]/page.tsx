@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges, LiveStock } from "@/components/live/live-parts";
 import { getShop, loadAll } from "@/lib/store";
-import { DEPTS, KIND_LABEL } from "@/lib/types";
+import { deptLookup, KIND_LABEL } from "@/lib/types";
 import "../shops.css";
 
 export async function generateMetadata({ params }: PageProps<"/shops/[id]">): Promise<Metadata> {
@@ -16,14 +16,15 @@ export async function generateMetadata({ params }: PageProps<"/shops/[id]">): Pr
 /** お店の詳細：いまの状態・メニューと値段（売り切れ）・当日の流れ・お店の思い・場所 */
 export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
   const { id } = await params;
-  const { shops, places } = await loadAll();
+  const { shops, places, depts } = await loadAll();
   const s = shops.find((x) => x.id === id);
   if (!s || s.hidden) notFound();
   const place = places.find((p) => p.id === s.placeId);
+  const dept = deptLookup(depts)(s.dept);
   const others = shops.filter((x) => !x.hidden && x.dept === s.dept && x.id !== s.id);
 
   return (
-    <article className={`sd d-${s.dept}`}>
+    <article className={`sd tone-${dept.color}`}>
       <header className="sd-hero">
         <div className="sp-wrap">
           <Link href="/shops" className="sd-back">
@@ -31,7 +32,7 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
             お店・出し物
           </Link>
           <p className="sd-kicker">
-            {DEPTS[s.dept].name} ・ {KIND_LABEL[s.kind]}
+            {dept.name} ・ {KIND_LABEL[s.kind]}
           </p>
           <h1 className="sd-name">{s.name}</h1>
           {s.catch && <p className="sd-catch">{s.catch}</p>}
@@ -109,7 +110,7 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
 
         {others.length > 0 && (
           <section className="sd-others" aria-labelledby="others-h">
-            <h2 id="others-h">{DEPTS[s.dept].name}のほかのお店</h2>
+            <h2 id="others-h">{dept.name}のほかのお店</h2>
             <ul>
               {others.map((o) => (
                 <li key={o.id}>

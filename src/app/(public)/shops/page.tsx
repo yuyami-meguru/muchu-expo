@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges } from "@/components/live/live-parts";
 import { loadAll } from "@/lib/store";
-import { DEPT_ORDER, DEPTS, KIND_LABEL, type Kind } from "@/lib/types";
+import { KIND_LABEL, NO_DEPT, type Kind } from "@/lib/types";
 import "./shops.css";
 
 export const metadata: Metadata = { title: "お店・出し物" };
@@ -14,7 +14,7 @@ const KINDS: (Kind | "all")[] = ["all", "eat", "play", "see"];
 export default async function ShopsPage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   const { kind: k } = await searchParams;
   const kind = (KINDS as string[]).includes(k ?? "") ? (k as Kind | "all") : "all";
-  const { shops, places } = await loadAll();
+  const { shops, places, depts } = await loadAll();
   const placeName = Object.fromEntries(places.map((p) => [p.id, p.name]));
   const list = shops.filter((s) => !s.hidden && (kind === "all" || s.kind === kind));
 
@@ -35,15 +35,16 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
         ))}
       </nav>
 
-      {DEPT_ORDER.map((d) => {
-        const inDept = list.filter((s) => s.dept === d);
+      {[...depts, { ...NO_DEPT, id: "__none" }].map((d) => {
+        // 部門が消えたお店は、最後に「未分類」としてまとめる
+        const inDept = list.filter((s) => (d.id === "__none" ? !depts.some((x) => x.id === s.dept) : s.dept === d.id));
         if (!inDept.length) return null;
         return (
-          <section key={d} className={`sp-dept d-${d}`} aria-labelledby={`dept-${d}`}>
-            <h2 id={`dept-${d}`} className="sp-dept-h">
+          <section key={d.id} className={`sp-dept tone-${d.color}`} aria-labelledby={`dept-${d.id}`}>
+            <h2 id={`dept-${d.id}`} className="sp-dept-h">
               <span className="sp-dept-dot" aria-hidden="true" />
-              {DEPTS[d].name}
-              <small>{DEPTS[d].tagline}</small>
+              {d.name}
+              {d.tagline && <small>{d.tagline}</small>}
             </h2>
             <ul className="sp-cards">
               {inDept.map((s) => {
@@ -52,7 +53,7 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
                   <li key={s.id}>
                     <Link href={`/shops/${s.id}`} className="sp-card">
                       <span className="sp-card-top">
-                        <span className="sp-card-kicker">{DEPTS[s.dept].short}</span>
+                        <span className="sp-card-kicker">{d.short}</span>
                         <LiveShopBadges shopId={s.id} />
                       </span>
                       <span className="sp-card-name">{s.name}</span>

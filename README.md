@@ -7,14 +7,15 @@
 |---|---|---|---|
 | お客さん側 | `/` `/shops` `/shops/[id]` `/map` `/info` | だれでも | いまの売り切れ・お知らせ（15 秒ごとに自動更新）、お店のメニュー・値段・当日の流れ・お店の思い、部門の地図 |
 | お店の人 | `/join`（お店の QR）→ `/staff` | 各お店 | 自分のお店の「品物ごとの売り切れ」「営業中など」「お店からのお知らせ」だけ |
-| 実行委員・先生 | `/staff/login`（合言葉）→ `/staff` | 実行委員 | 全部のお店の編集、地図のピン、トップのお知らせ、お店の QR の印刷・作り直し |
+| 実行委員・先生 | `/staff/login`（合言葉）→ `/staff` | 実行委員 | 全部のお店の編集、**部門**（足す・消す・名前・色・並び順）、地図のピン、トップのお知らせ、お店の QR の印刷・作り直し |
 
-ほかのお店を書き換えようとするとサーバーで断る（`npm run check:auth` で 21 項目を確かめる）。
+ほかのお店を書き換えようとするとサーバーで断る（`npm run check:auth` で 28 項目を確かめる）。
 
 ## フォルダ
 - `src/app/(public)/` お客さん側の画面　`src/app/staff/` `src/app/join/` 従業員側の画面　`src/app/api/` 保存の窓口
 - `src/components/ui` `src/components/shell` … AVERIX ハブから持ってきた部品と枠（色だけ `src/app/globals.css` で夢中万博に）
 - `src/lib/store.ts` 保存先（本番は Upstash Redis、手元は `.data/dev.json`）　`src/lib/auth.ts` ログイン　`src/lib/seed.ts` はじめのデータ
+- `src/lib/venue.ts` 会場の名前・住所・位置（Apple マップ／Google マップのボタンと埋め込みの地図）。**正確な位置が分かったら point に入れる**
 - `src/components/map/school-map.tsx` 地図（いまは**仮の配置図**。校舎の配置図をもらったら差しかえる）
 - `docs/` … GitHub Pages の静的ページ（v0.2.0）。パンフの QR（`docs/print/qr.svg`）は `https://yuyami-meguru.github.io/muchu-expo/` を指していて、Vercel の URL が決まったらここから転送する
 

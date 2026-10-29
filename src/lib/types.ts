@@ -1,7 +1,30 @@
 // 夢中万博のデータの形。保存先（Upstash Redis）にはこの形の JSON をそのまま入れる。
 
-/** 部門。運営＝実行委員（ラジオ・受付など） */
-export type DeptId = "taiken" | "chaya" | "chiiki" | "kojin" | "unei";
+/** 部門の色（色見本から選ぶ。CSS の .tone-○○ と同じ名前） */
+export type Tone = "blue" | "orange" | "red" | "purple" | "green" | "teal" | "pink" | "brown";
+export const TONES: { value: Tone; label: string }[] = [
+  { value: "blue", label: "青" },
+  { value: "orange", label: "オレンジ" },
+  { value: "red", label: "赤" },
+  { value: "purple", label: "紫" },
+  { value: "green", label: "緑" },
+  { value: "teal", label: "青緑" },
+  { value: "pink", label: "ピンク" },
+  { value: "brown", label: "茶" },
+];
+
+/** 部門。実行委員の画面で足す・消す・名前や色を変えられる */
+export type Dept = {
+  id: string;
+  /** 「体験部門」 */
+  name: string;
+  /** カードや地図に出す短い名前（「体験」） */
+  short: string;
+  /** ひとこと（「遊んで、つくって、持って帰れる」） */
+  tagline: string;
+  color: Tone;
+  order: number;
+};
 
 /** 品物の残り：販売中・残りわずか・売り切れ */
 export type Stock = "on" | "few" | "out";
@@ -26,7 +49,8 @@ export type ScheduleItem = { time: string; text: string };
 
 export type Shop = {
   id: string;
-  dept: DeptId;
+  /** 部門の id（Dept.id）。部門が消えていたら「未分類」として出す */
+  dept: string;
   kind: Kind;
   name: string;
   /** 一言（カードに出す） */
@@ -57,16 +81,16 @@ export type Place = { id: string; name: string; x: number; y: number; note: stri
 /** 実行委員からのお知らせ（トップに出す） */
 export type News = { id: string; text: string; at: number; pinned: boolean };
 
-export type SiteData = { shops: Shop[]; places: Place[]; news: News[] };
+export type SiteData = { depts: Dept[]; shops: Shop[]; places: Place[]; news: News[] };
 
-export const DEPTS: Record<DeptId, { name: string; short: string; tagline: string }> = {
-  taiken: { name: "体験部門", short: "体験", tagline: "遊んで、つくって、持って帰れる" },
-  chaya: { name: "エンカレ茶屋部門", short: "茶屋", tagline: "あったかい、おいしい、ひと休み" },
-  chiiki: { name: "地域部門", short: "地域", tagline: "つくる人と、その想いに出会う" },
-  kojin: { name: "個人発表・展示", short: "発表", tagline: "ひとりひとりの「夢中」" },
-  unei: { name: "実行委員", short: "運営", tagline: "ラジオ・案内" },
-};
-export const DEPT_ORDER: DeptId[] = ["taiken", "chaya", "chiiki", "kojin", "unei"];
+/** 部門が見つからないとき（消した部門のお店など） */
+export const NO_DEPT: Dept = { id: "", name: "未分類", short: "未分類", tagline: "", color: "brown", order: 9999 };
+
+/** 部門を id で引く道具 */
+export function deptLookup(depts: Dept[]) {
+  const m = new Map(depts.map((d) => [d.id, d]));
+  return (id: string) => m.get(id) ?? NO_DEPT;
+}
 
 export const STOCK_LABEL: Record<Stock, string> = { on: "販売中", few: "残りわずか", out: "売り切れ" };
 export const STATE_LABEL: Record<ShopState, string> = { prep: "準備中", open: "営業中", break: "休憩中", closed: "終了" };

@@ -1,0 +1,10 @@
+.ac { display: grid; gap: 12px; }
+.ac-embed { border-radius: var(--r-card); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow-card); aspect-ratio: 4 / 3; }
+@media (min-width: 760px) { .ac-embed { aspect-ratio: 16 / 9; } }
+.ac-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
+.ac-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.ac-btn {
+  flex: 1 1 220px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 20px;
+  border-radius: var(--r-pill); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; text-decoration: none;
+}
+.ac-btn--apple { background: var(--ink); color: var(--bg); box-shadow: 4px 4px 0 var(--primary); }

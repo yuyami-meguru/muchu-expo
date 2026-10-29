@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DEPTS, DEPT_ORDER, STATE_LABEL, STOCK_LABEL, type Shop, type Stock } from "@/lib/types";
+import { NO_DEPT, STATE_LABEL, STOCK_LABEL, type Dept, type Shop, type Stock } from "@/lib/types";
 import { savedAt, send } from "../../_lib/client";
 
 const NEXT: Record<Stock, Stock> = { on: "few", few: "out", out: "on" };
 
 /** 実行委員の「いまの様子」：部門ごとにお店を並べ、品物の札を押すと残りを順に変える */
-export function AdminOverview({ shops: initial }: { shops: Shop[] }) {
+export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts: Dept[] }) {
   const [shops, setShops] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -40,17 +40,18 @@ export function AdminOverview({ shops: initial }: { shops: Shop[] }) {
           {error}
         </p>
       )}
-      {DEPT_ORDER.map((d) => {
-        const list = shops.filter((s) => s.dept === d);
+      {[...depts, { ...NO_DEPT, id: "__none" }].map((d) => {
+        // 部門が消えたお店は「未分類」にまとめる
+        const list = shops.filter((s) => (d.id === "__none" ? !depts.some((x) => x.id === s.dept) : s.dept === d.id));
         if (!list.length) return null;
         return (
-          <section key={d} className={`st-dept d-${d}`} aria-labelledby={`st-d-${d}`}>
-            <h2 id={`st-d-${d}`} className="st-dept-title">
-              {DEPTS[d].name}
+          <section key={d.id} className={`st-dept tone-${d.color}`} aria-labelledby={`st-d-${d.id}`}>
+            <h2 id={`st-d-${d.id}`} className="st-dept-title">
+              {d.name}
             </h2>
             <div className="st-cards">
               {list.map((s) => (
-                <article key={s.id} className={`st-card d-${s.dept}`}>
+                <article key={s.id} className="st-card">
                   <div className="st-card-head">
                     <Link href={`/staff/shops/${s.id}`} className="st-card-name">
                       {s.name}

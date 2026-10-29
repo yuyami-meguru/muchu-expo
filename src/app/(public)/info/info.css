@@ -12,4 +12,3 @@
 .if-addr dt { font-weight: 900; color: var(--ink-2); }
 .if-addr dd { margin: 0; font-weight: 700; }
 @media (max-width: 420px) { .if-addr { grid-template-columns: 1fr; gap: 0; } .if-addr dd { margin-bottom: 10px; } }
-.if-btn { display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-weight: 900; text-decoration: none; box-shadow: 4px 4px 0 var(--primary); }

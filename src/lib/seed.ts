@@ -1,4 +1,4 @@
-import type { MenuItem, Place, Shop, SiteData } from "./types";
+import type { Dept, MenuItem, Place, Shop, SiteData } from "./types";
 
 // はじめに入れておくデータ（実行委員まとめ 8 月末時点・LINE 10 月まで）。
 // 値段・場所・時間はほとんど決まっていないので「（予定）」か空にしてある。当日までに実行委員の画面で直す。
@@ -19,6 +19,14 @@ const base = {
   hidden: false,
   updatedAt: 0,
 };
+
+export const SEED_DEPTS: Dept[] = [
+  { id: "taiken", name: "体験部門", short: "体験", tagline: "遊んで、つくって、持って帰れる", color: "blue", order: 10 },
+  { id: "chaya", name: "エンカレ茶屋部門", short: "茶屋", tagline: "あったかい、おいしい、ひと休み", color: "orange", order: 20 },
+  { id: "chiiki", name: "地域部門", short: "地域", tagline: "つくる人と、その想いに出会う", color: "red", order: 30 },
+  { id: "kojin", name: "個人発表・展示", short: "発表", tagline: "ひとりひとりの「夢中」", color: "purple", order: 40 },
+  { id: "unei", name: "実行委員", short: "運営", tagline: "ラジオ・案内", color: "green", order: 50 },
+];
 
 export const SEED_PLACES: Place[] = [
   { id: "tent-chiiku", name: "知育館そばのテント", x: 72, y: 30, note: "射的・くじ引き・押し花しおり" },
@@ -144,4 +152,4 @@ export const SEED_SHOPS: Shop[] = [
   },
 ];
 
-export const SEED: SiteData = { shops: SEED_SHOPS, places: SEED_PLACES, news: [] };
+export const SEED: SiteData = { depts: SEED_DEPTS, shops: SEED_SHOPS, places: SEED_PLACES, news: [] };

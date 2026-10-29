@@ -5,11 +5,11 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, TextField } from "@/components/ui/field";
-import { DEPTS, DEPT_ORDER } from "@/lib/types";
+import type { Dept } from "@/lib/types";
 import { send, slug } from "../../_lib/client";
 
 /** お店を足す。足したお店は「非公開」で始まり、中身を入れてから公開する */
-export function NewShopForm() {
+export function NewShopForm({ depts }: { depts: Dept[] }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -33,7 +33,7 @@ export function NewShopForm() {
       <form onSubmit={submit} noValidate className="st-form-grid">
         <TextField label="お店の名前" name="name" maxLength={40} placeholder="例：わたあめ" />
         <TextField label="英字の名前（アドレスに使う）" name="id" maxLength={40} placeholder="例：wataame" hint="a〜z・数字・- だけ。あとで変えられません" />
-        <Select label="部門" name="dept" defaultValue="chaya" options={DEPT_ORDER.map((d) => ({ value: d, label: DEPTS[d].name }))} />
+        <Select label="部門" name="dept" defaultValue={depts[0]?.id} options={depts.map((d) => ({ value: d.id, label: d.name }))} hint={depts.length ? undefined : "先に「部門を編集」で部門を作ってください"} />
         <div className="st-span2">
           {error && <p className="st-err" role="alert">{error}</p>}
           <Button type="submit" variant="primary" icon="足す" pending={pending}>

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { PageHeader } from "@/components/ui/card";
 import { loadAll, shopKey } from "@/lib/store";
-import { DEPTS } from "@/lib/types";
+import { deptLookup } from "@/lib/types";
 import { adminOnly } from "../_components/admin-only";
 import { PrintButton, RotateKeyButton } from "./qr-tools";
 
@@ -17,7 +17,8 @@ export default async function StaffQrPage() {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3470";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   const origin = `${proto}://${host}`;
-  const { shops } = await loadAll({ fresh: true });
+  const { shops, depts } = await loadAll({ fresh: true });
+  const dept = deptLookup(depts);
   const cards = await Promise.all(
     shops.map(async (s) => {
       const key = await shopKey(s.id);
@@ -30,8 +31,8 @@ export default async function StaffQrPage() {
       <PageHeader title="お店の QR" sub="お店ごとに印刷して、そのお店の人だけに渡してください。読み取ると、そのお店の売り切れを変えられるようになります" actions={<PrintButton />} />
       <div className="st-qrs">
         {cards.map(({ shop, svg }) => (
-          <article key={shop.id} className={`st-qr d-${shop.dept}`}>
-            <p className="st-qr-dept">{DEPTS[shop.dept].name}</p>
+          <article key={shop.id} className={`st-qr tone-${dept(shop.dept).color}`}>
+            <p className="st-qr-dept">{dept(shop.dept).name}</p>
             <h2 className="st-qr-name">{shop.name}</h2>
             {svg ? <div className="st-qr-img" role="img" aria-label={`${shop.name}の編集用 QR`} dangerouslySetInnerHTML={{ __html: svg }} /> : <p className="st-err">QR を作れませんでした</p>}
             <p className="st-qr-warn">お店の人だけが使う QR です。お客さんに見せないでください</p>
