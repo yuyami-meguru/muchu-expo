@@ -34,7 +34,7 @@
 
 /* 詳細 */
 .sd-hero { background: var(--c); color: #fff; padding: 20px 0 28px; position: relative; overflow: hidden; }
-.sd-hero::after { content: ""; position: absolute; right: -60px; top: -70px; width: 240px; height: 240px; border-radius: 50%; border: 30px solid rgb(255 255 255 / 14%); }
+.sd-hero::after { content: ""; position: absolute; right: -30px; top: -40px; width: 180px; height: 180px; border: 24px solid rgb(255 255 255 / 16%); transform: rotate(14deg); }
 @media (prefers-color-scheme: dark) { .sd-hero { color: #1c1712; } }
 .sd-back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: inherit; font-weight: 700; text-decoration: none; font-size: 0.9rem; }
 .sd-kicker { margin: 4px 0 0; font-size: 0.85rem; font-weight: 900; opacity: 0.95; }

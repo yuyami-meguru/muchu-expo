@@ -1,23 +1,23 @@
 .mx-map { width: 100%; }
-.mx-map-board { position: relative; width: 100%; aspect-ratio: 100 / 70; border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow-card); border: 1px solid var(--line); }
+.mx-map-board { position: relative; width: 100%; aspect-ratio: 100 / 70; border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow-card); border: 3px solid var(--line); }
 .mx-map--pick .mx-map-board { cursor: crosshair; }
 .mx-map-svg { display: block; width: 100%; height: 100%; }
-.mx-map-svg .m-ground { fill: #efe2c4; }
-.mx-map-svg .m-road { fill: #d8c7a3; }
-.mx-map-svg .m-bld { fill: #fffaf1; stroke: #b9a07a; stroke-width: 0.4; }
-.mx-map-svg .m-yard { fill: #e5d4ae; stroke: #c9b48c; stroke-width: 0.3; stroke-dasharray: 1 0.8; }
-.mx-map-svg .m-field { fill: #cfe0b4; stroke: #a8c08a; stroke-width: 0.3; }
-.mx-map-svg .m-gate { fill: #8a6f4b; }
-.mx-map-svg .m-txt { font-size: 3.4px; font-weight: 700; fill: #6e5c4a; text-anchor: middle; font-family: var(--font); }
+.mx-map-svg .m-ground { fill: #e6f4fd; }
+.mx-map-svg .m-road { fill: #b9d6ea; }
+.mx-map-svg .m-bld { fill: #ffffff; stroke: #1f2547; stroke-width: 0.4; }
+.mx-map-svg .m-yard { fill: #dcf2e4; stroke: #5fbe85; stroke-width: 0.3; stroke-dasharray: 1 0.8; }
+.mx-map-svg .m-field { fill: #c4e8cf; stroke: #5fbe85; stroke-width: 0.3; }
+.mx-map-svg .m-gate { fill: #1f2547; }
+.mx-map-svg .m-txt { font-size: 3.4px; fill: #434a74; text-anchor: middle; font-family: var(--font-display); }
 .mx-map-svg .m-txt--s { font-size: 2.6px; }
 @media (prefers-color-scheme: dark) {
-  .mx-map-svg .m-ground { fill: #2b231b; }
-  .mx-map-svg .m-road { fill: #3a2f24; }
-  .mx-map-svg .m-bld { fill: #3d3227; stroke: #6b5843; }
-  .mx-map-svg .m-yard { fill: #362c22; stroke: #5a4936; }
-  .mx-map-svg .m-field { fill: #2a3522; stroke: #4a5c3a; }
-  .mx-map-svg .m-gate { fill: #b89a72; }
-  .mx-map-svg .m-txt { fill: #d2bfa6; }
+  .mx-map-svg .m-ground { fill: #142445; }
+  .mx-map-svg .m-road { fill: #23365e; }
+  .mx-map-svg .m-bld { fill: #213258; stroke: #a3b0cf; }
+  .mx-map-svg .m-yard { fill: #193a2c; stroke: #3f8f62; }
+  .mx-map-svg .m-field { fill: #1b3a2a; stroke: #3f8f62; }
+  .mx-map-svg .m-gate { fill: #a3b0cf; }
+  .mx-map-svg .m-txt { fill: #bfcbe6; }
 }
 .mx-map-note { margin: 8px 0 0; font-size: 0.75rem; color: var(--ink-3); }
 

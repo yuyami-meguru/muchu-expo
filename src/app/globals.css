@@ -1,22 +1,28 @@
 /* エンカレ夢中万博。色・余白・角の丸み・文字の大きさは、すべてここの変数から使う。
-   部品（ui-）と枠（shell-）は AVERIX ハブのものを持ってきた。変数の名前は AVERIX と同じで、値だけポスターの色（生成り紙・紅葉・刷毛文字）に変えた。
+   部品（ui-）と枠（shell-）は AVERIX ハブのものを持ってきた。変数の名前は AVERIX と同じで、値は学校のパンフレット（2026-10）に合わせた：
+   水色の地・緑のドット文字（こい緑のふち）・紫の日付。影はぼかさない「ドットの影」。
    部門の色は 8 色の見本（--blue〜--brown）から実行委員の画面で選ぶ（.tone-○○）。ダークモードは下でまとめて入れかえる。 */
 @import "../components/ui/ui.css";
 @import "../components/shell/shell.css";
 
 :root {
   /* ───── 色（明るい画面） ───── */
-  --bg: #fbf3e4;
-  --surface: #fffaf1;
-  --surface-2: #f4e4c6;
-  --ink: #241b14;
-  --ink-2: #5b4a3a;
-  --ink-3: #6e5c4a;
-  --line: #e2cca6;
-  --primary: #c64d0c;
-  --primary-soft: #fde3cf;
+  --bg: #bfe4fb;
+  --surface: #ffffff;
+  --surface-2: #e4f3fd;
+  --ink: #1f2547;
+  --ink-2: #434a74;
+  --ink-3: #565d86;
+  --line: #9fcdee;
+  --primary: #23784a;
+  --primary-soft: #dcf2e4;
   --on-primary: #ffffff;
-  --accent: #f2b21b;
+  --accent: #5d4fdc;
+  /* 題字（パンフの緑のドット文字）と日付（紫） */
+  --title: #5fbe85;
+  --title-edge: #276b45;
+  --date: #5d4fdc;
+  --pixel-shadow: #8fc3e8;
   --ok: #2f7a22;
   --ok-soft: #e3f2dc;
   --ok-ink: #245f1a;
@@ -27,7 +33,7 @@
   --warn-soft: #fff0b3;
   --line-green: #06c755;
   --on-line: #ffffff;
-  --navy: #241b14;
+  --navy: #1f2547;
   /* 部門の色見本（文字にも使える濃さ） */
   --blue: #1f4fb0;
   --blue-soft: #e3ebfb;
@@ -45,7 +51,7 @@
   --pink-soft: #fbe2ee;
   --brown: #7a5230;
   --brown-soft: #f1e4d6;
-  /* ポスターの 3 色（ロゴ・題字に使う） */
+  /* 前の名前（v0.4 までの CSS が使う） */
   --taiken: var(--blue);
   --taiken-soft: var(--blue-soft);
   --chaya: var(--orange);
@@ -57,11 +63,11 @@
   /* AVERIX の部品が使う名前（ライフ＝オレンジ） */
   --life: var(--chaya);
   --life-soft: var(--chaya-soft);
-  /* いちばん下の帯（どちらのモードでもこげ茶） */
-  --footer-bg: #241b14;
-  --footer-ink: #f6ead8;
-  --footer-accent: #f2b21b;
-  --scrim: rgb(36 27 20 / 50%);
+  /* いちばん下の帯（どちらのモードでも紺） */
+  --footer-bg: #1f2547;
+  --footer-ink: #eef6ff;
+  --footer-accent: #7fd6a2;
+  --scrim: rgb(20 30 60 / 50%);
 
   /* ───── 余白 ───── */
   --s-1: 4px;
@@ -75,17 +81,17 @@
   --s-9: 48px;
   --s-10: 64px;
 
-  /* ───── 角の丸み（AVERIX より少し丸く） ───── */
-  --r-sm: 10px;
-  --r-md: 12px;
-  --r-lg: 14px;
-  --r-card: 20px;
-  --r-xl: 24px;
+  /* ───── 角の丸み（ドットの雰囲気で少し小さめ） ───── */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-card: 14px;
+  --r-xl: 18px;
   --r-pill: 999px;
 
   /* ───── 影 ───── */
-  --shadow-card: 0 2px 0 rgb(120 80 30 / 10%), 0 8px 24px rgb(120 80 30 / 8%);
-  --shadow-pop: 0 10px 30px rgb(80 50 20 / 22%);
+  --shadow-card: 0 4px 0 var(--pixel-shadow);
+  --shadow-pop: 0 6px 0 var(--pixel-shadow), 0 12px 30px rgb(20 40 80 / 20%);
 
   /* ───── そのほか ───── */
   --tap: 44px;
@@ -93,25 +99,29 @@
   --content-max: 1120px;
   --tabbar-h: 56px;
   --font: var(--font-maru), "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
-  --font-display: var(--font-dela), var(--font);
-  --font-hand: var(--font-yusei), var(--font);
+  --font-display: var(--font-pixel), var(--font);
+  --font-hand: var(--font-pixel), var(--font);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1712;
-    --surface: #2b231b;
-    --surface-2: #362c22;
-    --ink: #f6ead8;
-    --ink-2: #d2bfa6;
-    --ink-3: #b8a58c;
-    --line: #4a3c2e;
-    --primary: #ff8a45;
-    --primary-soft: #4a2b17;
-    --on-primary: #1c1712;
-    --accent: #ffcb4d;
+    --bg: #0f1a33;
+    --surface: #182747;
+    --surface-2: #213258;
+    --ink: #eef4ff;
+    --ink-2: #bfcbe6;
+    --ink-3: #a3b0cf;
+    --line: #2f4370;
+    --primary: #7fd6a2;
+    --primary-soft: #193a2c;
+    --on-primary: #0f1a33;
+    --accent: #a99bff;
+    --title: #7fd6a2;
+    --title-edge: #1d4d33;
+    --date: #b4a8ff;
+    --pixel-shadow: #0a1226;
     --ok: #8fd27a;
     --ok-soft: #1f3318;
     --ok-ink: #a9e096;
@@ -120,7 +130,7 @@
     --ng-ink: #ffb3a8;
     --warn: #ffcb4d;
     --warn-soft: #4a3c10;
-    --navy: #f6ead8;
+    --navy: #eef4ff;
     --blue: #93b4ff;
     --blue-soft: #1c2a4a;
     --orange: #ff8a45;
@@ -137,7 +147,7 @@
     --pink-soft: #45192d;
     --brown: #d9b48c;
     --brown-soft: #3a2c1f;
-    --footer-bg: #120e0b;
+    --footer-bg: #0a1226;
     --scrim: rgb(0 0 0 / 60%);
     --shadow-card: none;
     --shadow-pop: 0 8px 24px rgb(0 0 0 / 50%);
@@ -209,14 +219,19 @@ strong { font-weight: 900; }
 }
 
 /* ロゴ（ui/logo.tsx） */
-.mx-logo { line-height: 1; font-family: var(--font-display); font-size: 1.15rem; white-space: nowrap; }
-.mx-logo--sm { font-size: 1rem; }
-.mx-logo-1 { color: var(--taiken); }
-.mx-logo-2 { color: var(--chaya); }
-.mx-logo-3 { color: var(--unei); }
-.mx-logo--dark .mx-logo-1 { color: #93b4ff; }
-.mx-logo--dark .mx-logo-2 { color: #ff8a45; }
-.mx-logo--dark .mx-logo-3 { color: #8fd27a; }
+.mx-logo { line-height: 1; font-family: var(--font-display); font-size: 1.25rem; white-space: nowrap; color: var(--title); text-decoration: none; }
+.mx-logo--sm { font-size: 1.05rem; }
+.mx-logo > span { text-shadow: 1px 0 var(--title-edge), -1px 0 var(--title-edge), 0 1px var(--title-edge), 0 -1px var(--title-edge), 2px 2px 0 var(--title-edge); }
+.mx-logo--dark { color: #7fd6a2; }
+
+/* ドット文字の題字（パンフの「エンカレ夢中万博」：緑・こい緑のふち・右下に影）。各ページの大見出しも同じ */
+.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2 {
+  font-family: var(--font-display); font-weight: 400; color: var(--title); letter-spacing: 0.02em;
+  text-shadow: 2px 0 var(--title-edge), -2px 0 var(--title-edge), 0 2px var(--title-edge), 0 -2px var(--title-edge),
+    2px 2px var(--title-edge), -2px 2px var(--title-edge), 2px -2px var(--title-edge), -2px -2px var(--title-edge), 4px 5px 0 var(--title-edge);
+}
+/* ドットの枠（角を 1 段けずる） */
+.px-box { clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
