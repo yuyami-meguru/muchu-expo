@@ -113,3 +113,13 @@
   .sp-note, .sp-sneaker { display: none; }
   .sp-cube { top: auto; bottom: 26%; left: auto; right: 22%; }
 }
+
+/* このあと（タイムテーブルの次の 3 つ） */
+.hm-next { margin-top: 16px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 14px 16px; }
+.hm-next h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; color: var(--date); margin: 0 0 8px; }
+.hm-next ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hm-next li { display: grid; grid-template-columns: 4em 1fr; gap: 10px; align-items: baseline; border-left: 6px solid var(--c); padding: 6px 10px; background: var(--c-soft); border-radius: var(--r-sm); }
+.hm-next-t { font-family: var(--font-display); color: var(--date); }
+.hm-next li a { color: var(--ink); font-weight: 900; text-decoration: none; }
+.hm-next li small { display: block; font-weight: 700; color: var(--ink-2); }
+.hm-next-all { display: inline-flex; align-items: center; min-height: 44px; margin-top: 6px; font-weight: 900; }

@@ -66,7 +66,7 @@ export function ShopEditor({ shop: initial }: { shop: Shop }) {
       <section aria-labelledby="st-items-h">
         <h2 id="st-items-h" className="t-h2">売り切れ</h2>
         {shop.menu.length === 0 ? (
-          <p className="st-muted">品物がまだ登録されていません。実行委員に「品物を足して」と伝えてください。</p>
+          <p className="st-muted">品物がまだありません。下の「お店の紹介を書く」の「メニュー」で品物を足すと、ここに売り切れのボタンが出ます。</p>
         ) : (
           <ul className="st-items">
             {shop.menu.map((m) => (

@@ -1,0 +1,6 @@
+.hp-card { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 18px 20px; }
+.hp-card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; color: var(--primary); margin-bottom: 6px; }
+.hp-card h3 { font-size: 1.05rem; margin: 14px 0 4px; }
+.hp-card ol, .hp-card ul { margin: 0; padding-left: 1.4em; }
+.hp-card li { margin: 4px 0; line-height: 1.7; }
+.hp-warn { margin: 14px 0 0; padding: 10px 14px; border-radius: var(--r-md); background: var(--warn-soft); color: var(--warn); font-weight: 700; }

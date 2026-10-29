@@ -7,6 +7,7 @@ import { getShop, loadAll, storeReady } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
 import { AdminOverview } from "./_components/admin-overview";
 import { ShopEditor } from "./_components/shop-editor";
+import { ShopIntroEditor } from "./_components/shop-intro";
 
 export const metadata: Metadata = { title: "いまの様子" };
 export const dynamic = "force-dynamic";
@@ -29,7 +30,9 @@ export default async function StaffHome() {
       <div className="st-page st-stack">
         <PageHeader title={shop.name} sub={`${dept.name} ・ 押すとすぐお客さんの画面に出ます`} />
         {notReady}
-        <ShopEditor shop={shop} />
+        {/* 紹介を保存したら売り切れボタンの欄を作り直す（品物の名前・数が変わるため）。紹介の欄は「保存しました」を残すため作り直さない */}
+        <ShopEditor key={`e-${shop.updatedAt}`} shop={shop} />
+        <ShopIntroEditor shop={shop} />
       </div>
     );
   }

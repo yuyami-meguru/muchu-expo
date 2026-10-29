@@ -4,6 +4,8 @@ import { LiveBoard, LiveShopBadges } from "@/components/live/live-parts";
 import { Sprite } from "@/components/pixel/sprites";
 import { loadAll } from "@/lib/store";
 import { EVENT, VENUE } from "@/lib/venue";
+import { allSchedule } from "@/lib/schedule";
+import { ComingUp } from "./_components/coming-up";
 import { Countdown } from "./_components/countdown";
 import "./home.css";
 
@@ -13,6 +15,7 @@ export default async function HomePage() {
   const { shops, depts } = await loadAll();
   const visible = shops.filter((s) => !s.hidden);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));
+  const { timed } = allSchedule(shops, depts);
   const marquee = visible.flatMap((s) => (s.menu.length ? s.menu.map((m) => m.name) : [s.name])).slice(0, 14);
 
   return (
@@ -81,6 +84,7 @@ export default async function HomePage() {
           </h2>
           <p className="hm-lead">売り切れ・残りわずかの品物と、実行委員からのお知らせです。</p>
           <LiveBoard names={names} />
+          <ComingUp rows={timed} />
         </div>
       </section>
 

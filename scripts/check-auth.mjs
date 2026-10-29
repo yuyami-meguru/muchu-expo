@@ -65,6 +65,32 @@ check("お店の人は部門を変えられない", (await a.req("PUT", "/api/st
 check("お店の人はお店を足せない", (await a.req("POST", "/api/staff/shops", { id: "zz", name: "x", dept: "taiken" })).status === 403);
 check("ほかのサイトからは断る", (await a.req("PATCH", `/api/staff/shops/${A}`, { state: "open" }, { origin: "https://evil.example" })).status === 403);
 check("フォームの送りつけは断る", (await a.req("PATCH", `/api/staff/shops/${A}`, "state=open", { "content-type": "application/x-www-form-urlencoded" })).status === 415);
+// お店の紹介：お店の人が自分の中身を書ける。ほかのお店・店名などは変えられない。残りは勝手に変わらない。記録が残る
+const orig = (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json?.shop;
+const mark = `確認用の説明 ${Date.now()}`;
+const rd = await a.req("PATCH", `/api/staff/shops/${A}`, { description: mark });
+check("お店の人は自分の「どんなお店？」を変えられる", rd.status === 200 && rd.json?.shop?.description === mark);
+check("ほかのお店の「どんなお店？」は変えられない", (await a.req("PATCH", `/api/staff/shops/${B}`, { description: "x" })).status === 403);
+const rn = await a.req("PATCH", `/api/staff/shops/${A}`, { name: "のっとり", dept: "unei", hidden: true, order: 1 });
+check(
+  "お店の人が店名・部門・非公開・並び順を送っても変わらない",
+  rn.status === 200 && rn.json?.shop?.name === orig.name && rn.json?.shop?.dept === orig.dept && rn.json?.shop?.hidden === orig.hidden && rn.json?.shop?.order === orig.order,
+);
+await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: itemA, stock: "few" }] });
+const menuNoStock = orig.menu.map(({ id, name, price, note }) => ({ id, name, price, note }));
+const rm = await a.req("PATCH", `/api/staff/shops/${A}`, { menu: [...menuNoStock, { id: "check-item", name: "確認用の品物", price: "100円", note: "" }] });
+const mA = rm.json?.shop?.menu ?? [];
+check("お店の人は品物を足せる", rm.status === 200 && mA.some((m) => m.id === "check-item" && m.stock === "on"));
+check("メニューを送っても、ほかの品物の残りは変わらない", mA.find((m) => m.id === itemA)?.stock === "few");
+const rs = await a.req("PATCH", `/api/staff/shops/${A}`, { menu: menuNoStock.map((m) => ({ ...m, stock: "out" })) });
+check("お店の人はメニューの中で残りを変えられない（送っても今のまま）", rs.json?.shop?.menu?.find((m) => m.id === itemA)?.stock === "few");
+check("同じ英字の名前の品物が 2 つあると断る", (await a.req("PATCH", `/api/staff/shops/${A}`, { menu: [menuNoStock[0], menuNoStock[0]] })).status === 400);
+check("お店の人は変更の記録を見られない", (await a.req("GET", "/api/staff/log")).status === 403);
+const lg = await admin.req("GET", `/api/staff/log?shop=${A}`);
+check("実行委員は変更の記録を見られ、お店の人の変更が残っている", lg.status === 200 && lg.json?.log?.some((e) => e.by === A && e.field === "どんなお店？" && e.after === mark));
+check("売り切れだけの変更は記録に残らない", !lg.json?.log?.some((e) => e.field === "メニュー" && e.after.includes("few")));
+check("紹介を元に戻す", (await a.req("PATCH", `/api/staff/shops/${A}`, { description: orig.description, menu: menuNoStock })).status === 200);
+
 check("A の売り切れを元に戻す", (await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: itemA, stock: "on" }] })).status === 200);
 
 // 部門：足す → 名前と色を変える → お店がいる部門は消せない → 空なら消せる

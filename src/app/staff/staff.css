@@ -122,3 +122,35 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-tone-sw { width: 26px; height: 26px; border-radius: 50%; background: var(--c); }
 .st-tone:has(input:checked) { border-color: var(--c); background: var(--c-soft); }
 .st-tone:has(input:focus-visible) { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+/* 当日の道具（/staff/tools） */
+.st-tool { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 12px 0; }
+.st-tool + .st-tool { border-top: 1px dashed var(--line); }
+.st-tool > div { flex: 1 1 320px; min-width: 0; }
+.st-tool-h { font-size: 1rem; margin: 0 0 4px; }
+.st-tool .st-muted { margin: 0; }
+
+/* お店の人：お店の紹介を書く（_components/shop-intro.tsx） */
+.st-intro { margin-top: 24px; background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-card); }
+.st-intro-sum { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-height: 52px; padding: 12px 16px; font-weight: 900; font-size: 1.1rem; }
+.st-intro-sum::-webkit-details-marker { display: none; }
+.st-intro-sum::before { content: "▶"; font-size: 0.8em; color: var(--primary); }
+.st-intro[open] > .st-intro-sum::before { content: "▼"; }
+.st-intro-sum .st-muted { font-size: 0.8rem; font-weight: 700; }
+.st-intro-body { padding: 0 16px 16px; }
+.st-intro-set { border: 0; margin: 8px 0 0; padding: 0; min-width: 0; }
+.st-intro-set legend { font-weight: 900; font-size: 1.05rem; padding: 0; margin-bottom: 4px; }
+
+/* 実行委員：変更の記録（/staff/log） */
+.st-log-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.st-log-filter .ui-field { margin: 0; min-width: 0; flex: 1 1 200px; }
+.st-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.st-log li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 14px; min-width: 0; }
+.st-log-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.st-log-time { font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 0.85rem; }
+.st-log-shop { font-weight: 900; }
+.st-log-by { font-size: 0.8rem; color: var(--ink-2); }
+.st-log-field { font-weight: 700; margin: 4px 0 2px; }
+.st-log-diff { display: grid; gap: 2px; font-size: 0.88rem; }
+.st-log-diff span { display: block; overflow-wrap: anywhere; }
+.st-log-diff b { font-weight: 700; color: var(--ink-3); margin-right: 6px; }

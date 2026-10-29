@@ -1,6 +1,6 @@
 {
   "name": "muchu-expo",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3470",
@@ -8,7 +8,8 @@
     "start": "next start -p 3470",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check:auth": "node scripts/check-auth.mjs"
+    "check:auth": "node scripts/check-auth.mjs",
+    "check:tools": "node scripts/check-tools.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.0",

@@ -1,0 +1,67 @@
+/* お客さん用ポスター（/staff/posters）。A4 縦。中の大きさは紙の幅に対する割合（cqw）で決めるので、画面の縮小表示と印刷で同じ形になる。
+   色はダークモードでも変えない（紙に刷るものなので、パンフと同じ明るい水色）。 */
+.pst-list { display: grid; gap: 28px; justify-items: center; }
+.pst-sheet {
+  --c: #2f7a22;
+  container-type: inline-size; position: relative; overflow: hidden; width: min(100%, 520px); aspect-ratio: 210 / 297;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 6cqw 8cqw 4cqw; background: #bfe4fb; color: #1f2547; border-radius: 6px; box-shadow: 0 0 0 5px #fff, 0 11px 0 5px #8fc3e8;
+  font-family: var(--font); -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.pst-sheet p, .pst-sheet h2 { margin: 0; }
+/* 中身は紙の縦の真ん中に */
+.pst-main { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1; }
+.pst-sp { position: absolute; height: auto; opacity: 0.95; }
+.pst-sp--a { top: 4cqw; right: 4cqw; width: 15cqw; transform: rotate(8deg); }
+.pst-sp--b { top: 34cqw; left: 3cqw; width: 14cqw; transform: rotate(-10deg); }
+.pst-sp--c { bottom: 4cqw; left: 4cqw; width: 14cqw; transform: rotate(-8deg); }
+.pst-sp--d { bottom: 7cqw; right: 6cqw; width: 10cqw; transform: rotate(30deg); }
+
+/* ドット文字の題字（緑・こい緑のふち）。ふちの太さも紙の幅に合わせる */
+.pst-title, .pst-name {
+  font-family: var(--font-display); font-weight: 400; color: #5fbe85; line-height: 1.15;
+  --e: 0.045em;
+  text-shadow: var(--e) 0 #276b45, calc(var(--e) * -1) 0 #276b45, 0 var(--e) #276b45, 0 calc(var(--e) * -1) #276b45,
+    var(--e) var(--e) #276b45, calc(var(--e) * -1) var(--e) #276b45, var(--e) calc(var(--e) * -1) #276b45, calc(var(--e) * -1) calc(var(--e) * -1) #276b45,
+    calc(var(--e) * 2) calc(var(--e) * 2.4) 0 #276b45;
+}
+
+/* 1 枚目：会場全体の案内 */
+.pst-org { font-family: var(--font-display); color: #5d4fdc; font-size: 2.9cqw; background: rgb(255 255 255 / 70%); padding: 0.8cqw 2.4cqw; border-radius: 1cqw; margin-top: 2cqw !important; position: relative; z-index: 1; }
+.pst-title { display: flex; flex-direction: column; }
+.pst-title-1 { font-size: 11cqw; }
+.pst-title-2 { font-size: 17cqw; }
+.pst-date { font-family: var(--font-display); color: #5d4fdc; font-size: 4.4cqw; line-height: 1.45; margin-top: 3cqw !important; }
+
+/* お店ごと */
+.pst-brand { font-family: var(--font-display); color: #5d4fdc; font-size: 3cqw; margin-top: 1cqw !important; position: relative; z-index: 1; }
+.pst-dept { background: var(--c); color: #fff; font-weight: 900; font-size: 3.6cqw; padding: 0.6cqw 3.4cqw; border-radius: 99cqw; }
+.pst-name { margin-top: 3cqw !important; max-width: 100%; overflow-wrap: anywhere; }
+.pst-catch { margin-top: 2cqw !important; font-size: 3.7cqw; font-weight: 700; color: #434a74; }
+
+/* 1 枚目の部門の色札 */
+.pst-depts { list-style: none; margin: 4cqw 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6cqw; }
+.pst-depts li { color: #fff; font-weight: 900; font-size: 3cqw; padding: 0.6cqw 2.6cqw; border-radius: 99cqw; }
+
+/* QR（白い紙にドットの影） */
+.pst-qr { margin-top: 5cqw; width: 60cqw; background: #fff; padding: 2.4cqw; border: 1cqw solid #1f2547; box-shadow: 1.4cqw 1.4cqw 0 #8fc3e8; }
+.pst-sheet--top .pst-qr { width: 54cqw; margin-top: 4cqw; }
+.pst-qr svg { display: block; width: 100%; height: auto; }
+.pst-lead { margin-top: 5cqw !important; font-size: 5.4cqw; font-weight: 900; line-height: 1.35; }
+.pst-sub { margin-top: 1.4cqw !important; font-size: 3.2cqw; color: #434a74; font-weight: 700; }
+.pst-place { margin-top: 3.4cqw !important; font-size: 3.8cqw; font-weight: 900; background: #fff; padding: 0.8cqw 3cqw; border-radius: 1cqw; }
+.pst-url { font-size: 2.1cqw; position: relative; z-index: 1; color: #565d86; letter-spacing: 0.02em; }
+
+@media print {
+  @page pst { size: A4 portrait; margin: 0; }
+  .pst-page { padding: 0 !important; max-width: none !important; }
+  /* 隠した説明の欄とのすき間（.st-stack の 16px）が残ると、1 枚目が下にずれて 2 ページ目にはみ出す */
+  .pst-page > *, .pst-page .pst-list { margin: 0 !important; }
+  .pst-list { display: block; }
+  .pst-sheet { page: pst; width: 210mm; height: 297mm; aspect-ratio: auto; border-radius: 0; box-shadow: none; margin: 0; break-inside: avoid; page-break-inside: avoid; break-after: page; page-break-after: always; }
+  .pst-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+/* 会場全体のポスターの学校のロゴ（白い札の上） */
+.pst-org--logo { display: flex; flex-direction: column; align-items: center; gap: 0.6cqw; background: #fff; padding: 1.6cqw 3cqw; }
+.pst-org--logo img { display: block; width: 52cqw; height: auto; }
+.pst-org--logo span { font-size: 2.4cqw; }

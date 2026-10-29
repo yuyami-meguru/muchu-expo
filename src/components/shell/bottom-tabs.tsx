@@ -24,7 +24,7 @@ export function BottomTabs({ items, overflow, active, label = "メニュー" }: 
                   <Icon name={i.icon} size={22} />
                   {(i.dot || !!i.count) && <span className="ui-dot shell-tab-dot" aria-hidden="true" />}
                 </span>
-                <span className="shell-tab-label">{i.label}</span>
+                <span className="shell-tab-label">{i.short ?? i.label}</span>
                 {!!i.count && <span className="sr-only">（{i.count} 件）</span>}
                 {i.dot && !i.count && <span className="sr-only">（新しいものがあります）</span>}
               </NavLink>

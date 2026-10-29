@@ -60,30 +60,38 @@ export const zId = z.string().regex(/^[a-z0-9-]{1,40}$/);
 export const zStock = z.enum(["on", "few", "out"]);
 export const zState = z.enum(["prep", "open", "break", "closed"]);
 
-/** お店の人が変えられるもの */
+/** 品物の中身（名前・値段・メモ）。残り（stock）は送らなくてよい */
+const zMenuItem = z.object({ id: zId, name: text(40).min(1), price: text(30), note: text(60), stock: zStock.optional() });
+const zMenu = z
+  .array(zMenuItem)
+  .max(40)
+  .refine((list) => new Set(list.map((m) => m.id)).size === list.length, "品物の英字の名前が重なっています");
+const zSchedule = z.array(z.object({ time: text(20), text: text(80).min(1) })).max(30);
+
+/**
+ * お店の人が変えられるもの：状態・お知らせ・品物ごとの残り ＋ お店の紹介（ひとこと・どんなお店？・思い・当日の流れ・メニュー）。
+ * メニューの残り（stock）はここでは変えない（送っても今の値のまま。残りは stock の配列で変える）
+ */
 export const shopPatch = z.object({
   state: zState.optional(),
   notice: text(120).optional(),
   stock: z.array(z.object({ id: zId, stock: zStock })).max(40).optional(),
+  catch: text(60).optional(),
+  description: text(600).optional(),
+  message: text(600).optional(),
+  menu: zMenu.optional(),
+  schedule: zSchedule.optional(),
 });
 
-/** 実行委員が変えられるもの（お店の人の分も含む） */
+/** 実行委員が変えられるもの（お店の人の分も含む）。メニューの残りも直せる */
 export const adminShopPatch = shopPatch.extend({
   name: text(40).min(1).optional(),
   dept: zId.optional(),
   kind: z.enum(["eat", "play", "see"]).optional(),
-  catch: text(60).optional(),
-  description: text(600).optional(),
-  message: text(600).optional(),
   placeId: z.union([zId, z.literal("")]).optional(),
   placeNote: text(60).optional(),
   hidden: z.boolean().optional(),
   order: z.number().int().min(0).max(9999).optional(),
-  menu: z
-    .array(z.object({ id: zId, name: text(40).min(1), price: text(30), note: text(60), stock: zStock }))
-    .max(40)
-    .optional(),
-  schedule: z.array(z.object({ time: text(20), text: text(80).min(1) })).max(30).optional(),
 });
 
 export const placeBody = z.object({

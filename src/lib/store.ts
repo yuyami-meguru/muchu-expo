@@ -17,6 +17,7 @@ import type { Dept, News, Place, Shop, SiteData } from "./types";
  *   muchu:place  ハッシュ（場所の id → Place の JSON）
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
+ *   muchu:log    リスト（変更の記録。新しい順に 500 件まで。LogEntry の JSON）
  *   muchu:seeded はじめのデータを入れたかどうか（部門は v0.4.0 から。muchu:seeded:dept）
  */
 
@@ -42,6 +43,10 @@ interface Backend {
   /** はじめのデータを入れる（flag がまだなら）。入れたら true */
   seedOnce(flag: string, raw: Partial<Raw>): Promise<boolean>;
   incr(key: string, ttlSec: number): Promise<number>;
+  /** リストの先頭に足して、max 件より古いものを捨てる */
+  push(list: string, value: string, max: number): Promise<void>;
+  /** リストの先頭から n 件 */
+  list(list: string, n: number): Promise<string[]>;
 }
 
 function redisEnv() {
@@ -82,12 +87,21 @@ class RedisBackend implements Backend {
     const [n] = (await p.exec()) as [number, number];
     return n;
   }
+  async push(list: string, value: string, max: number) {
+    const p = this.r.pipeline();
+    p.lpush(`muchu:${list}`, value);
+    p.ltrim(`muchu:${list}`, 0, max - 1);
+    await p.exec();
+  }
+  async list(list: string, n: number) {
+    return ((await this.r.lrange(`muchu:${list}`, 0, n - 1)) as string[]) ?? [];
+  }
 }
 
 /** 手元用。プロセスの中に持ち、.data/dev.json にも書く（next dev を止めても残る） */
 class FileBackend implements Backend {
   private file = join(process.cwd(), ".data", "dev.json");
-  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean }) | null = null;
+  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean; lists?: Record<string, string[]> }) | null = null;
   private counters = new Map<string, { n: number; until: number }>();
   constructor(private readonly writable: boolean) {}
   private load() {
@@ -137,16 +151,26 @@ class FileBackend implements Backend {
     this.counters.set(key, next);
     return next.n;
   }
+  async push(list: string, value: string, max: number) {
+    if (!this.writable) throw new StoreNotReady();
+    const d = this.load();
+    d.lists ??= {};
+    d.lists[list] = [value, ...(d.lists[list] ?? [])].slice(0, max);
+    this.save();
+  }
+  async list(list: string, n: number) {
+    return (this.load().lists?.[list] ?? []).slice(0, n);
+  }
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-const g = globalThis as unknown as { __muchuBackendV4?: Backend };
+const g = globalThis as unknown as { __muchuBackendV5?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV4) {
+  if (!g.__muchuBackendV5) {
     const env = redisEnv();
-    g.__muchuBackendV4 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV5 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV4;
+  return g.__muchuBackendV5;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -296,6 +320,39 @@ export async function rotateShopKey(id: string) {
 export async function storedShopKey(id: string): Promise<string | null> {
   const r = await raw(true);
   return r.key[id] ?? null;
+}
+
+/* ───── 変更の記録（だれが・いつ・どのお店の・何を変えたか） ───── */
+export type LogEntry = {
+  at: number;
+  /** "admin"（実行委員）か、お店の id（お店の人） */
+  by: string;
+  shop: string;
+  shopName: string;
+  /** 欄の名前（「どんなお店？」など） */
+  field: string;
+  before: string;
+  after: string;
+};
+const LOG_MAX = 500;
+
+export async function addLog(entries: LogEntry[]) {
+  if (!entries.length || !storeReady()) return;
+  // 1 件ずつ先頭に足す（あとに足したものほど新しい）
+  for (const e of entries) await backend().push("log", JSON.stringify(e), LOG_MAX);
+}
+
+export async function listLog(n = LOG_MAX): Promise<LogEntry[]> {
+  const raw = await backend().list("log", n);
+  const out: LogEntry[] = [];
+  for (const v of raw) {
+    try {
+      out.push(typeof v === "string" ? (JSON.parse(v) as LogEntry) : (v as LogEntry));
+    } catch {
+      // 壊れた 1 件は飛ばす
+    }
+  }
+  return out;
 }
 
 /** 回数の上限（window 秒のあいだに limit 回まで）。超えたら false */
