@@ -1,0 +1,262 @@
+/* 画面の枠（shell-）。パソコン 1024px 以上・スマホ 767px 以下・そのあいだはスマホと同じ並べ方。
+   Figma：事務 103:1007 / 103:1420、お客さま 89:136 / 89:358、現場 99:2、トップ 61:2 / 79:145 */
+
+.shell-grow { flex: 1 1 auto; min-width: 0; }
+.shell-main { min-width: 0; }
+
+/* ───── スマホの下の固定メニュー（59:52） ───── */
+.shell-tabs {
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.shell-tabs ul { list-style: none; margin: 0 auto; padding: 0; max-width: 640px; display: grid; grid-template-columns: repeat(var(--tab-count, 5), minmax(0, 1fr)); }
+.shell-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: var(--tabbar-h); padding: 4px 2px; color: var(--ink-3); text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.shell-tab-icon {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 54px; height: 30px; border-radius: var(--r-pill); transition: background-color 0.15s;
+}
+.shell-tab-dot { position: absolute; top: 2px; right: 12px; }
+.shell-tab-label { font-size: 0.75rem; line-height: 1.5; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.shell-tab[aria-current="page"] { color: var(--primary); }
+.shell-tab[aria-current="page"] .shell-tab-icon { background: var(--primary-soft); }
+.shell-tab:active .shell-tab-icon { background: var(--surface-2); }
+@media (min-width: 1024px) {
+  .shell-tabs { display: none; }
+}
+
+/* スマホの上の帯（55px） */
+.shell-phonebar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 4px;
+  min-height: 55px; padding: 6px 4px 6px 16px; padding-top: calc(6px + env(safe-area-inset-top));
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+@media (min-width: 1024px) {
+  .shell-phonebar { display: none; }
+}
+
+/* ───── スタッフ側（事務・現場・講師）：左のメニュー 264px ───── */
+.shell-side { min-height: 100dvh; }
+.shell-sidebar { display: none; }
+.shell-side-main { padding: 16px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .shell-side { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
+  .shell-sidebar {
+    position: sticky; top: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 16px; background: var(--surface); border-right: 1px solid var(--line);
+    scrollbar-width: thin;
+  }
+  .shell-side-main { padding: 28px 40px 48px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shell-side-main { padding-left: 24px; padding-right: 24px; }
+}
+.shell-sidebar-logo { padding: 0 0 16px 8px; }
+.shell-search {
+  display: flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 12px; margin-bottom: 4px;
+  border-radius: var(--r-md); background: var(--surface-2); color: var(--ink-3);
+}
+.shell-search:focus-within { box-shadow: 0 0 0 2px var(--primary); }
+.shell-search input {
+  flex: 1; min-width: 0; min-height: 40px; padding: 0; border: 0; background: transparent;
+  font: inherit; font-size: 0.875rem; color: var(--ink);
+}
+.shell-search input:focus { outline: none; }
+.shell-search input::placeholder { color: var(--ink-3); opacity: 1; }
+.shell-search kbd { font: inherit; font-size: 0.75rem; font-weight: 500; color: var(--ink-3); }
+.shell-sidenav { display: flex; flex-direction: column; gap: 0; }
+.shell-sidegroup ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.shell-sidegroup-label { margin: 0; padding: 16px 12px 4px; font-size: 0.75rem; line-height: 1.5; font-weight: 500; color: var(--ink-3); }
+.shell-sideitem {
+  display: flex; align-items: center; gap: 12px; min-height: var(--tap); padding: 0 10px 0 12px;
+  border-radius: var(--r-md); color: var(--ink-2); text-decoration: none; font-size: 1rem; line-height: 1.6;
+}
+.shell-sideitem:hover { background: var(--surface-2); color: var(--ink); }
+.shell-sideitem[aria-current="page"] { background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+.shell-sideitem-label { flex: 1; min-width: 0; }
+.shell-user {
+  display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 16px 8px 0;
+  color: var(--ink); text-decoration: none; border-radius: var(--r-md);
+}
+.shell-user--link:hover .shell-user-name { text-decoration: underline; }
+.shell-user-text { display: flex; flex-direction: column; min-width: 0; }
+.shell-user-name { font-size: 0.875rem; line-height: 1.65; font-weight: 700; color: var(--ink); }
+.shell-user-sub { font-size: 0.75rem; line-height: 1.5; font-weight: 500; color: var(--ink-3); }
+
+/* ───── お客さま：上のメニュー（72px） ───── */
+.shell-cust { min-height: 100dvh; }
+.shell-ctop {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top);
+}
+.shell-ctop-inner {
+  display: flex; align-items: center; gap: 4px;
+  min-height: 55px; padding: 6px 4px 6px 16px;
+}
+.shell-ctop-logo, .shell-cnav, .shell-ctop-apply, .shell-avatar-btn { display: none !important; }
+.shell-cust-main { padding: 16px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shell-cust-main { padding-left: 24px; padding-right: 24px; }
+}
+@media (min-width: 1024px) {
+  .shell-ctop-inner {
+    max-width: calc(var(--content-max) + 48px); margin: 0 auto;
+    min-height: 72px; padding: 0 24px; gap: 20px;
+  }
+  .shell-ctop-logo { display: inline-flex !important; }
+  .shell-ctop-logo-sm { display: none !important; }
+  .shell-cnav { display: block !important; min-width: 0; }
+  .shell-ctop-apply { display: inline-flex !important; white-space: nowrap; flex: none; }
+  .shell-avatar-btn { display: inline-flex !important; }
+  .shell-cust-main { max-width: calc(960px + 48px); margin: 0 auto; padding: 40px 24px 64px; }
+  .shell-cust-main--wide { max-width: calc(var(--content-max) + 48px); }
+}
+.shell-cnav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.shell-cnav-item {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 12px;
+  border-radius: var(--r-sm); color: var(--ink-2); text-decoration: none;
+  font-size: 0.875rem; font-weight: 700; white-space: nowrap;
+}
+.shell-cnav-item:hover { background: var(--surface-2); color: var(--ink); }
+.shell-cnav-item[aria-current="page"] { background: var(--primary-soft); color: var(--primary); }
+/* 1024〜1279px は横がせまいので、ロゴを印だけ・メニューのアイコンをなくす */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .shell-ctop-inner { gap: 12px; }
+  .shell-ctop-logo .ui-logo-word { display: none !important; }
+  .shell-cnav-icon { display: none; }
+  .shell-cnav-item { padding: 0 10px; }
+}
+.shell-avatar-btn {
+  align-items: center; justify-content: center; width: var(--tap); height: var(--tap); padding: 0;
+  border: 0; border-radius: 50%; background: transparent; cursor: pointer;
+}
+.shell-avatar-btn .ui-avatar { box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.12s; }
+.shell-avatar-btn:hover .ui-avatar, .shell-avatar-btn:has(+ :popover-open) .ui-avatar { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary); }
+
+/* ───── 小さなメニュー（popover）：アカウント（136:705）・スマホのメニュー ───── */
+.shell-menu {
+  margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop);
+}
+.shell-menu::backdrop { background: transparent; }
+.shell-account {
+  position: fixed; inset: auto; top: calc(80px + env(safe-area-inset-top));
+  right: max(24px, calc((100vw - var(--content-max)) / 2));
+  width: 280px;
+}
+.shell-account-head { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+.shell-account-sub { font-size: 0.75rem; line-height: 1.5; font-weight: 500; color: var(--ok); }
+.shell-menu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.shell-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--tap); padding: 10px 12px;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink);
+  font: inherit; font-size: 0.875rem; text-align: left; text-decoration: none; cursor: pointer;
+}
+.shell-menu-item:hover { background: var(--surface-2); }
+.shell-menu-item .ui-icon { color: var(--ink-2); }
+.shell-menu-item--danger, .shell-menu-item--danger .ui-icon { color: var(--ng); font-weight: 700; }
+.shell-menu-foot { border-top: 1px solid var(--line); margin-top: 2px; padding-top: 2px; }
+
+/* スマホのメニュー（上から出るシート） */
+.shell-sheet {
+  position: fixed; inset: auto; top: 0; left: 0; right: 0; width: 100%; max-width: none;
+  max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+  border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 1px;
+  padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+}
+.shell-menu-top { display: flex; align-items: center; justify-content: space-between; min-height: 57px; margin: 0 -12px 8px 0; padding: 6px 0; }
+.shell-sheet::backdrop { background: var(--scrim); }
+.shell-sheet-item { font-size: 1rem; min-height: 52px; border-bottom: 1px solid var(--line); border-radius: 0; }
+.shell-sheet-item[aria-current="page"] { color: var(--primary); font-weight: 700; }
+.shell-sheet-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+
+/* ───── だれでも見られるページ ───── */
+.shell-pub { min-height: 100dvh; display: flex; flex-direction: column; }
+.shell-pub-main { flex: 1; min-width: 0; }
+.shell-ptop {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top);
+}
+.shell-ptop-inner { display: flex; align-items: center; gap: 4px; min-height: 57px; padding: 6px 4px 6px 16px; }
+.shell-ptop-logo, .shell-pnav, .shell-ptop-actions { display: none !important; }
+.shell-ptop-phone { display: flex; align-items: center; }
+.shell-line-icon { color: var(--line-green); }
+@media (min-width: 1280px) {
+  .shell-ptop-inner { max-width: calc(var(--content-max) + 48px); margin: 0 auto; min-height: 72px; padding: 0 24px; gap: 24px; }
+  .shell-ptop-logo { display: inline-flex !important; }
+  .shell-ptop-logo-sm, .shell-ptop-phone { display: none !important; }
+  .shell-pnav { display: block !important; min-width: 0; }
+  .shell-ptop-actions { display: flex !important; gap: 12px; margin-left: auto; }
+  .shell-ptop-actions .ui-btn { white-space: nowrap; }
+}
+.shell-pnav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.shell-pnav-item {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 12px; border-radius: var(--r-sm);
+  color: var(--ink-2); text-decoration: none; font-size: 0.875rem; font-weight: 700; white-space: nowrap;
+}
+.shell-pnav-item:hover { background: var(--surface-2); color: var(--ink); }
+.shell-pnav-item[aria-current="page"] { color: var(--primary); background: var(--primary-soft); }
+
+/* いちばん下（会社の情報）：紺の帯 */
+.shell-pfoot { background: var(--footer-bg); color: var(--footer-ink); padding: 40px 20px calc(40px + env(safe-area-inset-bottom)); }
+.shell-pfoot-inner { display: flex; flex-direction: column; gap: 20px; max-width: var(--content-max); margin: 0 auto; }
+.shell-pfoot a { color: var(--footer-ink); text-decoration: none; }
+.shell-pfoot a:hover { text-decoration: underline; }
+.shell-pfoot :focus-visible { outline-color: var(--footer-accent); }
+.shell-pfoot-brand { display: flex; flex-direction: column; gap: 12px; }
+.shell-pfoot-brand p { margin: 0; }
+.shell-pfoot-motto { font-size: 0.875rem; font-weight: 700; margin-top: 4px !important; }
+.shell-pfoot-line { display: flex; align-items: flex-start; gap: 8px; font-size: 0.875rem; }
+.shell-pfoot-line .ui-icon { margin-top: 4px; }
+.shell-pfoot-title { margin: 0 0 4px; font-size: 0.875rem; font-weight: 700; color: var(--footer-accent); }
+.shell-pfoot-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.shell-pfoot-col a { display: inline-flex; align-items: center; min-height: var(--tap); font-size: 0.875rem; }
+.shell-pfoot-copy { max-width: var(--content-max); margin: 24px auto 0; font-size: 0.75rem; font-weight: 500; }
+@media (min-width: 1024px) {
+  .shell-pfoot { padding: 64px 24px; }
+  .shell-pfoot-inner { flex-direction: row; gap: 64px; }
+  .shell-pfoot-brand { flex: 0 1 360px; }
+  .shell-pfoot-col { flex: 0 1 216px; }
+  .shell-pfoot-col a { min-height: 0; padding: 6px 0; }
+  .shell-pfoot-copy { margin-top: 40px; }
+}
+
+/* スマホで下に貼り付く「相談」「申し込む」 */
+.shell-pcta {
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+  display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.shell-pcta > * { flex: 1 1 0; min-width: 0; }
+.shell-pub--sticky .shell-pfoot { padding-bottom: calc(40px + 68px + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) {
+  .shell-pcta { display: none; }
+  .shell-pub--sticky .shell-pfoot { padding-bottom: 64px; }
+}
+
+/* 知らせ（保存しました）を、スマホでは下のメニューの上に出す */
+@media (max-width: 1023px) {
+  .shell-side, .shell-cust { --toast-offset: calc(var(--tabbar-h) + 16px); }
+}
+
+/* ログアウト（パソコンの左のメニューのいちばん下） */
+.shell-logout { margin-top: var(--sp-8, 8px); }
+.shell-logout-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+  padding: 0 12px; border: 0; border-radius: var(--r-md, 10px); background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 14px; cursor: pointer;
+}
+.shell-logout-btn:hover { background: var(--surface-2); color: var(--ink); }
+.shell-password-link { text-decoration: none; }
+
+/* バージョンの表記（いちばん下の帯・左のメニューの下・その他のメニューの下） */
+.shell-version { display: inline-block; margin-left: 12px; font-size: 0.75rem; font-weight: 500; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.shell-version--side { display: block; margin: 8px 0 0; padding: 0 12px; color: var(--ink-3); opacity: 1; }
+.shell-version--menu { display: block; margin: 24px 0 0; text-align: center; color: var(--ink-3); opacity: 1; }

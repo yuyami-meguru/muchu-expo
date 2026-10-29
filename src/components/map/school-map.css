@@ -1,0 +1,49 @@
+.mx-map { width: 100%; }
+.mx-map-board { position: relative; width: 100%; aspect-ratio: 100 / 70; border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow-card); border: 1px solid var(--line); }
+.mx-map--pick .mx-map-board { cursor: crosshair; }
+.mx-map-svg { display: block; width: 100%; height: 100%; }
+.mx-map-svg .m-ground { fill: #efe2c4; }
+.mx-map-svg .m-road { fill: #d8c7a3; }
+.mx-map-svg .m-bld { fill: #fffaf1; stroke: #b9a07a; stroke-width: 0.4; }
+.mx-map-svg .m-yard { fill: #e5d4ae; stroke: #c9b48c; stroke-width: 0.3; stroke-dasharray: 1 0.8; }
+.mx-map-svg .m-field { fill: #cfe0b4; stroke: #a8c08a; stroke-width: 0.3; }
+.mx-map-svg .m-gate { fill: #8a6f4b; }
+.mx-map-svg .m-txt { font-size: 3.4px; font-weight: 700; fill: #6e5c4a; text-anchor: middle; font-family: var(--font); }
+.mx-map-svg .m-txt--s { font-size: 2.6px; }
+@media (prefers-color-scheme: dark) {
+  .mx-map-svg .m-ground { fill: #2b231b; }
+  .mx-map-svg .m-road { fill: #3a2f24; }
+  .mx-map-svg .m-bld { fill: #3d3227; stroke: #6b5843; }
+  .mx-map-svg .m-yard { fill: #362c22; stroke: #5a4936; }
+  .mx-map-svg .m-field { fill: #2a3522; stroke: #4a5c3a; }
+  .mx-map-svg .m-gate { fill: #b89a72; }
+  .mx-map-svg .m-txt { fill: #d2bfa6; }
+}
+.mx-map-note { margin: 8px 0 0; font-size: 0.75rem; color: var(--ink-3); }
+
+/* ピン（押せる大きさ 44px を守る） */
+.mx-pin {
+  position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center;
+  background: none; border: 0; padding: 0; cursor: pointer; min-width: 44px; min-height: 44px; justify-content: flex-end;
+  -webkit-tap-highlight-color: transparent;
+}
+.mx-pin-dot {
+  width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--c, var(--primary)); color: #fff;
+  display: grid; place-items: center; font-size: 0.8rem; font-weight: 900; box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  border: 2px solid #fff;
+}
+.mx-pin-dot:not(:empty) { line-height: 1; }
+.mx-pin-dot { font-family: var(--font); }
+.mx-pin-dot > * { transform: rotate(45deg); }
+.mx-pin-label {
+  margin-top: 2px; font-size: 0.68rem; font-weight: 900; line-height: 1.3; color: var(--ink); background: var(--surface);
+  padding: 1px 6px; border-radius: var(--r-pill); white-space: nowrap; box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+  max-width: 9.5em; overflow: hidden; text-overflow: ellipsis;
+}
+.mx-pin--on .mx-pin-dot { outline: 3px solid var(--accent); outline-offset: 1px; transform: rotate(-45deg) scale(1.15); }
+.mx-pin--on .mx-pin-label { background: var(--ink); color: var(--bg); }
+.mx-pin--alert .mx-pin-dot::after {
+  content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ng); border: 2px solid #fff;
+}
+.mx-pin-dot { position: relative; }
+@media (max-width: 480px) { .mx-pin-label { font-size: 0.6rem; max-width: 7em; } }

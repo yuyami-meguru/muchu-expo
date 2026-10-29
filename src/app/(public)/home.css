@@ -1,0 +1,117 @@
+/* ホーム（v0.2.0 の静的ページの見た目を移した）。hm- で始める */
+.hm-wrap { max-width: var(--content-max); margin: 0 auto; padding: 0 16px; }
+.hm-sec { padding: 56px 0; }
+.hm-sec--alt { background: var(--surface-2); }
+.hm-eyebrow { margin: 0; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.22em; color: var(--primary); }
+.hm-h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.7rem, 7vw, 2.5rem); line-height: 1.25; margin: 2px 0 8px; }
+.hm-lead { color: var(--ink-2); margin-bottom: 20px; }
+
+/* 表紙 */
+.hm-hero { position: relative; padding: 32px 0 40px; overflow: hidden; isolation: isolate; }
+.hm-blobs { position: absolute; inset: 0; z-index: -1; filter: blur(50px); opacity: 0.5; }
+.hm-blobs i { position: absolute; border-radius: 50%; animation: hm-drift 18s ease-in-out infinite alternate; }
+.hm-blobs .b1 { width: 46vmax; height: 46vmax; background: #ffb070; top: -18vmax; right: -12vmax; }
+.hm-blobs .b2 { width: 34vmax; height: 34vmax; background: #a9d98f; bottom: -14vmax; left: -10vmax; animation-delay: -6s; }
+.hm-blobs .b3 { width: 26vmax; height: 26vmax; background: #9fbaff; top: 30%; left: 40%; animation-delay: -12s; opacity: 0.7; }
+@keyframes hm-drift { to { transform: translate(4vmax, 3vmax) scale(1.08); } }
+.hm-hero-grid { display: grid; gap: 28px; align-items: end; }
+@media (min-width: 920px) { .hm-hero-grid { grid-template-columns: 1.25fr 0.9fr; gap: 40px; } }
+.hm-hero-title { position: relative; }
+.hm-pre { margin: 0 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hm-pre .no { background: var(--ink); color: var(--bg); font-weight: 900; padding: 0 12px; border-radius: var(--r-pill); font-size: 0.9rem; }
+.hm-pre .en { font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 0.18em; color: var(--ink-2); }
+.hm-title { margin: 0; font-family: var(--font-display); font-weight: 400; line-height: 0.98; letter-spacing: -0.01em; }
+.hm-title span { display: block; animation: hm-pop 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.hm-title .t1 { color: var(--taiken); font-size: clamp(2.6rem, 13vw, 5.2rem); }
+.hm-title .t2, .hm-title .t3 { font-size: clamp(5.2rem, 30vw, 10.5rem); }
+.hm-title .t2 { color: var(--chaya); animation-delay: 0.12s; }
+.hm-title .t3 { color: var(--unei); margin-left: 0.5em; margin-top: -0.06em; animation-delay: 0.24s; }
+@keyframes hm-pop { from { opacity: 0; transform: translateY(0.3em) rotate(-4deg); } }
+.hm-tagline { font-family: var(--font-hand); font-size: clamp(1.3rem, 5.5vw, 1.9rem); margin: 10px 0 0; transform: rotate(-2deg); transform-origin: left; }
+.hm-tagline span { display: inline-block; }
+.hm-tagline em { font-style: normal; }
+.hm-tagline .o { color: var(--chaya); }
+.hm-tagline .g { color: var(--unei); }
+.hm-badge { position: absolute; top: 36px; right: 0; width: clamp(104px, 28vw, 168px); height: auto; }
+.hm-badge .bg { fill: var(--accent); }
+.hm-badge text { font-family: var(--font-display); fill: #241b14; }
+.hm-badge textPath { font-size: 16px; }
+.hm-badge .big { font-size: 34px; }
+.hm-badge .sm { font-size: 18px; letter-spacing: 4px; }
+.hm-badge .spin { transform-origin: 100px 100px; animation: hm-spin 22s linear infinite; }
+@keyframes hm-spin { to { transform: rotate(360deg); } }
+
+/* チケット */
+.hm-ticket {
+  display: grid; grid-template-columns: 1fr auto; background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--shadow-card);
+  -webkit-mask: radial-gradient(circle 14px at calc(100% - 7.2rem) 0, #0000 98%, #000) top/100% 51% no-repeat,
+                radial-gradient(circle 14px at calc(100% - 7.2rem) 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+          mask: radial-gradient(circle 14px at calc(100% - 7.2rem) 0, #0000 98%, #000) top/100% 51% no-repeat,
+                radial-gradient(circle 14px at calc(100% - 7.2rem) 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+}
+.hm-ticket-main { padding: 18px 20px 16px; min-width: 0; }
+.hm-ticket-k { margin: 0 0 8px; font-family: var(--font-display); font-size: 0.7rem; letter-spacing: 0.14em; color: var(--primary); }
+.hm-ticket dl { margin: 0; display: grid; gap: 10px; }
+.hm-ticket dl div { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: baseline; }
+.hm-ticket dt { font-size: 0.75rem; font-weight: 900; color: var(--bg); background: var(--ink); border-radius: 6px; padding: 0 8px; }
+.hm-ticket dd { margin: 0; line-height: 1.45; }
+.hm-ticket dd strong { display: block; font-size: 1.12rem; }
+.hm-ticket dd span { font-weight: 700; }
+.hm-ticket-who { margin: 12px 0 0; font-size: 0.82rem; color: var(--ink-2); }
+.hm-ticket-stub {
+  width: 7.2rem; border-left: 3px dashed var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 12px 6px; line-height: 1.2; background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.cd-l { font-size: 0.72rem; font-weight: 700; color: var(--ink-2); }
+.cd-n { font-family: var(--font-display); font-size: 3rem; color: var(--primary); line-height: 1.05; }
+.cd-n.cd-today { font-size: 1.4rem; margin: 4px 0; }
+.cd-u { font-size: 0.8rem; font-weight: 700; }
+
+/* 流れる帯 */
+.hm-marquee-clip { overflow: hidden; padding: 16px 0; }
+.hm-marquee { background: var(--ink); color: var(--bg); overflow: hidden; padding: 12px 0; transform: rotate(-1.2deg); margin: 0 -2vw; }
+.hm-track { display: flex; width: max-content; gap: 18px; animation: hm-slide 40s linear infinite; font-weight: 900; font-size: 1.05rem; white-space: nowrap; }
+.hm-track span { display: inline-flex; gap: 18px; align-items: center; }
+.hm-track b { color: var(--accent); font-weight: 400; }
+@keyframes hm-slide { to { transform: translateX(-50%); } }
+
+/* 入口のカード */
+.hm-doors { display: grid; gap: 12px; }
+@media (min-width: 760px) { .hm-doors { grid-template-columns: repeat(3, 1fr); } }
+.hm-door {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; padding: 18px 20px; border-radius: var(--r-xl);
+  background: var(--surface); box-shadow: var(--shadow-card); text-decoration: none; color: var(--ink); border-left: 8px solid var(--c);
+}
+.hm-door .ui-icon { grid-row: span 2; color: var(--c); }
+.hm-door-t { font-weight: 900; font-size: 1.15rem; }
+.hm-door-s { font-size: 0.85rem; color: var(--ink-2); line-height: 1.5; }
+.hm-door:hover { transform: translateY(-1px); }
+
+/* 部門 */
+.hm-pavs { display: grid; gap: 16px; margin-top: 16px; }
+@media (min-width: 900px) { .hm-pavs { grid-template-columns: 1fr 1fr; } }
+.hm-pav { background: var(--surface); border-radius: 26px; box-shadow: var(--shadow-card); overflow: hidden; }
+.hm-pav-head { background: var(--c); color: #fff; padding: 14px 20px 16px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; position: relative; overflow: hidden; }
+.hm-pav-head::after { content: ""; position: absolute; right: -40px; top: -50px; width: 160px; height: 160px; border-radius: 50%; border: 22px solid rgb(255 255 255 / 16%); }
+@media (prefers-color-scheme: dark) { .hm-pav-head { color: #1c1712; } }
+.hm-pav-no { grid-row: span 2; font-family: var(--font-display); font-size: 2.4rem; line-height: 1; }
+.hm-pav-head h3 { margin: 0; font-size: 1.25rem; }
+.hm-pav-head p { margin: 0; font-size: 0.85rem; opacity: 0.95; }
+.hm-pav ul { list-style: none; margin: 0; padding: 0; }
+.hm-pav li + li { border-top: 1px solid var(--line); }
+.hm-pav li a { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 56px; padding: 10px 20px; color: var(--ink); text-decoration: none; }
+.hm-pav li a:hover { background: var(--c-soft); }
+.hm-pav-name { font-weight: 900; }
+.hm-pav li .ui-icon { margin-left: auto; color: var(--ink-3); }
+
+/* 夢中万博って？ */
+.hm-about { display: grid; gap: 32px; align-items: center; }
+@media (min-width: 860px) { .hm-about { grid-template-columns: 1.3fr 0.7fr; gap: 48px; } }
+.hm-quote {
+  font-family: var(--font-display); font-size: clamp(1.6rem, 7vw, 2.6rem); line-height: 1.35; margin: 10px 0 20px;
+  background: linear-gradient(90deg, var(--chaya), var(--chiiki) 55%, var(--kojin)); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hm-poster { margin: 0 auto; max-width: 300px; transform: rotate(3deg); }
+.hm-poster img { border-radius: 10px; border: 8px solid #fff; box-shadow: var(--shadow-card); }
+.hm-poster figcaption { text-align: center; font-size: 0.8rem; color: var(--ink-3); margin-top: 6px; transform: rotate(-3deg); }
+

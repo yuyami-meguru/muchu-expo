@@ -1,0 +1,272 @@
+import "server-only";
+import { randomBytes } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { Redis } from "@upstash/redis";
+import { SEED } from "./seed";
+import type { News, Place, Shop, SiteData } from "./types";
+
+/*
+ * 保存先。本番は Upstash Redis（Vercel で Upstash をつなぐと KV_REST_API_URL・KV_REST_API_TOKEN が入る）。
+ * 手元（next dev）で Upstash の設定がなければ .data/dev.json に保存する。
+ * 本番で設定がないときは、はじめのデータを見せるだけで書き換えはできない（StoreNotReady を投げる）。
+ *
+ * Redis の中身：
+ *   muchu:shop   ハッシュ（お店の id → Shop の JSON）
+ *   muchu:place  ハッシュ（場所の id → Place の JSON）
+ *   muchu:news   ハッシュ（お知らせの id → News の JSON）
+ *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
+ *   muchu:seeded はじめのデータを入れたかどうか
+ */
+
+export class StoreNotReady extends Error {
+  constructor() {
+    super("保存先（Upstash）がまだつながっていません");
+  }
+}
+
+type Raw = { shop: Record<string, string>; place: Record<string, string>; news: Record<string, string>; key: Record<string, string> };
+
+interface Backend {
+  readAll(): Promise<Raw>;
+  hset(table: keyof Raw, id: string, value: string): Promise<void>;
+  hdel(table: keyof Raw, id: string): Promise<void>;
+  /** はじめのデータを入れる（まだなら）。入れたら true */
+  seedOnce(raw: Raw): Promise<boolean>;
+  incr(key: string, ttlSec: number): Promise<number>;
+}
+
+function redisEnv() {
+  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
+class RedisBackend implements Backend {
+  private r: Redis;
+  constructor(url: string, token: string) {
+    this.r = new Redis({ url, token, automaticDeserialization: false });
+  }
+  async readAll(): Promise<Raw> {
+    const p = this.r.pipeline();
+    p.hgetall("muchu:shop");
+    p.hgetall("muchu:place");
+    p.hgetall("muchu:news");
+    p.hgetall("muchu:key");
+    const [shop, place, news, key] = (await p.exec()) as (Record<string, string> | null)[];
+    return { shop: shop ?? {}, place: place ?? {}, news: news ?? {}, key: key ?? {} };
+  }
+  async hset(table: keyof Raw, id: string, value: string) {
+    await this.r.hset(`muchu:${table}`, { [id]: value });
+  }
+  async hdel(table: keyof Raw, id: string) {
+    await this.r.hdel(`muchu:${table}`, id);
+  }
+  async seedOnce(raw: Raw) {
+    const first = await this.r.set("muchu:seeded", String(Date.now()), { nx: true });
+    if (first !== "OK") return false;
+    const p = this.r.pipeline();
+    for (const t of ["shop", "place", "news", "key"] as const) if (Object.keys(raw[t]).length) p.hset(`muchu:${t}`, raw[t]);
+    await p.exec();
+    return true;
+  }
+  async incr(key: string, ttlSec: number) {
+    const p = this.r.pipeline();
+    p.incr(`muchu:rl:${key}`);
+    p.expire(`muchu:rl:${key}`, ttlSec, "NX");
+    const [n] = (await p.exec()) as [number, number];
+    return n;
+  }
+}
+
+/** 手元用。プロセスの中に持ち、.data/dev.json にも書く（next dev を止めても残る） */
+class FileBackend implements Backend {
+  private file = join(process.cwd(), ".data", "dev.json");
+  private data: (Raw & { seeded?: boolean }) | null = null;
+  private counters = new Map<string, { n: number; until: number }>();
+  constructor(private readonly writable: boolean) {}
+  private load() {
+    if (!this.data) {
+      try {
+        this.data = JSON.parse(readFileSync(this.file, "utf8"));
+      } catch {
+        this.data = { shop: {}, place: {}, news: {}, key: {} };
+      }
+    }
+    return this.data!;
+  }
+  private save() {
+    if (!this.writable) return;
+    mkdirSync(join(process.cwd(), ".data"), { recursive: true });
+    writeFileSync(this.file, JSON.stringify(this.data, null, 2));
+  }
+  async readAll() {
+    const d = this.load();
+    return { shop: { ...d.shop }, place: { ...d.place }, news: { ...d.news }, key: { ...d.key } };
+  }
+  async hset(table: keyof Raw, id: string, value: string) {
+    if (!this.writable) throw new StoreNotReady();
+    this.load()[table][id] = value;
+    this.save();
+  }
+  async hdel(table: keyof Raw, id: string) {
+    if (!this.writable) throw new StoreNotReady();
+    delete this.load()[table][id];
+    this.save();
+  }
+  async seedOnce(raw: Raw) {
+    const d = this.load();
+    if (d.seeded) return false;
+    Object.assign(d, raw, { seeded: true });
+    this.save();
+    return true;
+  }
+  async incr(key: string, ttlSec: number) {
+    const now = Date.now();
+    const c = this.counters.get(key);
+    const next = c && c.until > now ? { n: c.n + 1, until: c.until } : { n: 1, until: now + ttlSec * 1000 };
+    this.counters.set(key, next);
+    return next.n;
+  }
+}
+
+const g = globalThis as unknown as { __muchuBackend?: Backend };
+function backend(): Backend {
+  if (!g.__muchuBackend) {
+    const env = redisEnv();
+    g.__muchuBackend = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+  }
+  return g.__muchuBackend;
+}
+
+/** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
+export function storeReady() {
+  return !!redisEnv() || process.env.NODE_ENV !== "production";
+}
+
+export function newKey() {
+  return randomBytes(18).toString("base64url");
+}
+
+function seedRaw(): Raw {
+  const raw: Raw = { shop: {}, place: {}, news: {}, key: {} };
+  for (const s of SEED.shops) {
+    raw.shop[s.id] = JSON.stringify(s);
+    raw.key[s.id] = newKey();
+  }
+  for (const p of SEED.places) raw.place[p.id] = JSON.stringify(p);
+  return raw;
+}
+
+function parseAll<T>(rec: Record<string, string>): T[] {
+  const out: T[] = [];
+  for (const v of Object.values(rec)) {
+    try {
+      out.push(JSON.parse(v) as T);
+    } catch {
+      // 壊れた 1 件は飛ばす
+    }
+  }
+  return out;
+}
+
+// 同じサーバーの中では 2 秒だけ使い回す（人が多いときに Redis を呼びすぎないため）
+let cache: { at: number; raw: Raw } | null = null;
+const CACHE_MS = 2000;
+
+async function raw(fresh = false): Promise<Raw> {
+  if (!fresh && cache && Date.now() - cache.at < CACHE_MS) return cache.raw;
+  const b = backend();
+  let r = await b.readAll();
+  if (!Object.keys(r.shop).length) {
+    if (storeReady()) {
+      await b.seedOnce(seedRaw());
+      r = await b.readAll();
+    } else {
+      r = { ...seedRaw(), key: {} };
+    }
+  }
+  cache = { at: Date.now(), raw: r };
+  return r;
+}
+
+export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData> {
+  const r = await raw(opts.fresh);
+  return {
+    shops: parseAll<Shop>(r.shop).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
+    places: parseAll<Place>(r.place).sort((a, b) => a.name.localeCompare(b.name, "ja")),
+    news: parseAll<News>(r.news).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at),
+  };
+}
+
+export async function getShop(id: string, opts: { fresh?: boolean } = {}) {
+  const r = await raw(opts.fresh);
+  const v = r.shop[id];
+  return v ? (JSON.parse(v) as Shop) : null;
+}
+
+function guard() {
+  if (!storeReady()) throw new StoreNotReady();
+}
+
+export async function saveShop(shop: Shop) {
+  guard();
+  await backend().hset("shop", shop.id, JSON.stringify({ ...shop, updatedAt: Date.now() }));
+  cache = null;
+}
+export async function deleteShop(id: string) {
+  guard();
+  await backend().hdel("shop", id);
+  await backend().hdel("key", id);
+  cache = null;
+}
+export async function savePlace(p: Place) {
+  guard();
+  await backend().hset("place", p.id, JSON.stringify(p));
+  cache = null;
+}
+export async function deletePlace(id: string) {
+  guard();
+  await backend().hdel("place", id);
+  cache = null;
+}
+export async function saveNews(n: News) {
+  guard();
+  await backend().hset("news", n.id, JSON.stringify(n));
+  cache = null;
+}
+export async function deleteNews(id: string) {
+  guard();
+  await backend().hdel("news", id);
+  cache = null;
+}
+
+/** お店の編集用のかぎ（なければ作る） */
+export async function shopKey(id: string): Promise<string | null> {
+  const r = await raw(true);
+  if (!r.shop[id]) return null;
+  if (r.key[id]) return r.key[id];
+  guard();
+  const k = newKey();
+  await backend().hset("key", id, k);
+  cache = null;
+  return k;
+}
+export async function rotateShopKey(id: string) {
+  guard();
+  const k = newKey();
+  await backend().hset("key", id, k);
+  cache = null;
+  return k;
+}
+/** かぎの照合用（いつも最新を読む） */
+export async function storedShopKey(id: string): Promise<string | null> {
+  const r = await raw(true);
+  return r.key[id] ?? null;
+}
+
+/** 回数の上限（window 秒のあいだに limit 回まで）。超えたら false */
+export async function allow(bucket: string, limit: number, windowSec: number) {
+  const n = await backend().incr(bucket, windowSec);
+  return n <= limit;
+}

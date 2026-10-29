@@ -1,0 +1,40 @@
+/* お客さん側の枠（PublicShell）の調整。AVERIX は 1280px でメニューを出すが、ここは項目が少ないので 1024px から。 */
+.mx-pub .shell-ptop { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.mx-pub .shell-ptop-inner { max-width: calc(var(--content-max) + 32px); margin: 0 auto; min-height: 56px; padding: 6px 16px; gap: 12px; padding-top: calc(6px + env(safe-area-inset-top)); }
+.mx-pub .shell-pnav { display: none !important; }
+@media (min-width: 1024px) {
+  .mx-pub .shell-ptop-inner { min-height: 68px; gap: 24px; }
+  .mx-pub .shell-pnav { display: block !important; }
+}
+/* 下のメニューにかからないよう、スマホでは下をあける */
+@media (max-width: 1023px) {
+  .mx-pub .shell-pfoot { padding-bottom: calc(40px + var(--tabbar-h) + env(safe-area-inset-bottom)); }
+}
+.mx-textsize {
+  font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--ink); cursor: pointer; white-space: nowrap;
+  background: var(--surface); border: 2px solid var(--ink); border-radius: var(--r-pill); padding: 0.3rem 0.9rem; min-height: var(--tap);
+}
+.mx-textsize[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+@media (max-width: 360px) { .mx-textsize { font-size: 0.7rem; padding: 0.3rem 0.6rem; } }
+
+/* ───── いまの様子（components/live/live-parts.tsx）。どのページでも使う ───── */
+.mx-board { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--shadow-card); padding: 16px; }
+.mx-news { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.mx-news li { display: flex; gap: 12px; align-items: baseline; background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
+.mx-news li.mx-news--pin { background: var(--ink); color: var(--bg); }
+.mx-news time { font-size: 0.8rem; opacity: 0.8; flex: none; }
+.mx-soldout { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+@media (min-width: 760px) { .mx-soldout { grid-template-columns: 1fr 1fr; } }
+.mx-soldout a { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; border-radius: var(--r-md); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.mx-soldout a:hover { border-color: var(--primary); }
+.mx-soldout-item { font-weight: 900; }
+.mx-soldout-shop { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); text-align: right; }
+.mx-board-empty { margin: 4px 0 8px; font-weight: 700; color: var(--ok-ink); }
+.mx-clock { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.75rem; color: var(--ink-3); }
+.mx-clock-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: hm-blink 2s ease-in-out infinite; }
+@keyframes hm-blink { 50% { opacity: 0.3; } }
+
+.mx-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+/* お店からのお知らせ（詳細・一覧でも使う） */
+.mx-notice { display: flex; gap: 10px; align-items: baseline; margin: 8px 0 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--taiken-soft); font-weight: 700; }
+.mx-notice-k { flex: none; font-size: 0.72rem; color: var(--taiken); }

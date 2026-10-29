@@ -1,0 +1,110 @@
+/* 従業員側（お店の人・実行委員）。AVERIX の ui-・shell- で足りない所だけ。クラスは st- で始める */
+.st-page { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; }
+.st-page--wide { max-width: 1120px; }
+.st-stack > * + * { margin-top: 16px; }
+.st-muted { color: var(--ink-3); font-size: 0.875rem; }
+.st-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.st-grow { flex: 1 1 auto; min-width: 0; }
+.st-saved { font-size: 0.8rem; color: var(--ok-ink); font-weight: 700; min-height: 1.4em; }
+.st-err { font-size: 0.875rem; color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 8px 12px; margin: 8px 0 0; }
+
+/* ログイン */
+.st-login { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+.st-login-card { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 28px 20px; }
+.st-login-card h1 { font-size: 1.3rem; margin: 16px 0 4px; }
+.st-login-note { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: 0.875rem; color: var(--ink-2); }
+
+/* 状態（準備中・営業中・休憩中・終了） */
+.st-states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.st-state {
+  min-height: 52px; border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface); font-weight: 900; cursor: pointer;
+  font-size: 0.9rem; padding: 4px;
+}
+.st-state[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.st-state[data-v="open"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+/* 品物ごとの残り（大きな 3 つのボタン） */
+.st-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.st-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px; box-shadow: var(--shadow-card); }
+.st-item-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.st-item-name { font-weight: 900; font-size: 1.1rem; }
+.st-stock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.st-stock-btn {
+  min-height: 56px; border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface); cursor: pointer;
+  font-weight: 900; font-size: 0.95rem; color: var(--ink-2); padding: 4px;
+}
+.st-stock-btn[data-v="on"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.st-stock-btn[data-v="few"][aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #241b14; }
+.st-stock-btn[data-v="out"][aria-pressed="true"] { background: var(--ng); border-color: var(--ng); color: #fff; }
+.st-stock-btn:disabled { opacity: 0.6; cursor: progress; }
+
+/* 実行委員の「いまの様子」 */
+.st-dept { margin-top: 24px; }
+.st-dept-title { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 0 0 8px; }
+.st-dept-title::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.st-cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.st-card { background: var(--surface); border: 1px solid var(--line); border-top: 5px solid var(--c, var(--line)); border-radius: var(--r-lg); padding: 12px 14px; }
+.st-card-head { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.st-card-name { font-weight: 900; line-height: 1.4; }
+.st-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 10px; border-radius: var(--r-pill);
+  border: 2px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 700; font-size: 0.85rem;
+}
+.st-chip::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+.st-chip[data-v="few"]::before { background: var(--accent); }
+.st-chip[data-v="out"]::before { background: var(--ng); }
+.st-chip[data-v="out"] { text-decoration: line-through; color: var(--ink-3); }
+.st-badge { display: inline-block; font-size: 0.75rem; font-weight: 900; padding: 2px 10px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.st-badge[data-v="open"] { background: var(--ok-soft); color: var(--ok-ink); }
+.st-badge[data-v="break"] { background: var(--warn-soft); color: var(--warn); }
+.st-badge[data-v="closed"] { background: var(--ng-soft); color: var(--ng-ink); }
+
+/* 編集の表（品物・流れ） */
+.st-rows { display: grid; gap: 10px; }
+.st-rowbox { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; background: var(--bg); display: grid; gap: 8px; }
+.st-rowbox-grid { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .st-rowbox-grid { grid-template-columns: 2fr 1fr 2fr; } .st-rowbox-grid--2 { grid-template-columns: 1fr 3fr; } }
+.st-rowbox .ui-field { margin: 0; }
+.st-form-grid { display: grid; gap: 4px 16px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .st-form-grid { grid-template-columns: 1fr 1fr; } .st-span2 { grid-column: span 2; } }
+.st-actions { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px); z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; box-shadow: var(--shadow-pop); margin-top: 20px; }
+@media (min-width: 1024px) { .st-actions { bottom: 12px; } }
+
+/* 一覧 */
+.st-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); overflow: hidden; }
+.st-list > li { border-top: 1px solid var(--line); }
+.st-list > li:first-child { border-top: 0; }
+.st-list-row { display: flex; gap: 10px; align-items: center; padding: 12px 14px; min-height: 56px; color: inherit; text-decoration: none; }
+a.st-list-row:hover { background: var(--surface-2); }
+.st-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--line)); }
+
+/* 地図のピン */
+.st-place-pick { font-size: 0.875rem; font-weight: 700; color: var(--primary); }
+
+/* ログアウト（ページのいちばん下） */
+.st-foot { max-width: 960px; margin: 0 auto; padding: 0 16px 120px; display: flex; justify-content: flex-end; }
+@media (min-width: 1024px) { .st-foot { padding-bottom: 40px; } }
+
+/* お店の QR（印刷） */
+.st-qrs { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.st-qr { background: #fff; color: #241b14; border: 2px dashed #b9a07a; border-radius: 16px; padding: 16px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+.st-qr-dept { font-size: 0.8rem; font-weight: 900; color: var(--c); margin: 0; }
+.st-qr-name { font-size: 1.15rem; font-weight: 900; margin: 2px 0 8px; line-height: 1.4; }
+.st-qr-img { width: 200px; max-width: 100%; margin: 0 auto; }
+.st-qr-img svg { display: block; width: 100%; height: auto; }
+.st-qr-warn { font-size: 0.78rem; font-weight: 700; margin: 8px 0 0; }
+.st-qr-how { font-size: 0.72rem; color: #6e5c4a; margin: 4px 0 0; }
+.st-qr-tools { margin-top: 10px; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .shell-sidebar, .shell-phonebar, .shell-tabs, .st-noprint, .st-foot, .ui-page-head .ui-btn { display: none !important; }
+  .shell-side, .shell-main, .shell-side-main { display: block !important; margin: 0 !important; padding: 0 !important; }
+  body { background: #fff !important; }
+  .st-page { padding: 0; max-width: none; }
+  .st-qrs { grid-template-columns: 1fr 1fr; gap: 10mm; }
+  .st-qr { --c: #241b14; }
+}
+@media (max-width: 380px) {
+  .st-stock-btn, .st-state { font-size: 0.82rem; padding: 2px; }
+}

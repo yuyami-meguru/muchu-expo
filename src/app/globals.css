@@ -1,0 +1,204 @@
+/* エンカレ夢中万博。色・余白・角の丸み・文字の大きさは、すべてここの変数から使う。
+   部品（ui-）と枠（shell-）は AVERIX ハブのものを持ってきた。変数の名前は AVERIX と同じで、値だけポスターの色（生成り紙・紅葉・刷毛文字）に変えた。
+   部門の色：体験＝青・エンカレ茶屋＝オレンジ・地域＝赤・個人発表＝紫・実行委員（運営）＝緑。ダークモードは下でまとめて入れかえる。 */
+@import "../components/ui/ui.css";
+@import "../components/shell/shell.css";
+
+:root {
+  /* ───── 色（明るい画面） ───── */
+  --bg: #fbf3e4;
+  --surface: #fffaf1;
+  --surface-2: #f4e4c6;
+  --ink: #241b14;
+  --ink-2: #5b4a3a;
+  --ink-3: #6e5c4a;
+  --line: #e2cca6;
+  --primary: #c64d0c;
+  --primary-soft: #fde3cf;
+  --on-primary: #ffffff;
+  --accent: #f2b21b;
+  --ok: #2f7a22;
+  --ok-soft: #e3f2dc;
+  --ok-ink: #245f1a;
+  --ng: #b8321f;
+  --ng-soft: #fbe3de;
+  --ng-ink: #8f2416;
+  --warn: #8a5a00;
+  --warn-soft: #fff0b3;
+  --line-green: #06c755;
+  --on-line: #ffffff;
+  --navy: #241b14;
+  /* 部門の色（文字にも使える濃さ） */
+  --taiken: #1f4fb0;
+  --taiken-soft: #e3ebfb;
+  --chaya: #c64d0c;
+  --chaya-soft: #fde3cf;
+  --chiiki: #b8321f;
+  --chiiki-soft: #fbe3de;
+  --kojin: #6a43a8;
+  --kojin-soft: #eee6fa;
+  --unei: #2f7a22;
+  --unei-soft: #e3f2dc;
+  /* AVERIX の部品が使う名前（ライフ＝オレンジ） */
+  --life: var(--chaya);
+  --life-soft: var(--chaya-soft);
+  /* いちばん下の帯（どちらのモードでもこげ茶） */
+  --footer-bg: #241b14;
+  --footer-ink: #f6ead8;
+  --footer-accent: #f2b21b;
+  --scrim: rgb(36 27 20 / 50%);
+
+  /* ───── 余白 ───── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+  --s-9: 48px;
+  --s-10: 64px;
+
+  /* ───── 角の丸み（AVERIX より少し丸く） ───── */
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 14px;
+  --r-card: 20px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* ───── 影 ───── */
+  --shadow-card: 0 2px 0 rgb(120 80 30 / 10%), 0 8px 24px rgb(120 80 30 / 8%);
+  --shadow-pop: 0 10px 30px rgb(80 50 20 / 22%);
+
+  /* ───── そのほか ───── */
+  --tap: 44px;
+  --sidebar-w: 264px;
+  --content-max: 1120px;
+  --tabbar-h: 56px;
+  --font: var(--font-maru), "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-display: var(--font-dela), var(--font);
+  --font-hand: var(--font-yusei), var(--font);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1712;
+    --surface: #2b231b;
+    --surface-2: #362c22;
+    --ink: #f6ead8;
+    --ink-2: #d2bfa6;
+    --ink-3: #b8a58c;
+    --line: #4a3c2e;
+    --primary: #ff8a45;
+    --primary-soft: #4a2b17;
+    --on-primary: #1c1712;
+    --accent: #ffcb4d;
+    --ok: #8fd27a;
+    --ok-soft: #1f3318;
+    --ok-ink: #a9e096;
+    --ng: #ff8f7f;
+    --ng-soft: #44201a;
+    --ng-ink: #ffb3a8;
+    --warn: #ffcb4d;
+    --warn-soft: #4a3c10;
+    --navy: #f6ead8;
+    --taiken: #93b4ff;
+    --taiken-soft: #1c2a4a;
+    --chaya: #ff8a45;
+    --chaya-soft: #4a2b17;
+    --chiiki: #ff8f7f;
+    --chiiki-soft: #44201a;
+    --kojin: #c6a8ff;
+    --kojin-soft: #2f2447;
+    --unei: #8fd27a;
+    --unei-soft: #1f3318;
+    --footer-bg: #120e0b;
+    --scrim: rgb(0 0 0 / 60%);
+    --shadow-card: none;
+    --shadow-pop: 0 8px 24px rgb(0 0 0 / 50%);
+    color-scheme: dark;
+  }
+}
+
+/* ───── 土台 ───── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* 「文字を大きく」を押した人（お年寄り向け） */
+html.big { font-size: 118%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+img, svg, video { max-width: 100%; }
+img { height: auto; }
+a { color: var(--primary); }
+button { font: inherit; color: inherit; }
+h1, h2, h3, h4 { margin: 0 0 12px; }
+h1 { font-size: 1.5rem; line-height: 1.4; font-weight: 900; }
+h2 { font-size: 1.25rem; line-height: 1.45; font-weight: 900; }
+h3 { font-size: 1.0625rem; line-height: 1.5; font-weight: 900; }
+p { margin: 0 0 12px; }
+strong { font-weight: 900; }
+[hidden] { display: none !important; }
+
+.t-h1 { font-size: 1.5rem; line-height: 1.4; font-weight: 900; }
+.t-h2 { font-size: 1.25rem; line-height: 1.45; font-weight: 900; }
+.t-small { font-size: 0.875rem; line-height: 1.65; }
+.t-note { font-size: 0.75rem; line-height: 1.5; font-weight: 500; }
+.ink-2 { color: var(--ink-2); }
+.ink-3 { color: var(--ink-3); }
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; }
+.hand { font-family: var(--font-hand); }
+
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 16px; top: 8px; z-index: 100; background: var(--surface); padding: 8px 12px; border-radius: var(--r-sm); }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* 部門の色を --c に入れる（カード・札・ピンで使う） */
+.d-taiken { --c: var(--taiken); --c-soft: var(--taiken-soft); }
+.d-chaya { --c: var(--chaya); --c-soft: var(--chaya-soft); }
+.d-chiiki { --c: var(--chiiki); --c-soft: var(--chiiki-soft); }
+.d-kojin { --c: var(--kojin); --c-soft: var(--kojin-soft); }
+.d-unei { --c: var(--unei); --c-soft: var(--unei-soft); }
+
+/* 決まっていないこと */
+.tbd {
+  display: inline-block; font-size: 0.8rem; font-weight: 700; line-height: 1.5;
+  background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 0.05rem 0.5rem;
+}
+
+/* ロゴ（ui/logo.tsx） */
+.mx-logo { line-height: 1; font-family: var(--font-display); font-size: 1.15rem; white-space: nowrap; }
+.mx-logo--sm { font-size: 1rem; }
+.mx-logo-1 { color: var(--taiken); }
+.mx-logo-2 { color: var(--chaya); }
+.mx-logo-3 { color: var(--unei); }
+.mx-logo--dark .mx-logo-1 { color: #93b4ff; }
+.mx-logo--dark .mx-logo-2 { color: #ff8a45; }
+.mx-logo--dark .mx-logo-3 { color: #8fd27a; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

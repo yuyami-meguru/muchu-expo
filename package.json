@@ -1,0 +1,37 @@
+{
+  "name": "muchu-expo",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3470",
+    "build": "next build",
+    "start": "next start -p 3470",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check:auth": "node scripts/check-auth.mjs"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.35.0",
+    "next": "16.4.1",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.1",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "overrides": {
+    "@types/estree": "1.0.8"
+  }
+}
