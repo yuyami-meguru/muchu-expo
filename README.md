@@ -8,6 +8,9 @@
 - 出し物の絞り込みは各 `<article class="item">` の `data-kind`（eat／play／see）で決まる
 - 版を上げたら、`index.html` の下の帯（`v0.1.0`・更新日・更新履歴）と `CHANGELOG.md` を両方直す
 
+公開先：https://yuyami-meguru.github.io/muchu-expo/（GitHub Pages、main を push すると数十秒で反映）
+パンフ用QR：`print/qr.svg`（印刷向け）・`print/qr.png`
+
 確認：`~/Desktop/.claude/launch.json` の `muchu-expo`（ポート 8810）
 
 ## 「準備中」になっている所（決まったら埋める）
