@@ -9,6 +9,9 @@ const pixel = DotGothic16({ variable: "--font-pixel", weight: "400", subsets: ["
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // サイトは AVERIX が制作（主催は学校・実行委員会）
+  authors: [{ name: "AVERIX", url: "https://www.averix.jp/" }],
+  creator: "AVERIX",
   openGraph: { type: "website", siteName: "エンカレ夢中万博", locale: "ja_JP" },
   twitter: { card: "summary_large_image" },
   title: { default: "エンカレ夢中万博", template: "%s | エンカレ夢中万博" },

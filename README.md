@@ -1,6 +1,6 @@
 # エンカレ夢中万博 サイト
 
-2026年11月28日（土）の「エンカレ夢中万博」の公式サイト。**https://encare-dream-expo2026.encourage-school.averix.jp**（Vercel。muchu-expo.vercel.app でも開ける）。
+2026年11月28日（土）の「エンカレ夢中万博」の公式サイト。**サイト制作：AVERIX**（主催は広島工業大学高等学校 通信制課程 エンカレッジコース・エンカレ夢中万博 実行委員会）。**https://encare-dream-expo2026.encourage-school.averix.jp**（Vercel。muchu-expo.vercel.app でも開ける）。
 AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
 **お客さん側**と**従業員側（お店の人・実行委員）**に分かれている。
 

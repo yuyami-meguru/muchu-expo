@@ -241,3 +241,19 @@ strong { font-weight: 900; }
     animation-iteration-count: 1 !important;
   }
 }
+
+/* 「サイト制作：AVERIX」（components/shell/made-by.tsx） */
+.mx-madeby { display: flex; width: fit-content; align-items: center; gap: 8px; margin: 18px auto 0; text-decoration: none; min-height: 44px; opacity: 0.9; }
+.mx-madeby:hover { opacity: 1; }
+.mx-madeby-k { font-size: 0.75rem; font-weight: 700; }
+.mx-madeby--dark .mx-madeby-k { color: var(--footer-ink); }
+.mx-madeby--auto .mx-madeby-k { color: var(--ink-3); }
+.mx-madeby .mx-on-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  .mx-madeby .mx-on-dark { display: block; }
+  .mx-madeby .mx-on-light { display: none; }
+}
+.mx-madeby-mark { height: 22px; width: auto; }
+.mx-madeby-word { height: 12px; width: auto; }
+.mx-madeby--side { margin: 6px 0 0 16px; }
+@media (max-width: 1023px) { .mx-madeby--side { display: none; } }

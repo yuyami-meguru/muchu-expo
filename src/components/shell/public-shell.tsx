@@ -7,6 +7,7 @@ import { BottomTabs } from "./bottom-tabs";
 import { AppVersion } from "./app-version";
 import { TextSizeButton } from "./text-size-button";
 import { NavLink } from "./nav-link";
+import { MadeBy } from "./made-by";
 
 /**
  * お客さん側（だれでも見られるページ）の枠。AVERIX の PublicShell をもとに、当日スマホで使いやすい形にした。
@@ -84,8 +85,9 @@ export function PublicShell({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/school-logo-white.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ）" width={480} height={60} />
         </a>
+        <MadeBy tone="dark" />
         <p className="shell-pfoot-copy">
-          主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ <AppVersion />
+          主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ サイト制作：AVERIX ・ <AppVersion />
         </p>
       </footer>
 

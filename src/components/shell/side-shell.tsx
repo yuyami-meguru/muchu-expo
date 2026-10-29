@@ -10,6 +10,7 @@ import type { NavGroup, NavItem } from "./nav-items";
 import { SearchShortcut } from "./search-shortcut";
 import { NavLink } from "./nav-link";
 import { AppVersion } from "./app-version";
+import { MadeBy } from "./made-by";
 
 export type ShellUser = {
   name: string;
@@ -108,6 +109,7 @@ export function SideShell({
           </form>
         )}
         <AppVersion className="shell-version--side" />
+        <MadeBy tone="auto" className="mx-madeby--side" />
       </aside>
 
       {/* スマホ・タブレットの上の帯 */}
