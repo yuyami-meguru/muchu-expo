@@ -1,6 +1,7 @@
 # エンカレ夢中万博 サイト
 
-2026年11月28日（土）の「エンカレ夢中万博」の公式サイト。AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
+2026年11月28日（土）の「エンカレ夢中万博」の公式サイト。**https://encare-dream-expo2026.encourage-school.averix.jp**（Vercel。muchu-expo.vercel.app でも開ける）。
+AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
 **お客さん側**と**従業員側（お店の人・実行委員）**に分かれている。
 
 | 区画 | URL | だれが | できること |
@@ -17,7 +18,7 @@
 - `src/lib/store.ts` 保存先（本番は Upstash Redis、手元は `.data/dev.json`）　`src/lib/auth.ts` ログイン　`src/lib/seed.ts` はじめのデータ
 - `src/lib/venue.ts` 会場の名前・住所・位置（Apple マップ／Google マップのボタンと埋め込みの地図）。**正確な位置が分かったら point に入れる**
 - `src/components/map/school-map.tsx` 地図（いまは**仮の配置図**。校舎の配置図をもらったら差しかえる）
-- `docs/` … GitHub Pages の静的ページ（v0.2.0）。パンフの QR（`docs/print/qr.svg`）は `https://yuyami-meguru.github.io/muchu-expo/` を指していて、Vercel の URL が決まったらここから転送する
+- `docs/` … GitHub Pages。いまは転送のページだけ（`https://yuyami-meguru.github.io/muchu-expo/` → https://encare-dream-expo2026.encourage-school.averix.jp）。QR は `docs/print/qr.svg`（github.io 経由）と `docs/print/qr-site.svg`（新しいアドレスへ直接）
 
 ## 手元で動かす
 ```
