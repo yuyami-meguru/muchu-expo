@@ -427,3 +427,28 @@ export async function setSurveyOpen(open: boolean) {
   guard();
   await backend().setStr("surveyOpen", open ? "1" : "0");
 }
+
+/* ───── 共通の道具（ラジオ・アワードなど、あとから足す機能で使う） ───── */
+/** 文字の設定を読む（なければ null） */
+export async function getSetting(key: string) {
+  return backend().getStr(key);
+}
+/** 文字の設定を書く（JSON を入れてもよい） */
+export async function setSetting(key: string, value: string) {
+  guard();
+  await backend().setStr(key, value);
+}
+/** リストの先頭に足す（max 件より古いものは捨てる） */
+export async function pushList(name: string, value: string, max: number) {
+  guard();
+  await backend().push(name, value, max);
+}
+/** リストの先頭から n 件（新しい順） */
+export async function readList(name: string, n: number) {
+  return backend().list(name, n);
+}
+/** リストを空にする */
+export async function clearList(name: string) {
+  guard();
+  await backend().clear(name);
+}

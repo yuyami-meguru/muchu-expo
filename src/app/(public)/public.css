@@ -43,3 +43,36 @@
 .mx-school { display: block; width: fit-content; max-width: calc(100% - 40px); margin: 28px auto 0; opacity: 0.92; }
 .mx-school:hover { opacity: 1; }
 .mx-school img { display: block; width: min(380px, 100%); height: auto; }
+
+/* 電波が弱いときの帯（components/live/signal-banner.tsx）。上の帯のすぐ下に重ねる */
+.mx-signal {
+  position: fixed; z-index: 45; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 62px);
+  margin: 0; display: flex; align-items: center; gap: 6px; width: max-content; max-width: calc(100% - 24px);
+  padding: 6px 14px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn); border: 2px solid var(--warn);
+  font-size: 0.85rem; font-weight: 900; box-shadow: var(--shadow-pop);
+}
+@media (min-width: 1024px) { .mx-signal { top: calc(env(safe-area-inset-top) + 76px); } }
+
+/* 夢中アワードの発表の帯（_components/award-banner.tsx。発表オンのときだけ） */
+.aw-banner-wrap { max-width: var(--content-max); margin: 0 auto; padding: 16px 16px 0; }
+.aw-banner {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: var(--r-card); text-decoration: none;
+  background: #f7d03a; color: #1f2547; border: 3px solid #1f2547; box-shadow: 0 5px 0 #1f2547;
+}
+.aw-banner svg { flex: none; }
+.aw-banner span:not(.aw-banner-go) { flex: 1; display: flex; flex-direction: column; }
+.aw-banner strong { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; line-height: 1.3; }
+.aw-banner small { font-weight: 700; }
+.aw-banner-go { font-size: 1.2rem; }
+.aw-banner:active { transform: translateY(4px); box-shadow: none; }
+
+/* ラジオの ON AIR の札（components/live/live-parts.tsx の OnAirBadge）。放送中のときだけ出る */
+.mx-onair {
+  display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border-radius: var(--r-card);
+  background: #1f2547; color: #eef4ff; text-decoration: none; box-shadow: 0 4px 0 #0a1226;
+}
+.mx-onair-lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: #ff6b5a; box-shadow: 0 0 10px #ff6b5a; animation: mx-onair-blink 1.6s ease-in-out infinite; }
+@keyframes mx-onair-blink { 50% { opacity: 0.25; } }
+.mx-onair-k { flex: none; font-family: var(--font-display); color: #ff6b5a; letter-spacing: 0.08em; }
+.mx-onair-t { flex: 1; min-width: 0; font-weight: 900; line-height: 1.4; overflow-wrap: anywhere; }
+.mx-onair-go { flex: none; color: #a3b0cf; }

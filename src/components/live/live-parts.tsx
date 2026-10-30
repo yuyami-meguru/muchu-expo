@@ -109,3 +109,22 @@ export function LiveBoard({ names }: { names: Record<string, { shop: string; ite
     </div>
   );
 }
+
+/**
+ * ラジオが ON AIR のときだけ出る札（赤い点滅ランプ＋いまの内容、/radio へ）。
+ * radio がまだ届いていないとき（はじめの描画）と、放送していないときは何も出さない。
+ */
+export function OnAirBadge({ className }: { className?: string }) {
+  const r = useLive().radio;
+  if (!r?.onAir) return null;
+  return (
+    <Link href="/radio" className={className ? `mx-onair ${className}` : "mx-onair"} aria-label={`校内ラジオ 放送中${r.now ? `：${r.now}` : ""}（ラジオのページへ）`}>
+      <span className="mx-onair-lamp" aria-hidden="true" />
+      <span className="mx-onair-k">ON AIR</span>
+      <span className="mx-onair-t">{r.now || "校内ラジオ 放送中"}</span>
+      <span className="mx-onair-go" aria-hidden="true">
+        ▶
+      </span>
+    </Link>
+  );
+}

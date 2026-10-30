@@ -2,6 +2,7 @@
 
 import type { MouseEvent } from "react";
 import { cx } from "@/components/ui/cx";
+import { CAMPUS_BUILDINGS, CAMPUS_BUS_STOP, CAMPUS_ROADS } from "./campus-shapes";
 import "./school-map.css";
 
 export type MapPin = {
@@ -18,7 +19,7 @@ export type MapPin = {
 };
 
 /**
- * 学校の地図とピン。地図の絵は「仮の配置図」（校舎の配置図をもらったら public/map.svg に差しかえて、base を変える）。
+ * 学校の地図とピン。下の絵は OpenStreetMap の建物と道の形。建物の名前はデータに無いので、ピン（場所の印）で付ける。
  * x・y は左上からの割合（0〜100）。onPick を渡すと、地図を押した所の x・y を返す（実行委員がピンを置く画面）。
  */
 export function SchoolMap({
@@ -66,27 +67,26 @@ export function SchoolMap({
           </button>
         ))}
       </div>
-      <p className="mx-map-note">※ 仮の配置図です。くわしい場所は当日の案内をご覧ください。</p>
+      <p className="mx-map-note">建物の形：© OpenStreetMap contributors（だいたいの形です。くわしい場所は当日の案内をご覧ください）</p>
     </div>
   );
 }
 
-/** 仮の配置図（校舎・知育館・中庭・グラウンド・正門）。座標は 0〜100 × 0〜70 */
+/** 校内の絵：OpenStreetMap の建物と道の形（campus-shapes.ts）。座標は 0〜100 × 0〜70 */
 function BaseMap({ label }: { label: string }) {
   return (
     <svg className="mx-map-svg" viewBox="0 0 100 70" role="img" aria-label={label}>
       <rect x="0" y="0" width="100" height="70" className="m-ground" />
-      <path d="M0 58 L100 50 L100 56 L0 64 Z" className="m-road" />
-      <rect x="6" y="10" width="34" height="34" rx="1.5" className="m-bld" />
-      <text x="23" y="29" className="m-txt">校舎</text>
-      <rect x="62" y="8" width="24" height="15" rx="1.5" className="m-bld" />
-      <text x="74" y="17.5" className="m-txt">知育館</text>
-      <rect x="44" y="30" width="24" height="16" rx="3" className="m-yard" />
-      <text x="56" y="39.5" className="m-txt m-txt--s">中庭</text>
-      <rect x="74" y="28" width="22" height="20" rx="2" className="m-field" />
-      <text x="85" y="39" className="m-txt m-txt--s">グラウンド</text>
-      <rect x="44" y="55" width="10" height="4" className="m-gate" />
-      <text x="49" y="66" className="m-txt m-txt--s">正門</text>
+      {CAMPUS_ROADS.map((r, i) => (
+        <path key={`r${i}`} d={r.d} className="m-road" style={{ strokeWidth: r.w }} />
+      ))}
+      {CAMPUS_BUILDINGS.map((d, i) => (
+        <path key={`b${i}`} d={d} className="m-bld" />
+      ))}
+      <circle cx={CAMPUS_BUS_STOP.x} cy={CAMPUS_BUS_STOP.y} r="1.2" className="m-bus" />
+      <text x={CAMPUS_BUS_STOP.x - 2} y={CAMPUS_BUS_STOP.y + 4.2} className="m-txt m-txt--s" textAnchor="end">
+        {CAMPUS_BUS_STOP.name}
+      </text>
     </svg>
   );
 }

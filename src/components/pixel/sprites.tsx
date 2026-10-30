@@ -143,6 +143,34 @@ const PAINT: Rows = [
   "..kkkkkkk...",
 ];
 
+// 夢中アワード用（トロフィー・王冠）
+const TROPHY: Rows = [
+  "..kkkkkkkkkk..",
+  "kkkyywyyyyykkk",
+  "k.kyywyyyyyk.k",
+  "k.kyywyyyyyk.k",
+  ".kkyywyyyyykk.",
+  "..kyyyyyyyyk..",
+  "...kyyyyyyk...",
+  "....kOyyOk....",
+  ".....kyyk.....",
+  ".....kyyk.....",
+  "....kkyykk....",
+  "...kOOOOOOk...",
+  "...kkkkkkkk...",
+];
+
+const CROWN: Rows = [
+  "k.....k.....k",
+  "kk...kyk...kk",
+  "kyk.kyyyk.kyk",
+  "kyykyyyyykyyk",
+  "kyyyyyyyyyyyk",
+  "kyyrryybbyyyk",
+  "kyyyyyyyyyyyk",
+  "kkkkkkkkkkkkk",
+];
+
 /** ルービックキューブ（3×3 の面を上から見た形） */
 function cubeRows(): Rows {
   const cols = ["r", "y", "w", "b", "g", "o", "y", "r", "b"];
@@ -186,6 +214,8 @@ export const SPRITES = {
   skate: SKATE,
   note: NOTE,
   paint: PAINT,
+  trophy: TROPHY,
+  crown: CROWN,
   cube: cubeRows(),
   ball: ballRows(),
 } as const;

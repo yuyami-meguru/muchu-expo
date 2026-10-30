@@ -12,6 +12,9 @@ export function AccessMap() {
           <iframe src={embed} title={`${VENUE.name}の地図`} loading="lazy" />
         </div>
       )}
+      {embed && (
+        <p className="ac-note">地図の印はだいたいの位置です。くわしくは下のボタンで地図アプリを開いてください。</p>
+      )}
       <div className="ac-btns">
         <a className="ac-btn ac-btn--apple" href={appleMapsUrl()} target="_blank" rel="noopener noreferrer">
           <Icon name="地図" size={20} />

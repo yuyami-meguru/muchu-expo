@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // サービスワーカーはいつも新しいものを確かめる（古いものが残って更新されない、を防ぐ）
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Service-Worker-Allowed", value: "/" }] },
       // 従業員側と QR の入口は検索エンジンに載せない。お店の QR のかぎがほかのサイトへ漏れないよう Referrer も送らない
       { source: "/(staff|join|api)(.*)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
     ];

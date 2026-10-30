@@ -8,3 +8,4 @@
   border-radius: var(--r-pill); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; text-decoration: none;
 }
 .ac-btn--apple { background: var(--ink); color: var(--bg); box-shadow: 4px 4px 0 var(--primary); }
+.ac-note { margin: -4px 0 0; font-size: 0.78rem; color: var(--ink-3); }

@@ -1,0 +1,31 @@
+/* 夢中アワード（aw-）。パンフ風：水色の地・緑のドット文字・ドットの影 */
+.aw-wrap { position: relative; max-width: 860px; margin: 0 auto; padding: 0 16px 56px; overflow: hidden; }
+.aw-head { position: relative; z-index: 1; text-align: center; padding: 36px 0 16px; }
+.aw-head svg { margin: 0 auto 8px; }
+.aw-eyebrow { margin: 0; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.22em; color: var(--primary); }
+.aw-h1 { font-size: clamp(2rem, 10vw, 3.2rem); line-height: 1.25; margin: 4px 0 10px; }
+.aw-teaser { font-family: var(--font-display); color: var(--date); font-size: clamp(1.3rem, 6vw, 1.8rem); margin: 0 0 10px; }
+.aw-sub { color: var(--ink-2); }
+.aw-links { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 12px; }
+.aw-links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 900; }
+.aw-empty { color: var(--ink-3); text-align: center; }
+.aw-list { position: relative; z-index: 1; list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.aw-card { background: var(--surface); border: 3px solid var(--title-edge); border-radius: var(--r-card); box-shadow: 0 5px 0 var(--title-edge); padding: 16px 18px; }
+.aw-card-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.aw-card-head svg { flex: none; }
+.aw-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 1.3; margin: 0; color: var(--ink); }
+.aw-note { margin: 2px 0 0; color: var(--ink-2); font-size: 0.92rem; }
+.aw-winners { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.aw-winner { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: var(--r-md); border-left: 8px solid var(--c); background: var(--c-soft); color: var(--ink); text-decoration: none; min-height: 52px; }
+.aw-dept { font-size: 0.75rem; font-weight: 900; color: var(--c); }
+.aw-shop { font-weight: 900; font-size: 1.15rem; line-height: 1.4; }
+.aw-comment { font-size: 0.92rem; color: var(--ink-2); line-height: 1.6; }
+.aw-thanks { position: relative; z-index: 1; margin-top: 24px; text-align: center; font-weight: 700; color: var(--ink-2); }
+/* 紙吹雪（ドットの四角が落ちる）。動きを減らす設定では出さない */
+.aw-confetti { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.aw-confetti i { position: absolute; top: -12px; width: 8px; height: 8px; background: var(--title); animation: aw-fall 6s steps(24) infinite; }
+.aw-confetti i:nth-child(3n) { background: var(--date); }
+.aw-confetti i:nth-child(4n) { background: var(--accent, #f2b21b); width: 6px; height: 6px; }
+.aw-confetti i:nth-child(5n) { background: var(--chiiki); }
+@keyframes aw-fall { to { transform: translateY(1400px) rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .aw-confetti { display: none; } }

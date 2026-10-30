@@ -3,8 +3,9 @@
 .mx-map--pick .mx-map-board { cursor: crosshair; }
 .mx-map-svg { display: block; width: 100%; height: 100%; }
 .mx-map-svg .m-ground { fill: #e6f4fd; }
-.mx-map-svg .m-road { fill: #b9d6ea; }
-.mx-map-svg .m-bld { fill: #ffffff; stroke: #1f2547; stroke-width: 0.4; }
+.mx-map-svg .m-road { fill: none; stroke: #b9d6ea; stroke-linecap: round; stroke-linejoin: round; }
+.mx-map-svg .m-bus { fill: #5d4fdc; stroke: #fff; stroke-width: 0.4; }
+.mx-map-svg .m-bld { fill: #ffffff; stroke: #1f2547; stroke-width: 0.25; }
 .mx-map-svg .m-yard { fill: #dcf2e4; stroke: #5fbe85; stroke-width: 0.3; stroke-dasharray: 1 0.8; }
 .mx-map-svg .m-field { fill: #c4e8cf; stroke: #5fbe85; stroke-width: 0.3; }
 .mx-map-svg .m-gate { fill: #1f2547; }
@@ -12,7 +13,7 @@
 .mx-map-svg .m-txt--s { font-size: 2.6px; }
 @media (prefers-color-scheme: dark) {
   .mx-map-svg .m-ground { fill: #142445; }
-  .mx-map-svg .m-road { fill: #23365e; }
+  .mx-map-svg .m-road { stroke: #2b4170; }
   .mx-map-svg .m-bld { fill: #213258; stroke: #a3b0cf; }
   .mx-map-svg .m-yard { fill: #193a2c; stroke: #3f8f62; }
   .mx-map-svg .m-field { fill: #1b3a2a; stroke: #3f8f62; }

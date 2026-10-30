@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { LiveBoard, LiveShopBadges } from "@/components/live/live-parts";
+import { LiveBoard, LiveShopBadges, OnAirBadge } from "@/components/live/live-parts";
 import { Sprite } from "@/components/pixel/sprites";
-import { loadAll } from "@/lib/store";
+import { getSetting, loadAll } from "@/lib/store";
+import { AwardBanner } from "./_components/award-banner";
+import { AWARD_KEY, parseAward } from "./award/award-data";
 import { EVENT, VENUE } from "@/lib/venue";
 import { allSchedule } from "@/lib/schedule";
 import { ComingUp } from "./_components/coming-up";
@@ -12,7 +14,8 @@ import "./home.css";
 const PAMPHLET = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
 
 export default async function HomePage() {
-  const { shops, depts } = await loadAll();
+  const [{ shops, depts }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
+  const award = parseAward(awardRaw);
   const visible = shops.filter((s) => !s.hidden);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));
   const { timed } = allSchedule(shops, depts);
@@ -65,6 +68,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 夢中アワードの発表（発表したときだけ出る） */}
+      <div className="hm-wrap">
+        <AwardBanner published={award.published} title={award.title} />
+      </div>
+
       <div className="hm-marquee" aria-hidden="true">
         <div className="hm-track">
           {[...marquee, ...marquee].map((t, i) => (
@@ -83,6 +91,7 @@ export default async function HomePage() {
             いまの様子
           </h2>
           <p className="hm-lead">売り切れ・残りわずかの品物と、実行委員からのお知らせです。</p>
+          <OnAirBadge />
           <LiveBoard names={names} />
           <ComingUp rows={timed} />
         </div>
