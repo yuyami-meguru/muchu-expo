@@ -6,22 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PHASE_MODES, phaseOf, type Phase, type PhaseMode } from "@/lib/ops";
 import { send } from "../../_lib/client";
-import { clockNow } from "../ops-live";
-import { ResultLine, type Result } from "../ops-result";
+import { noteAuth } from "../_components/session-signal";
+import { modeLabel, PHASE_LABEL } from "../_components/staff-bands";
+import { clockNow, nowMs } from "../ops-live";
+import { failMsg, ResultLine, type Result } from "../ops-result";
 
-/** お客さんの画面の出し方（phaseOf の答え） */
-const PHASE_LABEL: Record<Phase, string> = { before: "開催前", morning: "当日の朝（10:00 まで）", during: "開催中", after: "終了後" };
-const modeLabel = (m: PhaseMode) => PHASE_MODES.find((x) => x.value === m)?.label ?? m;
-
-type Now = { mode: PhaseMode; now: Phase };
+type Now = { mode: PhaseMode; now: Phase; until: number };
 
 /**
  * 表示の時期（日時で自動・開催前・当日・終了後）。ふだんは「日時で自動」。前日の練習のときだけ「当日」にして、終わったら戻す。
  * 選んでから［この時期にする］で切り替える（お客さんの画面がすぐ変わるので、押しまちがえないように 2 段で）。
+ * 手で変えた時期は、切り替えた日の 24:00 に「日時で自動」に戻る（サーバーが決める。戻す時刻があれば出す）
  */
 export function PhaseCard({ ready, phase }: { ready: boolean; phase: Now }) {
   const router = useRouter();
-  /** 自分が切り替えた値（読み直しが届くまで出す） */
+  /** 自分が切り替えた値（読み直しが届くまで出す）。until は「日時で自動」に戻る時刻（サーバーの答え） */
   const [saved, setSaved] = useState<Now | null>(null);
   /** 選んだけれど、まだ切り替えていない値 */
   const [pick, setPick] = useState<PhaseMode | null>(null);
@@ -40,21 +39,26 @@ export function PhaseCard({ ready, phase }: { ready: boolean; phase: Now }) {
     const mode = chosen;
     setBusy(true);
     setResult(null);
-    const r = await send("/api/staff/phase", "PUT", { mode });
+    const r = noteAuth(await send<{ until?: number }>("/api/staff/phase", "PUT", { mode }));
     setBusy(false);
-    if (!r.ok) return setResult({ text: r.error, error: true });
-    setSaved({ mode, now: phaseOf(Date.now(), mode) });
+    if (!r.ok) return setResult({ text: failMsg(`表示の時期を「${modeLabel(mode)}」にすることが`, r, "少し待ってから、この画面を読み込み直して確かめてください"), error: true });
+    setSaved({ mode, now: phaseOf(nowMs(), mode), until: typeof r.until === "number" ? r.until : 0 });
     setPick(null);
     setResult({ text: `表示の時期を「${modeLabel(mode)}」にしました（${clockNow()}）` });
     router.refresh();
   }
 
   return (
-    <Card title="表示の時期">
+    <Card title="表示の時期" id="phase">
       <p className="st-phase-now">
-        いま：<strong>{modeLabel(cur.mode)}</strong>（お客さんの画面は「{PHASE_LABEL[cur.now]}」の出し方）
+        いま：<strong>{modeLabel(cur.mode)}</strong>。お客さんの画面は「{PHASE_LABEL[cur.now]}」の出し方です
       </p>
-      {cur.mode !== "auto" && <p className="ops-warn">練習が終わったら「日時で自動」に戻してください。</p>}
+      {cur.mode !== "auto" && (
+        <p className="ops-warn">
+          練習が終わったら「日時で自動」に戻してください
+          {cur.until > 0 ? "（戻し忘れても、切り替えた日の 24:00 に「日時で自動」に戻ります）" : ""}。
+        </p>
+      )}
       <fieldset className="st-phase" disabled={!ready || busy}>
         <legend className="sr-only">表示の時期を選ぶ</legend>
         {PHASE_MODES.map((m) => (

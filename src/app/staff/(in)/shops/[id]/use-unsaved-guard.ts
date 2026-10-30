@@ -5,11 +5,12 @@ import { useEffect } from "react";
 const ASK = "保存していない変更があります。このページを離れると消えます。離れますか？";
 
 /**
- * 保存していない入力があるあいだ、ページを離れる前に聞く（お店の編集・地図のピン・部門・夢中アワードで使う）。
+ * 保存していない入力があるあいだ、ページを離れる前に聞く（お店の編集・地図のピン・部門・夢中アワード・全体のお知らせ・校内ラジオで使う）。
  *  - 閉じる・読み込み直す・ほかのサイトへ：ブラウザの確認（beforeunload）
  *  - サイトの中のリンク（左のメニュー・下のタブなど）：確認の小窓。「キャンセル」ならこのページに残る
+ * ask で、確認の文を変えられる（全体のお知らせ：「書きかけの文があります（まだ出していません）…」）
  */
-export function useUnsavedGuard(dirty: boolean) {
+export function useUnsavedGuard(dirty: boolean, ask: string = ASK) {
   useEffect(() => {
     if (!dirty) return;
     const onUnload = (e: BeforeUnloadEvent) => {
@@ -26,7 +27,7 @@ export function useUnsavedGuard(dirty: boolean) {
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin) return;
       if (url.pathname === location.pathname && url.search === location.search) return;
-      if (!window.confirm(ASK)) {
+      if (!window.confirm(ask)) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -38,5 +39,5 @@ export function useUnsavedGuard(dirty: boolean) {
       window.removeEventListener("beforeunload", onUnload);
       document.removeEventListener("click", onClick, true);
     };
-  }, [dirty]);
+  }, [dirty, ask]);
 }

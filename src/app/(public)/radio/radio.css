@@ -28,14 +28,15 @@
 .rd-kinds legend { width: 100%; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; padding: 0; }
 .rd-kind { position: relative; }
 .rd-kind input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.rd-kind span { display: inline-flex; align-items: center; min-height: 46px; padding: 6px 16px; border-radius: var(--r-pill); border: 2px solid var(--line); background: var(--bg); font-weight: 900; }
+/* 選ぶ札・入力欄の枠は --field-line（白の上で 4.5:1。--line は飾りの線用でうすすぎる） */
+.rd-kind span { display: inline-flex; align-items: center; min-height: 46px; padding: 6px 16px; border-radius: var(--r-pill); border: 2px solid var(--field-line); background: var(--surface); font-weight: 900; }
 .rd-kind input:checked + span { background: var(--title); border-color: var(--title-edge); color: #10331f; }
 .rd-kind input:checked + span::before { content: "✓"; margin-right: 4px; }
 .rd-kind input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
 .rd-field { display: grid; gap: 4px; }
 .rd-field > span, .rd-field > label { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
 .rd-field small { font-size: 0.78rem; color: var(--ink-3); }
-.rd-field input, .rd-field textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 2px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; min-height: 46px; }
+.rd-field input, .rd-field textarea { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--field-line); border-radius: var(--r-md); padding: 10px 12px; min-height: 46px; }
 .rd-field textarea { resize: vertical; }
 .rd-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .rd-err { margin: 0; color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
@@ -43,4 +44,11 @@
 .rd-hint { margin: 8px 0 0; color: var(--ink); background: var(--surface-2); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
 .rd-send { min-height: 56px; border-radius: var(--r-md); border: 3px solid var(--title-edge); background: var(--title); color: #10331f; cursor: pointer; font-family: var(--font-display); font-size: 1.25rem; box-shadow: 0 5px 0 var(--title-edge); }
 .rd-send:active { transform: translateY(4px); box-shadow: none; }
-.rd-send:disabled { opacity: 0.6; cursor: progress; }
+.rd-send[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+.rd-send[aria-disabled="true"]:active { transform: none; box-shadow: 0 5px 0 var(--title-edge); }
+
+/* 印刷：送る欄は出さない（番組表だけ） */
+@media print {
+  .rd-form { display: none !important; }
+  .rd-now { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

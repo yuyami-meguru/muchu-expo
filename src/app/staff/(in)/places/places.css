@@ -1,0 +1,13 @@
+/*
+ * 地図のピンの画面（places-editor.tsx）。パソコンでは、地図（左）と選んだピンの欄（右）を横に並べる
+ * （スマホでは、地図の下に一覧、その下に欄。ピンを動かす矢印は地図のすぐ下にある）。
+ */
+.pe-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.pe-main { min-width: 0; }
+.st-place-bar .st-place-nudge { margin-top: 2px; }
+@media (min-width: 1260px) {
+  .pe-cols--side { grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); align-items: start; }
+  .pe-side { position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+  .pe-side .st-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .pe-side .st-span2 { grid-column: auto; }
+}

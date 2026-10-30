@@ -6,13 +6,14 @@ import type { LiveLogEntry } from "@/lib/store";
  */
 
 const DAY_KEY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" });
-const DAY_LABEL = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short" });
+const MONTH_DAY = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" });
+const WEEKDAY = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", weekday: "short" });
 const TIME = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "numeric", minute: "2-digit" });
 
 /** 日本時間の日付（「2026-11-28」） */
 export const dayKey = (at: number) => DAY_KEY.format(at);
-/** 「11/28(土)」 */
-export const dayLabel = (at: number) => DAY_LABEL.format(at);
+/** 「11/28（土）」（かっこは全角） */
+export const dayLabel = (at: number) => `${MONTH_DAY.format(at)}（${WEEKDAY.format(at)}）`;
 /** 「13:05」 */
 export const timeOf = (at: number) => TIME.format(at);
 

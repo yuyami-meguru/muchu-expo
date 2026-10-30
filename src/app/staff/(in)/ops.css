@@ -2,10 +2,32 @@
 
 /* ───── いまの様子（_components/admin-overview.tsx） ───── */
 .ops > * + * { margin-top: 16px; }
-.ops-clock { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 700; color: var(--ink-2); }
+.ops > dialog { margin-top: auto; }
+.ops-clock { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 0.875rem; font-weight: 700; color: var(--ink-2); }
 .ops-clock::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+.ops-clock > span:first-of-type { flex: 1 1 0; min-width: 0; }
 .ops-clock--ng { color: var(--ng-ink); }
 .ops-clock--ng::before { background: var(--ng); }
+/* 「ログインは 12:57 まで」（いまの様子）・「0:57 の様子」の補足 */
+.ops-clock-sub { flex-basis: 100%; padding-left: 18px; font-size: 0.8rem; font-weight: 500; color: var(--ink-3); }
+
+/* 運営の状態（いまの様子のいちばん上）：表示の時期・全体の帯・連絡・ラジオ。押すと、その画面へ。気をつける状態は黄・赤 */
+.ops-status { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.ops-pill {
+  display: grid; align-content: center; min-width: 0; min-height: 52px; padding: 6px 12px;
+  border: 2px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink);
+  font-size: 0.85rem; font-weight: 900; line-height: 1.45; text-decoration: none;
+}
+.ops-pill:hover { background: var(--surface-2); }
+.ops-pill-k { font-size: 0.72rem; font-weight: 700; color: var(--ink-3); }
+.ops-pill[data-v="warn"] { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+.ops-pill[data-v="ng"] { border-color: var(--ng); background: var(--ng-soft); color: var(--ng-ink); }
+.ops-pill[data-v="on"] { border-color: var(--ng); color: var(--ng-ink); }
+.ops-pill[data-v] .ops-pill-k { color: inherit; }
+/* 当日の 10:00・14:00 の前：当日の道具への近道 */
+.ops-todo { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 8px 8px 14px; border: 2px solid var(--primary); border-radius: var(--r-lg); background: var(--primary-soft); color: var(--ink); font-weight: 900; }
+.ops-todo > span { flex: 1 1 14em; min-width: 0; }
+.ops-todo-go { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--r-md); background: var(--primary); color: var(--on-primary); font-weight: 900; text-decoration: none; }
 .ops-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 1.05rem; margin: 0 0 8px; }
 
 .ops-memo { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--primary); border-radius: var(--r-card); padding: 12px 14px; }
@@ -98,3 +120,11 @@
 .ops-moves li:first-child { border-top: 0; }
 .ops-moves time { flex: none; min-width: 3.2em; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 0.85rem; }
 .ops-moves-body { min-width: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+/* 変更の記録のページ送り（100 件ずつ） */
+.ops-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 8px 0; }
+.ops-pager-at { flex: 1 1 12em; min-width: 0; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* 「古い 100 件 →」は、折り返しても右に */
+.ops-pager > :last-child { margin-left: auto; }
+.ops-pager > span:empty { display: none; }
+/* .st-stack の中に置いたとき、margin: 0 の部品にも上のあきを付ける（ops.css が staff.css のあとに読まれるため） */
+.st-stack > * + .ops-clock, .st-stack > * + .st-find-count, .st-stack > * + .st-ready-none { margin-top: 12px; }

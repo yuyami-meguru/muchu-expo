@@ -2,22 +2,40 @@
 .mp-head { padding: 32px 0 8px; }
 .mp-eyebrow { margin: 0; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.22em; color: var(--primary); }
 .mp-h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 8vw, 2.6rem); line-height: 1.25; margin: 2px 0 6px; }
-.mp-lead { color: var(--ink-2); }
-/* スマホ：地図 → 選んだ場所 → 場所の一覧 → 地図の印。パソコン：左に地図と一覧、右に選んだ場所 */
-.mp-grid { display: grid; gap: 20px; grid-template-areas: "map" "here" "places" "legend" "nowhere"; }
+/* パソコンで 1 行が長くなりすぎないように */
+.mp-lead { max-width: 40em; color: var(--ink-2); }
+/* いちばん下の「階ごとの案内」へ（パンフレットのように一覧で読みたい人に） */
+.mp-jump {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 4px; margin-bottom: 8px;
+  font-size: 0.9rem; font-weight: 900; color: var(--primary); text-underline-offset: 3px;
+}
+
+/*
+ * スマホ：切り替え → 地図 → 選んだ場所 → 場所の一覧 → 地図の印（階ごとの案内・場所の決まっていないお店は、この箱の外）。
+ * パソコン：外の地図は左に地図と一覧、右に選んだ場所。フロアは見取り図を横いっぱいに大きく出し、その下に一覧と選んだ場所。
+ * 選んだ場所の箱は、この箱の中だけで画面に貼りつく（下の「階ごとの案内」に重ならない）
+ */
+.mp-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "areas" "map" "here" "places" "legend"; }
+.mp-areas { grid-area: areas; }
 .mp-map { grid-area: map; min-width: 0; }
 .mp-here { grid-area: here; }
-.mp-places { grid-area: places; }
+.mp-places { grid-area: places; min-width: 0; }
 .mp-legend { grid-area: legend; }
-.mp-nowhere { grid-area: nowhere; }
 @media (min-width: 960px) {
-  .mp-grid { grid-template-columns: 1.4fr 1fr; grid-template-areas: "map here" "places here" "legend nowhere"; align-items: start; }
-  .mp-here { position: sticky; top: 84px; }
+  .mp-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+  .mp-grid--out { grid-template-areas: "areas areas" "map here" "places here" "legend here"; }
+  .mp-grid--floor { grid-template-areas: "areas areas" "map map" "places here" "legend here"; }
+  .mp-here { position: sticky; top: 84px; max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; }
 }
-.mp-here { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 18px; scroll-margin: 80px 0 16px; }
-.mp-here h2 { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; margin-bottom: 4px; }
+/* 上の帯の分の余白は html の scroll-padding（72px）が持つので、ここでは少しだけ */
+.mp-here { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 18px; scroll-margin: 8px 0 8px; }
+.mp-here h2 { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; margin-bottom: 4px; scroll-margin: 8px 0 8px; }
+.mp-here h2:focus { outline: none; }
+.mp-here h2:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: var(--r-sm); }
 .mp-kind { margin: 0 0 4px; font-weight: 900; color: var(--ink-2); }
 .mp-note { color: var(--ink-3); font-size: 0.9rem; }
+.mp-prompt { margin: 0; font-weight: 700; color: var(--ink-2); }
+.mp-missing { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--r-md); background: var(--warn-soft); color: var(--warn); font-weight: 700; font-size: 0.9rem; }
 .mp-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
 .mp-list a { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 52px; padding: 10px 14px; border-radius: var(--r-md); border-left: 6px solid var(--c); background: var(--c-soft); color: var(--ink); text-decoration: none; }
 .mp-dept { font-size: 0.75rem; font-weight: 900; color: var(--c); }
@@ -35,6 +53,10 @@
 .mp-glyph--fac { border-radius: var(--r-sm); rotate: none; width: 28px; background: var(--ink); color: var(--bg); font-size: 0.7rem; }
 .mp-glyph--fac > span { rotate: none; }
 .mp-fac { display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 4px; border-radius: var(--r-sm); background: var(--ink); color: var(--bg); font-size: 0.8rem; font-weight: 900; }
+/* 凡例の部屋の見本（見取り図の部屋の四角と同じ見え方） */
+.mp-swatch { display: inline-block; width: 26px; height: 20px; border-radius: 4px; border: 1.5px solid color-mix(in srgb, var(--ink-3) 60%, transparent); }
+.mp-swatch--has { border: 2px solid var(--ink-2); background: var(--surface-2); }
+.mp-swatch--on { border: 4px solid var(--ink); }
 
 /* 場所の一覧 */
 .mp-places-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 8px; }
@@ -47,8 +69,18 @@
 }
 .mp-place[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
 .mp-place-name { flex: 1 1 8em; min-width: 0; line-height: 1.4; }
-.mp-place-n { font-size: 0.8rem; color: var(--ink-2); }
+.mp-place-n { font-size: 0.8rem; color: var(--ink-2); white-space: nowrap; }
 .mp-place-x { font-size: 0.8rem; color: var(--ng-ink); }
+/* お店の無い部屋・場所（たたんでおく） */
+.mp-empty { margin-top: 10px; }
+.mp-empty > summary {
+  display: flex; align-items: center; gap: 8px; min-height: var(--tap); cursor: pointer; list-style: none;
+  font-size: 0.9rem; font-weight: 900; color: var(--ink-2);
+}
+.mp-empty > summary::-webkit-details-marker { display: none; }
+.mp-empty > summary::before { content: "▶"; font-size: 0.75em; color: var(--primary); }
+.mp-empty[open] > summary::before { content: "▼"; }
+.mp-empty .mp-place { font-weight: 700; }
 .mp-fac-toggle {
   display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 14px; border-radius: var(--r-pill);
   border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; font-size: 0.9rem; cursor: pointer;
@@ -65,23 +97,23 @@
 .mp-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: var(--r-pill); border: 2px solid var(--ink); color: var(--ink); font-size: 0.72rem; font-weight: 900; line-height: 1; }
 .mp-x { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ng); color: var(--on-primary); font-size: 0.85rem; font-weight: 900; line-height: 1; }
 
+.mp-nowhere { margin-top: 32px; }
 .mp-nowhere ul { margin: 0; padding-left: 1.2rem; }
+.mp-nowhere li + li { margin-top: 4px; }
 .mp-nowhere a { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: 700; }
+.mp-nowhere .mp-pnote { display: block; margin-top: -6px; }
 .mp-access { margin-top: 40px; }
 .mp-access h2 { font-size: 1.2rem; }
 
-/* 外・フロアの切り替え（横に並べる。多いときは横にスクロール） */
-.mp-grid { grid-template-areas: "areas" "map" "here" "places" "legend" "guide" "nowhere"; }
-@media (min-width: 960px) {
-  .mp-grid { grid-template-areas: "areas areas" "map here" "places here" "legend here" "guide guide" "nowhere nowhere"; }
-}
-.mp-areas { grid-area: areas; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scroll-margin-top: 80px; }
+/* 外・フロアの切り替え：横に並べ、入らなければ折り返す（4 つとも見えるように。横にスクロールさせない） */
+.mp-areas { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px; scroll-margin-top: 8px; }
 .mp-area {
-  flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 18px; border-radius: var(--r-pill);
-  border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; font-weight: 900; cursor: pointer; white-space: nowrap;
+  flex: 1 0 auto; min-width: 64px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; padding: 2px 14px;
+  border-radius: var(--r-pill); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; font-weight: 900; line-height: 1.2; cursor: pointer; white-space: nowrap;
 }
+@media (min-width: 560px) { .mp-area { flex: 0 0 auto; } }
+.mp-area-sub { font-size: 0.7rem; font-weight: 700; }
 .mp-area[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-.mp-hint { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-3); }
 .mp-where { margin: 0; font-size: 0.8rem; font-weight: 900; color: var(--ink-3); }
 .mp-floors { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
 .mp-floors .mp-note { width: 100%; margin: 0; }
@@ -89,21 +121,46 @@
   min-height: 48px; padding: 0 16px; border-radius: var(--r-md); border: 2px solid var(--primary); background: var(--primary-soft);
   color: var(--primary); font: inherit; font-weight: 900; cursor: pointer;
 }
+.mp-floor-btn small { font-size: 0.8em; }
+/* 外の地図の下：建物のピンがまだ無い建物の「中を見る」 */
+.mp-inside { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); }
+.mp-inside-h { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-weight: 900; }
+.mp-inside-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 /* その場所のお店：ひとこと・どんなことをするか */
 .mp-catch { width: 100%; font-weight: 700; color: var(--ink); line-height: 1.5; }
 .mp-about { width: 100%; font-size: 0.875rem; color: var(--ink-2); line-height: 1.6; }
 .mp-more { margin-left: auto; font-size: 0.8rem; font-weight: 900; color: var(--c); }
 .mp-list--compact a { min-height: 48px; padding: 8px 12px; }
 
-/* フロアガイド */
-.mp-guide { grid-area: guide; }
+/* 階ごとの案内（パソコンは 2 段に流す） */
+.mp-guide { margin-top: 32px; scroll-margin-top: 8px; }
 .mp-guide > h2 { font-size: 1.15rem; margin: 0 0 4px; }
-.mp-guide-area { margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--line); }
+.mp-guide > .mp-note { max-width: 40em; }
+.mp-guide-area { margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--line); break-inside: avoid; }
+@media (min-width: 960px) {
+  .mp-guide-areas { columns: 2; column-gap: 32px; }
+  .mp-guide-area:first-child { margin-top: 0; }
+}
 .mp-guide-area h3 { font-size: 1.05rem; margin: 0 0 8px; }
 .mp-guide-place + .mp-guide-place { margin-top: 12px; }
 .mp-guide-where {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; border: 0; background: none;
   color: var(--primary); font: inherit; font-weight: 900; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
 }
+.mp-guide-none { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--ink-3); }
 .mp-guide-fac { margin: 10px 0 0; font-size: 0.9rem; color: var(--ink-2); }
-.mp-guide-facbtn { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--primary); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+/* 「玄関」のような短い名前でも、押せる幅 44px を守る */
+.mp-guide-facbtn {
+  min-width: 44px; min-height: 44px; padding: 0 6px; border: 0; background: none; color: var(--primary);
+  font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* 印刷：押すための物（切り替え・表示のボタン・一覧への案内・地図アプリのボタン）は刷らない。色の印は背景の設定によらず刷る */
+@media print {
+  .mp-areas, .mp-fac-toggle, .mp-jump, .mp-inside, .mp-here--empty, .mp-access button { display: none !important; }
+  .mp-here { position: static; max-height: none; overflow: visible; box-shadow: none; border: 1px solid #9aa3c0; }
+  .mp-grid { display: block; }
+  .mp-grid > * + * { margin-top: 16px; }
+  .mp-glyph, .mp-fac, .mp-count, .mp-x, .mp-list a, .mp-swatch, .mp-place, .mp-area { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .mp-map { break-inside: avoid; }
+}

@@ -1,41 +1,72 @@
-/* 会場に貼るポスター（/staff/posters）。A4 縦。中の大きさは紙の幅に対する割合（cqw）で決めるので、画面の縮小表示と印刷で同じ形になる。
-   色はダークモードでも変えない（紙に刷るものなので、パンフと同じ明るい水色）。 */
+/* 会場に貼る紙（/staff/posters）。どれも A4。中の大きさは紙の幅に対する割合（cqw）で決めるので、画面の縮小表示と印刷で同じ形になる。
+   色はダークモードでも変えない（紙に刷るものなので、パンフと同じ明るい水色）。
+   紙の大きさは 186×273mm（A4 から上下左右 12mm を引いた大きさ）。プリンタの余白が「デフォルト」「最小」「なし」のどれでも、1 枚が 2 ページに割れない（R9-1）。 */
+
+/* ───── 画面だけ：説明・刷る前の確かめ・紙の種類への近道 ───── */
+.pst-check { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.9rem; line-height: 1.6; }
+.pst-check li { padding-left: 1.4em; position: relative; }
+.pst-check li::before { content: "・"; position: absolute; left: 0.2em; }
+.pst-check li[data-tone="warn"] { color: var(--warn); font-weight: 700; }
+.pst-check li[data-tone="warn"]::before { content: "！"; }
+.pst-check li[data-tone="info"] { color: var(--ink-2); }
+.pst-check a { margin-left: 0.4em; font-weight: 900; display: inline-block; min-height: 24px; }
+.pst-check-ok, .pst-check-ng { margin: 10px 0 0; font-size: 0.875rem; line-height: 1.6; }
+.pst-check-ok { color: var(--ok-ink); }
+.pst-check-ng { color: var(--warn); font-weight: 700; background: var(--warn-soft); border-radius: var(--r-sm); padding: 8px 12px; }
+.pst-how { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px 16px 6px; }
+.pst-how-h { font-size: 1rem; margin: 0 0 6px; }
+.pst-how ul { margin: 0 0 6px; padding-left: 1.2em; font-size: 0.875rem; line-height: 1.7; color: var(--ink-2); }
+.pst-jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.pst-jump a {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px; border-radius: var(--r-pill);
+  border: 2px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 900; font-size: 0.9rem; text-decoration: none;
+}
+.pst-sec { scroll-margin-top: 72px; }
+/* 印刷では 0 にする（下の @media print の .pst-page > *）。!important にすると印刷でも残り、2 つ目の組の 1 枚目が下にずれて 2 ページに割れる */
+.pst-sec + .pst-sec { margin-top: 48px; }
+.pst-sec-head { width: min(100%, 760px); margin: 0 auto 16px; display: grid; gap: 8px; justify-items: start; }
+.pst-sec-h { font-size: 1.2rem; margin: 0; }
+.pst-sec--posters > .pst-sec-h { width: min(100%, 520px); margin: 0 auto 16px; }
+
 .pst-list { display: grid; gap: 28px; justify-items: center; }
 .pst-item { width: min(100%, 520px); display: grid; gap: 10px; }
-/* 画面だけ：「○ ページ目」と［この 1 枚だけ印刷］ */
+/* 画面だけ：「○ 枚目」と［この 1 枚だけ印刷］ */
 .pst-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
 .pst-bar-l { min-width: 0; font-weight: 900; font-size: 0.9rem; color: var(--ink-2); }
+
+/* ───── ポスター ───── */
 .pst-sheet {
   --c: #2f7a22;
-  container-type: inline-size; position: relative; overflow: hidden; width: 100%; aspect-ratio: 210 / 297;
+  container-type: inline-size; position: relative; overflow: hidden; width: 100%; aspect-ratio: 186 / 273;
   display: flex; flex-direction: column;
   background: #bfe4fb; color: #1f2547; border-radius: 6px; box-shadow: 0 0 0 5px #fff, 0 11px 0 5px #8fc3e8;
   font-family: var(--font); -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-/* 中の余白も紙の幅に対する割合で。.pst-sheet 自身の padding に cqw を書くと、外側（画面の幅）が基準になって画面と紙で値が変わり、
-   印刷で下のロゴとアドレスがはみ出して切れていた。それで 1 枚はさむ：
-   .pst-in の余白は .pst-sheet の幅で測り、中の文字・QR・絵の cqw は .pst-in の中の幅（紙の幅の 84%）で測る */
+/* 中の余白も紙の幅に対する割合で。.pst-sheet 自身の padding に cqw を書くと、外側（画面の幅）が基準になって画面と紙で値が変わる。
+   それで 1 枚はさむ：.pst-in の余白は .pst-sheet の幅で測り、中の文字・QR・絵の cqw は .pst-in の中の幅（紙の幅の 84%）で測る */
 .pst-in {
   flex: 1; min-height: 0; container-type: inline-size;
   display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6cqw 8cqw 4cqw;
 }
-.pst-sheet p, .pst-sheet h2 { margin: 0; }
-/* 中身は紙の縦の真ん中に */
-.pst-main { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1; }
+.pst-sheet p, .pst-sheet h2, .pst-sheet ul { margin: 0; }
+/* 中身は紙の縦の真ん中に。字が多くて入りきらないときは、上をそろえて下を切る（下のアドレスは押し出さない。切れたかは「刷る前の確かめ」に出る） */
+.pst-main {
+  flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: safe center;
+  position: relative; z-index: 1; overflow: hidden;
+}
+/* 中の 1 つ 1 つは縮めない（縮めると、字を切っている店名・ひとことの高さが 0 になって消える） */
+.pst-main > * { flex: none; }
 .pst-sp { position: absolute; height: auto; opacity: 0.95; }
 .pst-sp--a { top: 4cqw; right: 4cqw; width: 15cqw; transform: rotate(8deg); }
 .pst-sp--b { top: 34cqw; left: 3cqw; width: 14cqw; transform: rotate(-10deg); }
 .pst-sp--c { bottom: 4cqw; left: 4cqw; width: 14cqw; transform: rotate(-8deg); }
 .pst-sp--d { bottom: 7cqw; right: 6cqw; width: 10cqw; transform: rotate(30deg); }
 
-/* ドット文字の題字（緑・こい緑のふち）。ふちの太さも紙の幅に合わせる */
-.pst-title, .pst-name {
-  font-family: var(--font-display); font-weight: 400; color: #5fbe85; line-height: 1.15;
-  --e: 0.045em;
-  text-shadow: var(--e) 0 #276b45, calc(var(--e) * -1) 0 #276b45, 0 var(--e) #276b45, 0 calc(var(--e) * -1) #276b45,
-    var(--e) var(--e) #276b45, calc(var(--e) * -1) var(--e) #276b45, var(--e) calc(var(--e) * -1) #276b45, calc(var(--e) * -1) calc(var(--e) * -1) #276b45,
-    calc(var(--e) * 2) calc(var(--e) * 2.4) 0 #276b45;
-}
+/* ドット文字の題字（緑・こい緑のふち）。ふちは字の線（text-stroke）を字の下に描く。
+   前は影を 9 つ重ねてふちにしていて、PDF で題字が 10 重になっていた（R9-15）。いまは字・ふち・影の 3 つ。
+   ふちの太さ（em）は、字の大きさを決めている要素（.pst-title の中の span、.pst-name）に書く（親に書くと、親の字の大きさで決まって細くなる） */
+.pst-title, .pst-name--xl, .pst-name--l { font-family: var(--font-display); font-weight: 400; color: #5fbe85; line-height: 1.15; }
+.pst-title > span, .pst-name--xl, .pst-name--l { -webkit-text-stroke: 0.09em #276b45; paint-order: stroke fill; text-shadow: 0.09em 0.11em 0 #276b45; }
 
 /* 1 枚目：会場全体の案内 */
 .pst-org { font-family: var(--font-display); color: #5d4fdc; font-size: 2.9cqw; background: rgb(255 255 255 / 70%); padding: 0.8cqw 2.4cqw; border-radius: 1cqw; margin-top: 2cqw !important; position: relative; z-index: 1; }
@@ -44,23 +75,40 @@
 .pst-title-2 { font-size: 17cqw; }
 .pst-date { font-family: var(--font-display); color: #5d4fdc; font-size: 4.4cqw; line-height: 1.45; margin-top: 3cqw !important; }
 
-/* お店ごと */
+/* お店・出し物ごと */
 .pst-brand { font-family: var(--font-display); color: #5d4fdc; font-size: 3cqw; margin-top: 1cqw !important; position: relative; z-index: 1; }
 .pst-dept { background: var(--c); color: #fff; font-weight: 900; font-size: 3.6cqw; padding: 0.6cqw 3.4cqw; border-radius: 99cqw; }
-.pst-name { margin-top: 3cqw !important; max-width: 100%; overflow-wrap: anywhere; }
-.pst-catch { margin-top: 2cqw !important; font-size: 3.7cqw; font-weight: 700; color: #434a74; }
+.pst-name { margin-top: 3cqw !important; max-width: 100%; overflow-wrap: anywhere; word-break: auto-phrase; }
+.pst-name--xl { font-size: 11cqw; }
+.pst-name--l { font-size: 8.4cqw; }
+/* 11 字からは、ふちなしの濃い紺の太字（遠くからでも、白黒で刷っても読める）。いちばん長い 40 字でも 3 行まで */
+.pst-name--m, .pst-name--s, .pst-name--xs {
+  font-family: var(--font); font-weight: 900; color: #1f2547; line-height: 1.25;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+}
+.pst-name--m { font-size: 6.8cqw; }
+.pst-name--s { font-size: 5.6cqw; }
+.pst-name--xs { font-size: 4.6cqw; }
+/* ひとことは 2 行まで（60 字いっぱいでも、下のアドレスを押し出さない） */
+.pst-catch {
+  margin-top: 2cqw !important; font-size: 3.7cqw; font-weight: 700; color: #434a74; line-height: 1.4; max-width: 100%;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
 
 /* 1 枚目の部門の色札。下の隅の絵（.pst-sp--c・--d）に重ならないよう、絵と絵のあいだの幅に収める。部門が多いときは小さく */
-.pst-depts { list-style: none; margin: 4cqw 0 0; padding: 0; max-width: 78cqw; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6cqw; }
+.pst-depts { list-style: none; margin: 4cqw 0 0 !important; padding: 0; max-width: 78cqw; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6cqw; }
 .pst-depts li { color: #fff; font-weight: 900; font-size: 3cqw; padding: 0.6cqw 2.6cqw; border-radius: 99cqw; }
 .pst-depts--many { gap: 1.2cqw; }
 .pst-depts--many li { font-size: 2.6cqw; padding: 0.4cqw 2cqw; }
 
-/* QR（白い紙にドットの影） */
-.pst-qr { margin-top: 5cqw; width: 60cqw; background: #fff; padding: 2.4cqw; border: 1cqw solid #1f2547; box-shadow: 1.4cqw 1.4cqw 0 #8fc3e8; }
+/* QR（白い紙にドットの影）。QR の中にも 2 マスの白い余白があり、まわりの白い枠と合わせて 4 マスほど（R9-10） */
+.pst-qr { flex: none; margin-top: 5cqw; width: 58cqw; background: #fff; padding: 2cqw; border: 1cqw solid #1f2547; box-shadow: 1.4cqw 1.4cqw 0 #8fc3e8; }
 .pst-sheet--top .pst-qr { width: 54cqw; margin-top: 4cqw; }
+/* 場所の補足・当日の流れがある紙は、QR を少し小さくして下に場所を空ける */
+.pst-sheet--busy .pst-qr { width: 50cqw; margin-top: 4cqw; }
 .pst-qr svg { display: block; width: 100%; height: auto; }
 .pst-lead { margin-top: 5cqw !important; font-size: 5.4cqw; font-weight: 900; line-height: 1.35; }
+.pst-sheet--busy .pst-lead { margin-top: 4cqw !important; font-size: 5cqw; }
 /* 1 枚目（会場全体の案内）は中身が多いので、QR を少し小さく・すき間を少しつめて、下のロゴとアドレスを紙の端から離して収める */
 .pst-sheet--venue .pst-org { margin-top: 1cqw !important; }
 .pst-sheet--venue .pst-title { line-height: 1.1; }
@@ -68,46 +116,84 @@
 .pst-sheet--venue .pst-qr { width: 45cqw; margin-top: 3cqw; }
 .pst-sheet--venue .pst-lead { margin-top: 3cqw !important; }
 .pst-sheet--venue .pst-sub { margin-top: 1cqw !important; }
-.pst-sheet--venue .pst-depts { margin-top: 2.6cqw; }
+.pst-sheet--venue .pst-depts { margin-top: 2.6cqw !important; }
 .pst-sheet--venue .pst-foot { margin-top: 2cqw; }
 .pst-sub { margin-top: 1.4cqw !important; font-size: 3.2cqw; color: #434a74; font-weight: 700; }
-.pst-place { margin-top: 3.4cqw !important; font-size: 3.8cqw; font-weight: 900; background: #fff; padding: 0.8cqw 3cqw; border-radius: 1cqw; }
-.pst-url { font-size: 2.1cqw; position: relative; z-index: 1; color: #565d86; letter-spacing: 0.02em; }
+
+/* 場所（遠くから読める大きさ。補足は 2 行目に小さく。R9-5） */
+.pst-place { flex: none; margin-top: 3.4cqw; max-width: 100%; background: #fff; border: 0.5cqw solid #1f2547; border-radius: 1.2cqw; padding: 1cqw 3.4cqw 1.2cqw; }
+.pst-place-1, .pst-place-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; word-break: auto-phrase; }
+.pst-place-1 { font-size: 5.6cqw; font-weight: 900; line-height: 1.3; }
+.pst-place-2 { margin-top: 0.4cqw !important; font-size: 3.4cqw; font-weight: 700; line-height: 1.35; color: #434a74; }
+.pst-move { margin-top: 1.4cqw !important; font-size: 3.1cqw; font-weight: 700; color: #434a74; }
+/* 当日の流れ（3 行まで。長い行は 1 行で切る） */
+.pst-sched { flex: none; list-style: none; margin-top: 2.6cqw !important; padding: 0; max-width: 100%; display: grid; gap: 0.6cqw; text-align: left; }
+.pst-sched li { display: flex; gap: 2.4cqw; min-width: 0; font-size: 3.6cqw; font-weight: 700; line-height: 1.35; }
+.pst-sched b { flex: none; font-weight: 900; }
+.pst-sched span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pst-sched .pst-sched-more { font-size: 3cqw; color: #434a74; }
+.pst-url { flex: none; font-size: 2.3cqw; position: relative; z-index: 1; color: #434a74; letter-spacing: 0.02em; overflow-wrap: anywhere; }
 
 /* 会場全体のポスターのいちばん下：学校のロゴ（札なし）とアドレス */
-.pst-foot { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1cqw; }
+.pst-foot { flex: none; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1cqw; }
 .pst-foot img { display: block; width: 46cqw; height: auto; }
 /* アンケートのポスター */
 .pst-title-survey { font-size: 15cqw !important; }
 .pst-sheet--survey .pst-title-1 { font-size: 8cqw; }
 
+/* 白い地（インク節約。R9-3）：紙いっぱいの水色をやめて、ふちだけ部門の色（会場の案内・アンケートは水色）。
+   ふちは .pst-in に付ける（.pst-sheet 自身に cqw を書くと、外側の幅が基準になるため） */
+.pst-page:has(#pst-white:checked) .pst-sheet { background: #fff; box-shadow: 0 0 0 1px #c9dceb, 0 8px 0 1px #c9dceb; }
+.pst-page:has(#pst-white:checked) .pst-in { border: 1.6cqw solid var(--c); }
+.pst-page:has(#pst-white:checked) .pst-sheet--top { --c: #8fc3e8; }
+.pst-page:has(#pst-white:checked) .pst-org { background: #fff; box-shadow: 0 0 0 0.3cqw #c9d3e6; }
+.pst-page:has(#pst-white:checked) .pst-qr { box-shadow: 1.4cqw 1.4cqw 0 #c9dceb; }
+
 /* ───── 受付・本部の控え（紙）。紙に刷るものなので、ダークモードでも白い紙のまま ───── */
-.pst-docs { display: grid; gap: 24px; justify-items: center; margin-top: 48px !important; }
-.pst-docs > .st-noprint { width: min(100%, 760px); }
-.pst-docs-h { font-size: 1.2rem; margin: 0 0 4px; }
+.pst-docs { display: grid; gap: 24px; justify-items: center; }
 .pst-docs .pst-item { width: min(100%, 760px); }
 .pst-doc { background: #fff; color: #1f2547; border-radius: 6px; box-shadow: 0 0 0 1px #c9dceb, 0 6px 0 #8fc3e8; padding: 20px 22px; font-size: 0.875rem; line-height: 1.6; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .pst-doc-head { border-bottom: 3px solid #1f2547; padding-bottom: 8px; margin-bottom: 4px; }
 .pst-doc-head p { margin: 0; }
-.pst-doc-kicker { font-size: 0.75rem; font-weight: 700; color: #565d86; }
+.pst-doc-kicker { font-size: 0.75rem; font-weight: 700; color: #434a74; }
 .pst-doc-title { margin: 2px 0; font-size: 1.2rem; line-height: 1.4; }
 .pst-doc-meta { font-size: 0.8rem; color: #434a74; }
 .pst-doc-h { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-size: 1rem; line-height: 1.4; }
 .pst-doc-h::before { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c, #1f2547); }
-.pst-doc-h small { font-size: 0.75rem; font-weight: 700; color: #565d86; }
+.pst-doc-h small { font-size: 0.75rem; font-weight: 700; color: #434a74; }
 .pst-doc-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pst-doc-table th, .pst-doc-table td { border: 1px solid #9fb6cc; padding: 5px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .pst-doc-table thead th { background: #e4f3fd; font-size: 0.75rem; font-weight: 900; }
 .pst-doc-table tbody th { font-weight: 900; }
 .pst-doc-table tbody th small { display: block; font-size: 0.75rem; font-weight: 500; color: #434a74; }
+/* 場所の欄：「402 大講／義室」のように語の途中で割らない（R9-13） */
+.pst-doc-place { word-break: auto-phrase; }
 .pst-doc-table--shops thead th:nth-child(1) { width: 30%; }
-.pst-doc-table--shops thead th:nth-child(2) { width: 22%; }
-.pst-doc-table--time thead th:nth-child(1) { width: 20%; }
-.pst-doc-table--time thead th:nth-child(3) { width: 32%; }
+.pst-doc-table--shops thead th:nth-child(2) { width: 28%; }
+.pst-doc-table--time thead th:nth-child(1) { width: 13%; }
+.pst-doc-table--time thead th:nth-child(3) { width: 27%; }
+.pst-doc-table--time thead th:nth-child(4) { width: 26%; }
 .pst-doc-menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
 .pst-doc-menu li { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 8px; }
 .pst-doc-menu li > :last-child { margin-left: auto; font-weight: 700; }
 .pst-doc-time { font-weight: 900; font-variant-numeric: tabular-nums; border-left: 5px solid var(--c, #1f2547) !important; }
+
+/* 場所の索引：場所の順に 2 段 */
+.pix-cols { columns: 2; column-gap: 24px; }
+.pix-group { margin: 0 0 10px; }
+.pix-h { margin: 10px 0 4px; padding-bottom: 2px; border-bottom: 2px solid #1f2547; font-size: 1rem; line-height: 1.4; break-after: avoid; }
+.pix-group:first-child .pix-h { margin-top: 6px; }
+.pix-list { list-style: none; margin: 0; padding: 0; }
+.pix-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; border-bottom: 1px dotted #9fb6cc; break-inside: avoid; }
+.pix-name { min-width: 0; font-weight: 900; line-height: 1.45; }
+.pix-where { flex: none; max-width: 48%; text-align: right; font-weight: 700; line-height: 1.45; word-break: auto-phrase; }
+.pix-name small, .pix-where small { display: block; font-size: 0.72rem; font-weight: 500; color: #434a74; }
+.pix-name small { display: inline; margin-left: 6px; }
+.pix-fac { margin: 12px 0 0; padding-top: 8px; border-top: 3px solid #1f2547; display: grid; gap: 4px; }
+.pix-fac div { display: flex; gap: 10px; }
+.pix-fac dt { flex: none; min-width: 6em; font-weight: 900; }
+.pix-fac dd { margin: 0; }
+
 /* 狭い画面で見るとき（印刷は表のまま）：1 行ずつ縦に */
 @media screen and (max-width: 560px) {
   .pst-doc { padding: 14px; }
@@ -116,26 +202,44 @@
   .pst-doc-table tr { border: 1px solid #9fb6cc; border-radius: 4px; margin-bottom: 6px; padding: 4px 0; }
   .pst-doc-table th, .pst-doc-table td { border: 0; padding: 2px 10px; }
   .pst-doc-time { border-left: 0 !important; }
+  .pix-cols { columns: 1; }
 }
 
 @media print {
-  @page pst { size: A4 portrait; margin: 0; }
+  /* ポスター・フロアの案内の紙（pst）：余白 12mm。欄外に何も書かない枠を置くと、ブラウザが自分で刷る日時・アドレス・ページ番号が出ない */
+  @page pst { size: A4 portrait; margin: 12mm; @top-left { content: ""; } @bottom-left { content: ""; } }
+  /* ダークモードの端末から刷っても、紙のまわりが黒くならない（R9-4） */
+  html:has(.pst-page) { background: #fff !important; color-scheme: light; }
+  html:has(.pst-page) body { background: #fff !important; }
+  /* 枠の高さ（画面の高さいっぱい＝紙 1 枚分）が残ると、1 枚だけ印刷したときに、うしろに白い紙が出ることがある */
+  html:has(.pst-page) .shell-side { min-height: 0 !important; }
   .pst-page { padding: 0 !important; max-width: none !important; }
   /* 隠した説明の欄とのすき間（.st-stack の 16px）が残ると、1 枚目が下にずれて 2 ページ目にはみ出す */
   .pst-page > *, .pst-page .pst-list, .pst-page .pst-docs { margin: 0 !important; }
   .pst-list, .pst-docs, .pst-item { display: block; width: auto; }
-  /* ポスターは余白なしの紙（pst）に 1 枚ずつ。控えの紙はふつうの余白（12mm） */
-  .pst-list > .pst-item { page: pst; break-after: page; page-break-after: always; }
+  .pst-sec--posters .pst-item, .pst-sec--floors .pst-item { page: pst; break-after: page; page-break-after: always; }
   .pst-list > .pst-item:last-child { break-after: auto; page-break-after: auto; }
-  .pst-sheet { width: 210mm; height: 297mm; aspect-ratio: auto; border-radius: 0; box-shadow: none; margin: 0; break-inside: avoid; page-break-inside: avoid; }
-  /* 「この 1 枚だけ印刷」：押した 1 枚のうしろで紙を送らない（ほかの 1 枚は staff.css で隠す） */
-  html.st-print-one .pst-item[data-print-one] { break-after: auto; page-break-after: auto; }
-  /* 押した 1 枚の入っていない側（空のまま残ると、紙の種類が変わって白い紙が 1 枚出る）は出さない */
-  html.st-print-one .pst-list:not(:has([data-print-one])), html.st-print-one .pst-docs:not(:has([data-print-one])) { display: none; }
-  /* 「ポスターを全部印刷」には、控えの紙を入れない */
-  html:not(.st-print-one) .pst-docs { display: none; }
-  .pst-doc { box-shadow: none; border-radius: 0; padding: 0; font-size: 10pt; }
+  /* 紙の中（A4 から上下左右 12mm を引いた 186×273mm）より 1mm 小さく：端数で 0.1mm でもはみ出すと、下の端だけが次の紙に出る */
+  .pst-sheet { width: 185.3mm; height: 272mm; aspect-ratio: auto; border-radius: 0; box-shadow: none !important; margin: 0 auto; break-inside: avoid; page-break-inside: avoid; }
+  /* Chrome・Edge では、紙の中の高さ（100vh）に合わせて大きさを決める：余白を「なし」「最小」「カスタム」にしても、1 枚に収まって真ん中に来る。
+     （100vh は「デフォルト」の紙の高さで決まるので、273mm より大きくはしない＝ pst の紙からはみ出さない） */
+  @supports (page: pst) {
+    .pst-list > .pst-item { height: calc(min(100vh, 273mm) - 1mm); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pst-sheet { width: min(186mm, 100vw, calc((min(100vh, 273mm) - 1mm) * 186 / 273)); height: auto; aspect-ratio: 186 / 273; }
+  }
+  /* 「この 1 枚だけ印刷」・まとめて印刷：印を付けた紙のうしろだけで紙を送る（ほかの紙は staff.css で隠す）。最後の 1 枚のうしろでは送らない */
+  html.st-print-one .pst-list > .pst-item[data-print-one] { break-after: page; page-break-after: always; }
+  html.st-print-one .pst-list > .pst-item[data-print-one]:not(:has(~ .pst-item[data-print-one])) { break-after: auto; page-break-after: auto; }
+  /* 印を付けた紙の入っていない側（空のまま残ると、紙の種類が変わって白い紙が 1 枚出る）は出さない */
+  html.st-print-one .pst-sec:not(:has([data-print-one])) { display: none; }
+  /* 「ポスターを全部印刷」（印のない印刷）には、ポスターだけを入れる */
+  html:not(.st-print-one) .pst-sec--floors, html:not(.st-print-one) .pst-docs { display: none; }
+  .pst-doc { box-shadow: none; border-radius: 0; padding: 0; font-size: 10pt; line-height: 1.5; }
+  /* 紙を減らす：表の行のすき間を少しつめる */
+  .pst-doc-table th, .pst-doc-table td { padding: 1.1mm 2mm; }
+  .pst-doc-h { margin: 3.5mm 0 1.5mm; }
   .pst-doc-table thead { display: table-header-group; }
-  .pst-doc-table tr { break-inside: avoid; page-break-inside: avoid; }
-  .pst-doc-h { break-after: avoid; page-break-after: avoid; }
+  .pst-doc-table tr, .pix-list li { break-inside: avoid; page-break-inside: avoid; }
+  .pst-doc-h, .pix-h { break-after: avoid; page-break-after: avoid; }
+  .pix-cols { column-gap: 8mm; }
 }

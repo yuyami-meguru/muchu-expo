@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { fail, guarded, ok, readBody, zId } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { guarded, needAdmin, ok, readBody, zId } from "@/lib/api";
 import { deleteArea, deleteDept, deletePlace, deleteShop, loadAll, saveArea, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
 
 /*
@@ -66,8 +65,8 @@ const backupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   return guarded(async () => {
-    const sess = await getSession();
-    if (sess?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
+    const no = await needAdmin();
+    if (no) return no;
     const b = await readBody(req, backupSchema);
     if ("error" in b) return b.error;
     const { depts, shops, places, areas } = b.data.data;

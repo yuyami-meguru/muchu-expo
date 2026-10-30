@@ -1,0 +1,109 @@
+/* フロアの案内の紙（階ごとに A4 縦 1 枚。/staff/posters の「フロアの案内」）。
+   大きさは紙の幅に対する割合（cqw）で決める（画面の縮小表示と印刷で同じ形）。紙の大きさ・印刷のしかたはポスターと同じ（posters.css の pst）。
+   見取り図は地図の画面と同じ FloorPlanSvg（components/map/floor-plan.tsx）を、ここで白い地・黒い線にする。
+   地図の画面の CSS（school-map.css）が読みこまれていても負けないよう、.pfl-plan から始まる 3 つ以上のクラスで書く。白黒で刷っても読める色だけ */
+
+.pfl-sheet {
+  container-type: inline-size; position: relative; overflow: hidden; width: 100%; aspect-ratio: 186 / 273;
+  display: flex; flex-direction: column; background: #fff; color: #111; border-radius: 6px;
+  box-shadow: 0 0 0 1px #c9dceb, 0 8px 0 1px #c9dceb; font-family: var(--font);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.pfl-in { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 4.5cqw 4.5cqw 3.6cqw; }
+.pfl-sheet p, .pfl-sheet h2, .pfl-sheet h3, .pfl-sheet ul, .pfl-sheet dl, .pfl-sheet dd { margin: 0; }
+
+/* 上：「フロアの案内」「知育館 3階」と行事の名前 */
+.pfl-head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 3cqw; padding-bottom: 1.4cqw; border-bottom: 0.9cqw solid #111; }
+.pfl-kicker { grid-column: 1; grid-row: 1; font-size: 3.2cqw; font-weight: 900; line-height: 1.3; }
+.pfl-event { grid-column: 2; grid-row: 1; font-size: 2.6cqw; font-weight: 700; line-height: 1.4; text-align: right; }
+.pfl-title { grid-column: 1 / -1; grid-row: 2; font-size: 11cqw; font-weight: 900; line-height: 1.15; letter-spacing: 0.02em; word-break: auto-phrase; }
+
+/* 見取り図 */
+.pfl-plan { flex: none; position: relative; margin-top: 3cqw; aspect-ratio: 5000 / 2250; container-type: inline-size; }
+.pfl-plan svg.fp { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; }
+.pfl-plan .fp .fp-bg { fill: #fff; }
+.pfl-plan .fp .fp-hall { fill: #fff; stroke: #111; stroke-width: 12; stroke-linejoin: round; }
+.pfl-plan .fp .fp-room { fill: #fff; stroke: #111; stroke-width: 14; }
+/* 使わない部屋（職員室・トイレなど）・階段：うすい灰 */
+.pfl-plan .fp .fp-fixed { fill: #e6e6e6; stroke: #111; stroke-width: 10; }
+.pfl-plan .fp .fp-step { stroke: #111; stroke-width: 4; }
+.pfl-plan .fp .fp-wall { stroke: #111; stroke-width: 10; }
+.pfl-plan .fp .fp-door { fill: #fff; }
+/* 使わない部屋・階段の名前（FloorLabels） */
+.pfl-plan .fp-label {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none; overflow: hidden; text-align: center; white-space: pre-line;
+  font-size: 1.5cqw; font-weight: 700; line-height: 1.15; color: #444;
+}
+/* 部屋・場所（地図のピンの四角）。お店・出し物のある部屋は太い黒の枠とうすい灰の地 */
+.pfl-room { position: absolute; z-index: 1; overflow: hidden; color: #111; }
+.pfl-room-in {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4cqw;
+  padding: 0.5cqw; overflow: hidden; text-align: center;
+}
+.pfl-room-name { font-size: 1.8cqw; font-weight: 700; line-height: 1.15; color: #555; word-break: auto-phrase; }
+.pfl-room--has { border: 0.45cqw solid #111; background: #ececec; }
+.pfl-room--has .pfl-room-name { font-size: 2.1cqw; font-weight: 900; color: #111; }
+.pfl-room-shops { list-style: none; padding: 0; display: grid; gap: 0.4cqw; font-size: 1.75cqw; font-weight: 900; line-height: 1.2; word-break: auto-phrase; }
+/* 床の形に切った部屋（ホール・廊下）：四角の線と地は出さず、SVG の形で描く（線の外がわ半分は形の外で切れるので、太さは 2 倍） */
+.pfl-room--shaped { border: 0; background: none; }
+.pfl-room-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.pfl-room-shape polygon { fill: none; stroke: none; }
+.pfl-room--has .pfl-room-shape polygon { fill: #ececec; stroke: #111; stroke-width: 3.4px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+/* 四角の無い場所（ピン）：その位置に札 */
+.pfl-room--pin { transform: translate(-50%, -50%); width: max-content; max-width: 22cqw; border: 0.3cqw solid #111; background: #fff; }
+.pfl-room--pin .pfl-room-in { position: static; }
+.pfl-room--pin.pfl-room--has { background: #ececec; }
+/* 設備（トイレは WC、ほかは名前）：黒い札に白い字 */
+.pfl-fac {
+  position: absolute; z-index: 2; transform: translate(-50%, -50%); white-space: nowrap;
+  background: #111; color: #fff; font-size: 1.8cqw; font-weight: 900; line-height: 1.3; padding: 0.2cqw 0.7cqw; border-radius: 0.5cqw;
+}
+.pfl-noplan { flex: none; margin-top: 3cqw !important; padding: 3cqw; border: 0.4cqw dashed #555; font-size: 3cqw; font-weight: 700; text-align: center; }
+
+/* 見取り図の印 */
+.pfl-legend { flex: none; list-style: none; padding: 0; margin-top: 1.4cqw !important; display: flex; flex-wrap: wrap; gap: 0.6cqw 3cqw; font-size: 2.3cqw; font-weight: 700; color: #333; }
+.pfl-legend li { display: inline-flex; align-items: center; gap: 1cqw; }
+.pfl-key { display: inline-grid; place-items: center; flex: none; min-width: 3.2cqw; height: 2.6cqw; }
+.pfl-key--room { border: 0.45cqw solid #111; background: #ececec; }
+.pfl-key--fac { background: #111; color: #fff; font-size: 1.7cqw; font-weight: 900; padding: 0 0.5cqw; border-radius: 0.4cqw; }
+
+/* その階のお店・出し物の一覧（「301 教室　○○・△△」。遠くから読める大きさ。多い階は 2 段・3 段にして、字を小さく） */
+.pfl-list { flex: 1; min-height: 0; overflow: hidden; margin-top: 3cqw; }
+.pfl-list-h { font-size: 3.6cqw; font-weight: 900; line-height: 1.3; padding-left: 1.6cqw; border-left: 1.2cqw solid #111; margin-bottom: 1.4cqw !important; }
+.pfl-list-h small { font-size: 2.8cqw; font-weight: 700; margin-left: 1cqw; }
+.pfl-none { font-size: 3.4cqw; font-weight: 700; color: #333; }
+.pfl-rows { --fs: 3.6cqw; column-gap: 4cqw; }
+.pfl-row { break-inside: avoid; display: grid; grid-template-columns: 24cqw minmax(0, 1fr); column-gap: 2.4cqw; padding: 0.9cqw 0; border-bottom: 0.25cqw solid #999; font-size: var(--fs); line-height: 1.3; }
+.pfl-row dt { font-weight: 900; word-break: auto-phrase; }
+.pfl-row dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4cqw 2.6cqw; font-weight: 900; }
+.pfl-shop { word-break: auto-phrase; }
+.pfl-dept { display: inline-block; margin-left: 1cqw; padding: 0 1cqw; border: 0.25cqw solid #111; border-radius: 99cqw; font-size: 0.66em; font-weight: 700; line-height: 1.45; vertical-align: 0.12em; }
+.pfl-note { display: block; font-size: 0.66em; font-weight: 500; color: #333; }
+/* 4 件まで：字を大きく、お店を 1 行ずつ（場所の補足も） */
+.pfl-list[data-size="big"] .pfl-rows { --fs: 4.8cqw; }
+.pfl-list[data-size="big"] .pfl-row { grid-template-columns: 30cqw minmax(0, 1fr); padding: 1.4cqw 0; }
+.pfl-list[data-size="big"] .pfl-row dd { flex-direction: column; align-items: flex-start; }
+/* 2 段・3 段：部屋の名前を上に（横に並べると狭い） */
+.pfl-list[data-size="2"] .pfl-rows { --fs: 3.1cqw; columns: 2; }
+.pfl-list[data-size="3"] .pfl-rows { --fs: 2.6cqw; columns: 3; column-gap: 3cqw; }
+.pfl-list[data-size="2"] .pfl-row, .pfl-list[data-size="3"] .pfl-row { grid-template-columns: minmax(0, 1fr); }
+/* 3 段のときは部門の札を省いて、1 件 1 行に */
+.pfl-list[data-size="3"] .pfl-dept { display: none; }
+.pfl-list[data-size="3"] .pfl-row dd { flex-direction: column; gap: 0.2cqw; }
+
+/* 下：/map?area= の QR と時点 */
+.pfl-foot { flex: none; display: flex; align-items: center; gap: 3.4cqw; margin-top: 2cqw; padding-top: 2.4cqw; border-top: 0.5cqw solid #111; }
+.pfl-qr { flex: none; width: 19cqw; background: #fff; }
+.pfl-qr svg { display: block; width: 100%; height: auto; }
+.pfl-foot-text { min-width: 0; display: grid; gap: 0.8cqw; }
+.pfl-foot-lead { font-size: 3.2cqw; font-weight: 900; line-height: 1.4; }
+.pfl-url { font-size: 2.3cqw; color: #333; overflow-wrap: anywhere; }
+.pfl-asof { font-size: 2.3cqw; color: #333; }
+
+@media print {
+  .pfl-sheet { width: 185.3mm; height: 272mm; aspect-ratio: auto; border-radius: 0; box-shadow: none; margin: 0 auto; break-inside: avoid; page-break-inside: avoid; }
+  /* Chrome・Edge では紙の中の高さに合わせる（posters.css の .pst-sheet と同じ） */
+  @supports (page: pst) {
+    .pfl-sheet { width: min(186mm, 100vw, calc((min(100vh, 273mm) - 1mm) * 186 / 273)); height: auto; aspect-ratio: 186 / 273; }
+  }
+}

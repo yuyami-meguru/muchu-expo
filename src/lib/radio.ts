@@ -52,7 +52,12 @@ export const radioMsgBody = z.object({
   text: t(200).min(1),
   /** いたずら対策の見えない欄。人は入れない */
   website: t(100).default(""),
+  /** 端末ごとの乱数（任意。アンケートと同じもの）。あれば、端末ごとの短い回数の上限と、同じ文の送り直しをはじくのに使う（保存しない） */
+  device: z.string().trim().regex(/^[A-Za-z0-9_-]{8,40}$/).optional().catch(undefined),
 });
+
+/** 送られた中身がちがうときの、欄の呼び名（ラジオのメッセージの欄の名前） */
+export const RADIO_MSG_LABELS: Record<string, string> = { kind: "種類", name: "ラジオネーム", text: "メッセージ" };
 
 export function parseMsgs(raw: unknown[]): RadioMsg[] {
   const out: RadioMsg[] = [];

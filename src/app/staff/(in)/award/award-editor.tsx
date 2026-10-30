@@ -7,6 +7,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch, TextArea, TextField } from "@/components/ui/field";
 import type { AwardSetting } from "@/app/(public)/award/award-data";
 import { savedAt, send } from "../../_lib/client";
+import { noteAuth } from "../_components/session-signal";
+import { failMsg } from "../ops-result";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
 
 type ShopChoice = { id: string; name: string; dept: string; color: string };
@@ -16,12 +18,16 @@ export function AwardEditor({
   initial,
   shops,
   counts,
+  devCounts,
   total,
   ready,
 }: {
   initial: AwardSetting;
   shops: ShopChoice[];
+  /** アンケートの「印象に残った」の数（お店 id → 数） */
   counts: Record<string, number>;
+  /** 同じ端末の回答を 1 つに数えた数（続けて何度も答えた分を 1 票に） */
+  devCounts: Record<string, number>;
   total: number;
   ready: boolean;
 }) {
@@ -33,7 +39,12 @@ export function AwardEditor({
   const [error, setError] = useState("");
   const [asking, setAsking] = useState(false);
   const shopOf = useMemo(() => new Map(shops.map((s) => [s.id, s])), [shops]);
-  const ranking = useMemo(() => [...shops].sort((x, y) => (counts[y.id] ?? 0) - (counts[x.id] ?? 0)), [shops, counts]);
+  // 多い順（同じ端末の回答を 1 つに数えた数で。同じなら回答の数で）
+  const ranking = useMemo(
+    () => [...shops].sort((x, y) => (devCounts[y.id] ?? 0) - (devCounts[x.id] ?? 0) || (counts[y.id] ?? 0) - (counts[x.id] ?? 0)),
+    [shops, counts, devCounts],
+  );
+  const votes = (id: string) => (devCounts[id] ?? 0) === (counts[id] ?? 0) ? `${counts[id] ?? 0} 票` : `${counts[id] ?? 0} 票・端末で ${devCounts[id] ?? 0}`;
   // 受賞のお店が 1 つもないうちは、発表できない（お客さんの画面が空になるため）
   const winners = a.awards.reduce((n, x) => n + x.winners.length, 0);
   const cannotPublish = !a.published && winners === 0;
@@ -66,9 +77,9 @@ export function AwardEditor({
     if (bad >= 0) return setError(`${bad + 1} つ目の賞の名前を入れてください`);
     setPending(true);
     setError("");
-    const r = await send<{ award: AwardSetting }>("/api/staff/award", "PUT", next);
+    const r = noteAuth(await send<{ award: AwardSetting }>("/api/staff/award", "PUT", next));
     setPending(false);
-    if (!r.ok) return setError(r.error);
+    if (!r.ok) return setError(failMsg("保存", r, "少し待ってから、もう一度［保存する］を押してください（同じ内容なら 2 回押しても大丈夫です）"));
     setA(r.award);
     setDirty(false);
     setMsg(savedAt());
@@ -77,6 +88,7 @@ export function AwardEditor({
 
   /** スイッチ：オンにするときは確かめてから（いまの内容もいっしょに保存する）。オフはすぐ */
   function togglePublish() {
+    if (pending) return;
     if (a.published) return save({ ...a, published: false });
     if (cannotPublish) return;
     setAsking(true);
@@ -92,7 +104,8 @@ export function AwardEditor({
             hint={cannotPublish ? "受賞のお店を 1 つ以上入れると発表できます" : "オンにすると、お客さんの「アワード」のページとホームに受賞が出ます"}
             checked={a.published}
             onChange={togglePublish}
-            disabled={!ready || pending || cannotPublish}
+            disabled={!ready || cannotPublish}
+            aria-disabled={pending || undefined}
           />
           <ConfirmDialog
             title="受賞を発表しますか？"
@@ -171,7 +184,7 @@ export function AwardEditor({
                     .filter((s) => !chosen.has(s.id))
                     .map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.dept} ・ {s.name}（アンケート {counts[s.id] ?? 0} 票）
+                        {s.dept} ・ {s.name}（アンケート {votes(s.id)}）
                       </option>
                     ))}
                 </select>
@@ -215,7 +228,9 @@ export function AwardEditor({
 
       <aside className="aw-ed-side aw-ed-card" aria-label="参考：アンケートで印象に残った数">
         <h2>参考：アンケート</h2>
-        <p className="st-muted">「印象に残ったお店・出し物」の数（回答 {total} 件・多い順）</p>
+        <p className="st-muted">
+          「印象に残ったお店・出し物」の数（回答 {total} 件）。多い順は、同じ端末から何度答えても 1 票に数えた数（「端末で」）で並べています
+        </p>
         <ol className="aw-ed-rank">
           {ranking.map((s) => (
             <li key={s.id} className={`tone-${s.color}`}>
@@ -223,7 +238,10 @@ export function AwardEditor({
                 <small>{s.dept}</small>
                 {s.name}
               </span>
-              <span className="aw-ed-rank-n">{counts[s.id] ?? 0}</span>
+              <span className="aw-ed-rank-n">
+                {devCounts[s.id] ?? 0}
+                {(devCounts[s.id] ?? 0) !== (counts[s.id] ?? 0) && <small className="aw-ed-rank-all">回答 {counts[s.id] ?? 0}</small>}
+              </span>
             </li>
           ))}
         </ol>

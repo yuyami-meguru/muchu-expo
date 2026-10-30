@@ -38,6 +38,10 @@ const shop = async (id) => (await fetch(`${BASE}/api/status`, { cache: "no-store
 
 const anon = new Client();
 check("ログインなしでは書き換えられない", (await anon.req("PATCH", `/api/staff/shops/${A}`, { state: "open" })).status === 401);
+// 実行委員だけの窓口も、ログインしていない・切れたときは 401（画面は［もう一度］ではなく入り直し方を出す）。文は役割を問わない
+const anonNews = await anon.req("POST", "/api/staff/news", { text: "x" });
+check("ログインなしの実行委員の窓口は 401 で、入り直し方を言う", anonNews.status === 401 && /お店の QR/.test(anonNews.json?.error ?? "") && /合言葉/.test(anonNews.json?.error ?? ""), anonNews.json?.error);
+check("ログインなしでは「いまの様子」も 401", (await anon.req("GET", "/api/staff/live")).status === 401);
 
 const wrong = new Client();
 check("合言葉がちがえば入れない", (await wrong.req("POST", "/api/staff/login", { pass: "nope" })).status === 401);
@@ -48,6 +52,8 @@ check("合言葉で入れる", (await admin.req("POST", "/api/staff/login", { pa
 const bad = new Client();
 check("かぎがちがえばお店に入れない", (await bad.req("POST", "/api/staff/join", { shop: A, key: "x".repeat(24) })).status === 401);
 check("別のお店のかぎでは入れない", (await bad.req("POST", "/api/staff/join", { shop: A, key: data.key[B] })).status === 401);
+const broken = await bad.req("POST", "/api/staff/join", { shop: A, key: "short" });
+check("欠けた QR は「読めませんでした」と言う（入れた内容を…ではなく）", broken.status === 400 && /QR の中身が読めませんでした/.test(broken.json?.error ?? ""), broken.json?.error);
 
 const a = new Client();
 check("お店 A の QR で入れる", (await a.req("POST", "/api/staff/join", { shop: A, key: data.key[A] })).status === 200);
@@ -96,6 +102,25 @@ check("実行委員は変更の記録を見られ、お店の人の変更が残�
 check("売り切れだけの変更は記録に残らない", !lg.json?.log?.some((e) => e.field === "メニュー" && e.after.includes("few")));
 check("紹介を元に戻す", (await a.req("PATCH", `/api/staff/shops/${A}`, { description: orig.description, menu: menuNoStock })).status === 200);
 
+// ほかの人が直した欄の確かめ（base。画面を開いたときの値）
+const opened = (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json.shop;
+const okBase = await a.req("PATCH", `/api/staff/shops/${A}`, { description: `${opened.description}`, base: { description: opened.description } });
+check("base がいまの値と同じなら書ける", okBase.status === 200);
+await admin.req("PATCH", `/api/staff/shops/${A}`, { description: `実行委員が直した ${Date.now()}` });
+const late = await a.req("PATCH", `/api/staff/shops/${A}`, { description: "あとから保存した文", base: { description: opened.description } });
+check("開いたあとにほかの人が直した欄は書かずに 409", late.status === 409 && late.json?.conflict?.includes("description") && /ほかの人が「どんなお店？」を直しました/.test(late.json?.error ?? ""), late.json?.error);
+check("409 のときは何も書かない", (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json.shop.description !== "あとから保存した文");
+const nowDesc = (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json.shop.description;
+check("送る値がいまの値と同じなら、base が古くても 409 にしない", (await a.req("PATCH", `/api/staff/shops/${A}`, { description: nowDesc, base: { description: opened.description } })).status === 200);
+check("base の無い欄は今までどおり書ける", (await a.req("PATCH", `/api/staff/shops/${A}`, { catch: opened.catch, base: { description: opened.description } })).status === 200);
+// メニューは品物の残りを除いて比べる（売り切れは別に動く）
+const menuOpened = (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json.shop.menu;
+await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: menuOpened[0].id, stock: "out" }] });
+const menuSave = await a.req("PATCH", `/api/staff/shops/${A}`, { menu: menuOpened.map(({ id, name, price, note }) => ({ id, name, price, note })), base: { menu: menuOpened } });
+check("売り切れが変わっただけなら、メニューの保存は 409 にしない", menuSave.status === 200);
+await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: menuOpened[0].id, stock: menuOpened[0].stock }] });
+check("どんなお店？を元に戻す", (await admin.req("PATCH", `/api/staff/shops/${A}`, { description: orig.description })).status === 200);
+
 check("A の売り切れを元に戻す", (await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: itemA, stock: "on" }] })).status === 200);
 
 // 部門：足す → 名前と色を変える → お店がいる部門は消せない → 空なら消せる
@@ -106,6 +131,13 @@ check("お店を新しい部門へ移せる", (await admin.req("PATCH", `/api/st
 check("お店がいる部門は消せない", (await admin.req("DELETE", "/api/staff/depts/check-dept")).status === 409);
 check("お店を元の部門へ戻す", (await admin.req("PATCH", `/api/staff/shops/${B}`, { dept: oldDept })).status === 200);
 check("空の部門は消せる", (await admin.req("DELETE", "/api/staff/depts/check-dept")).status === 200);
+
+// お店を足すときに「何したい？」の分け方も選べる（無ければ「見る・聴く」）。足したお店は非表示で始まる
+const made = await admin.req("POST", "/api/staff/shops", { id: "check-kind-shop", name: "確認用のお店", dept: oldDept, kind: "eat" });
+check("お店を足すときに分け方を選べる（非表示で始まる）", made.status === 200 && made.json?.shop?.kind === "eat" && made.json?.shop?.hidden === true, JSON.stringify(made.json?.shop?.kind));
+const made2 = await admin.req("POST", "/api/staff/shops", { id: "check-kind-shop2", name: "確認用のお店2", dept: oldDept });
+check("分け方を送らなければ「見る・聴く」", made2.status === 200 && made2.json?.shop?.kind === "see");
+check("足した確認用のお店を消す", (await admin.req("DELETE", "/api/staff/shops/check-kind-shop")).status === 200 && (await admin.req("DELETE", "/api/staff/shops/check-kind-shop2")).status === 200);
 
 check("実行委員は QR を作り直せる", (await admin.req("POST", `/api/staff/shops/${A}/key`)).status === 200);
 check("作り直したら前の QR の人は入れない", (await a.req("PATCH", `/api/staff/shops/${A}`, { state: "open" })).status === 401);

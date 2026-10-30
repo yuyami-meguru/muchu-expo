@@ -20,7 +20,7 @@ export function BusTimes({ times, label, showNext }: { times: string[]; label: s
               次は <strong>{times[next]} 発</strong>
             </>
           ) : (
-            "本日の便は、すべて出ました。"
+            "本日の送迎バスは、すべて出ました。"
           )}
         </p>
       )}

@@ -6,7 +6,7 @@ import { Icon } from "@/components/icons";
 import { useLive } from "@/components/live/live-provider";
 import { Sprite } from "@/components/pixel/sprites";
 
-/** アンケートを受け付けているときだけ中身を出す（受付を止めたら、15 秒ごとの「いまの様子」で消える） */
+/** アンケートを受け付けているときだけ中身を出す（受付を止めたら、「いまの様子」の読み直しで消える） */
 export function IfSurveyOpen({ children }: { children: ReactNode }) {
   return useLive().surveyOpen === false ? null : children;
 }

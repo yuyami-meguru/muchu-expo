@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { Badge, type BadgeColor } from "@/components/ui/badge";
-import type { AlertLevel, Phase } from "@/lib/ops";
+import type { Live } from "@/lib/live";
+import { DAY_END, LIVE_TIMING, type AlertLevel, type Phase } from "@/lib/ops";
 import { hhmm } from "@/lib/schedule";
 import { STATE_LABEL, STOCK_LABEL, type News, type ShopState, type Stock } from "@/lib/types";
 import { useLive, usePhase } from "./live-provider";
 
 const STOCK_COLOR: Record<Stock, BadgeColor> = { on: "green", few: "yellow", out: "red" };
 const STATE_COLOR: Record<ShopState, BadgeColor> = { prep: "gray", open: "green", break: "yellow", closed: "gray" };
-/** お店の札に添える説明（「準備中」「終了」だけでは、これから開くのか・もう終わったのかが分かりにくい） */
+/**
+ * お店の札に添える説明（「準備中」「終了」だけでは、これから開くのか・もう終わったのかが分かりにくい）。
+ * 「本日は終わりました」は当日（11/28）のうちだけ。次の日からは「終了」だけ（StateBadge の later）
+ */
 const STATE_NOTE: Partial<Record<ShopState, string>> = { prep: "まだ開いていません", closed: "本日は終わりました" };
 /** 品物の札（販売中・売り切れ）を出すのは、営業中・休憩中のお店だけ。準備中・終了のお店の品物に「販売中」と出さない */
 const SELLING: ShopState[] = ["open", "break"];
@@ -35,9 +39,9 @@ export function StockBadge({ stock }: { stock: Stock }) {
   return <Badge color={STOCK_COLOR[stock]}>{STOCK_LABEL[stock]}</Badge>;
 }
 
-/** お店の状態の札（「準備中（まだ開いていません）」など） */
-export function StateBadge({ state }: { state: ShopState }) {
-  const note = STATE_NOTE[state];
+/** お店の状態の札（「準備中（まだ開いていません）」など）。later＝開催日より後（「終了」に「本日は終わりました」を付けない） */
+export function StateBadge({ state, later }: { state: ShopState; later?: boolean }) {
+  const note = later && state === "closed" ? "" : STATE_NOTE[state];
   return (
     <Badge color={STATE_COLOR[state]}>
       {STATE_LABEL[state]}
@@ -48,7 +52,8 @@ export function StateBadge({ state }: { state: ShopState }) {
 
 /** お店の状態（営業中など）＋ 品物の売り切れのまとめ。開催前は何も出さない */
 export function LiveShopBadges({ shopId }: { shopId: string }) {
-  const s = useLive().shops[shopId];
+  const live = useLive();
+  const s = live.shops[shopId];
   const state = useShopState(shopId);
   if (!s || !state) return null;
   const stocks = isSelling(state) ? Object.values(s.stock) : [];
@@ -56,7 +61,7 @@ export function LiveShopBadges({ shopId }: { shopId: string }) {
   const few = stocks.filter((x) => x === "few").length;
   return (
     <span className="mx-badges">
-      <StateBadge state={state} />
+      <StateBadge state={state} later={live.at >= DAY_END} />
       {stocks.length > 0 && out === stocks.length && <Badge color="red">売り切れ</Badge>}
       {out > 0 && out < stocks.length && <Badge color="red">一部売り切れ</Badge>}
       {few > 0 && out === 0 && <Badge color="yellow">残りわずか</Badge>}
@@ -71,11 +76,14 @@ export function LiveStock({ shopId, itemId }: { shopId: string; itemId: string }
   return st && isSelling(state) ? <StockBadge stock={st} /> : null;
 }
 
-/** お店からのお知らせ（あれば）。終了後は古いお知らせになるので出さない */
+/**
+ * お店からのお知らせ（あれば）。当日（朝・開催中）だけ出す。
+ * 開催前は出さない（準備のあいだに試しに書いた文が、本番のお知らせと読まれないように）。終了後は古いお知らせになるので出さない
+ */
 export function LiveNotice({ shopId }: { shopId: string }) {
   const n = useLive().shops[shopId]?.notice;
   const phase = usePhase();
-  return n && phase !== "after" ? (
+  return n && (phase === "morning" || phase === "during") ? (
     <p className="mx-notice" role="status">
       <span className="mx-notice-k">お店からのお知らせ</span>
       {n}
@@ -83,14 +91,26 @@ export function LiveNotice({ shopId }: { shopId: string }) {
   ) : null;
 }
 
-/** 最後に読んだ時刻 */
+/** いまの時期に、画面が「いまの様子」を読み直す間隔（秒。開催中 15・当日の朝 30・終了後 60・開催前 120。ops.ts の LIVE_TIMING） */
+export function usePollSeconds() {
+  return Math.round(LIVE_TIMING[usePhase()].pollMs / 1000);
+}
+
+/** 読み直す間隔の秒数だけを出す（サーバーの部品の文の中で使う：「<PollSeconds /> 秒ごとに」） */
+export function PollSeconds() {
+  return <>{usePollSeconds()}</>;
+}
+
+/** 最後に読んだ時刻（「13:51:05 現在」。時の頭に 0 を付けない）と、読み直す間隔 */
 export function LiveClock() {
   const { at } = useLive();
-  const t = new Date(at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Tokyo" });
+  const sec = usePollSeconds();
+  const d = new Date(at + 9 * 3600e3);
+  const t = `${hhmm(d.getUTCHours() * 60 + d.getUTCMinutes())}:${String(d.getUTCSeconds()).padStart(2, "0")}`;
   return (
     <span className="mx-clock">
       <span className="mx-clock-dot" aria-hidden="true" />
-      15 秒ごとに自動で更新（{t}）
+      {at > 0 ? `${t} 現在（${sec} 秒ごとに自動で更新）` : "いまの様子を読み込んでいます"}
     </span>
   );
 }
@@ -119,15 +139,34 @@ export function NewsList({ news, now }: { news: News[]; now: number }) {
   );
 }
 
-type Names = Record<string, { shop: string; items: Record<string, string> }>;
-type BoardRow = { id: string; shop: string; out: string[]; few: string[]; all: boolean; notice: string };
+/** お店の名前と、品物の id → 名前（ホームが渡す。非表示のお店は入れない） */
+export type BoardNames = Record<string, { shop: string; items: Record<string, string> }>;
+export type BoardRow = { id: string; shop: string; out: string[]; few: string[]; all: boolean; notice: string };
+
+/**
+ * 「いまの様子」の行：売り切れ・残りわずか・お店からのお知らせのあるお店を 1 行ずつ。
+ * 品物は営業中・休憩中のお店だけ。売り切れのあるお店 → 残りわずか → お知らせだけ、の順（同じなら並び順のまま）
+ */
+export function boardRowsOf(live: Live, names: BoardNames): BoardRow[] {
+  const rows: BoardRow[] = [];
+  for (const [id, n] of Object.entries(names)) {
+    const s = live.shops[id];
+    if (!s) continue;
+    const items = isSelling(s.state) ? Object.entries(s.stock) : [];
+    const out = items.filter(([, v]) => v === "out").map(([k]) => n.items[k] ?? k);
+    const few = items.filter(([, v]) => v === "few").map(([k]) => n.items[k] ?? k);
+    if (out.length || few.length || s.notice) rows.push({ id, shop: n.shop, out, few, all: items.length > 1 && out.length === items.length, notice: s.notice });
+  }
+  const rank = (r: BoardRow) => (r.out.length ? 0 : r.few.length ? 1 : 2);
+  return rows.sort((a, b) => rank(a) - rank(b));
+}
 
 /**
  * トップの「いまの様子」：実行委員のお知らせと、売り切れ・残りわずか・お店からのお知らせ（お店ごとに 1 行にまとめる）。
- * 品物は営業中・休憩中のお店だけ。多いときは limit 行で止めて「ほか ○ 件」。
+ * 多いときは limit 行で止めて「ほか ○ 件」。
  * 開催前は売り切れの欄を出さず「当日 10:00 から出ます」、終了後はお知らせだけ（無ければ何も出さない）
  */
-export function LiveBoard({ names, limit = 5 }: { names: Names; limit?: number }) {
+export function LiveBoard({ names, limit = 5 }: { names: BoardNames; limit?: number }) {
   const live = useLive();
   const phase = usePhase();
   const news = <NewsList news={live.news} now={live.at} />;
@@ -141,18 +180,7 @@ export function LiveBoard({ names, limit = 5 }: { names: Names; limit?: number }
     );
   }
 
-  const rows: BoardRow[] = [];
-  for (const [id, n] of Object.entries(names)) {
-    const s = live.shops[id];
-    if (!s) continue;
-    const items = isSelling(s.state) ? Object.entries(s.stock) : [];
-    const out = items.filter(([, v]) => v === "out").map(([k]) => n.items[k] ?? k);
-    const few = items.filter(([, v]) => v === "few").map(([k]) => n.items[k] ?? k);
-    if (out.length || few.length || s.notice) rows.push({ id, shop: n.shop, out, few, all: items.length > 1 && out.length === items.length, notice: s.notice });
-  }
-  // 売り切れのあるお店 → 残りわずか → お知らせだけ、の順（同じなら並び順のまま）
-  const rank = (r: BoardRow) => (r.out.length ? 0 : r.few.length ? 1 : 2);
-  rows.sort((a, b) => rank(a) - rank(b));
+  const rows = boardRowsOf(live, names);
   const shown = rows.slice(0, limit);
   const rest = rows.length - shown.length;
 
@@ -192,7 +220,9 @@ export function LiveBoard({ names, limit = 5 }: { names: Names; limit?: number }
       )}
       {rest > 0 && (
         <Link href="/shops" className="mx-board-more">
-          ほか {rest} 件 ▶ お店・出し物の一覧へ
+          ほか {rest} 件
+          <span aria-hidden="true"> ▶ </span>
+          お店・出し物の一覧へ
         </Link>
       )}
       <LiveClock />

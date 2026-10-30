@@ -1,14 +1,13 @@
 import type { NextRequest } from "next/server";
-import { areaBody, fail, guarded, ok, readBody, sameOrigin, zId } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { areaBody, fail, guarded, needAdmin, ok, readBody, sameOrigin, zId } from "@/lib/api";
 import { deleteArea, loadAll, saveArea } from "@/lib/store";
 import { OUTSIDE, type Area } from "@/lib/types";
 
 /** フロア（建物の中の面）を作る・直す（実行委員だけ）。見取り図（plan）は、はじめに入れた物をそのまま使う（画面からは変えない） */
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/staff/areas/[id]">) {
   return guarded(async () => {
-    const s = await getSession();
-    if (s?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
+    const no = await needAdmin();
+    if (no) return no;
     const { id } = await ctx.params;
     if (!zId.safeParse(id).success || id === OUTSIDE) return fail(400, "英字の名前は、小文字の a〜z・数字・「-」だけにしてください（outside は使えません）");
     const b = await readBody(req, areaBody);
@@ -24,8 +23,8 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/staff/areas/
 export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/staff/areas/[id]">) {
   return guarded(async () => {
     if (!sameOrigin(req)) return fail(403, "このサイトの画面から操作してください");
-    const s = await getSession();
-    if (s?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
+    const no = await needAdmin();
+    if (no) return no;
     const { id } = await ctx.params;
     const n = (await loadAll({ fresh: true })).places.filter((p) => p.area === id).length;
     if (n) return fail(409, `このフロアにはピンが ${n} 個あります。先にピンを消すか、ほかのフロアへ移してください`);

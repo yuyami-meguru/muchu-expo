@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { AdminLive, StaffLiveShop } from "@/lib/ops";
+import { phaseOf, type AdminLive, type Phase, type StaffLiveShop } from "@/lib/ops";
 import { missingText, type Readiness } from "@/lib/readiness";
-import { STATE_LABEL, type Shop, type ShopState, type Stock, type Tone } from "@/lib/types";
-import { send } from "../../_lib/client";
+import { NO_DEPT, STATE_LABEL, type Dept, type Shop, type ShopState, type Stock, type Tone } from "@/lib/types";
+import { clock, send } from "../../_lib/client";
 import { useStaffLive } from "../../_lib/use-staff-live";
-import { OnlyToggle } from "../_components/only-toggle";
+import { noteAuth, useReportLive } from "../_components/session-signal";
 import { clockNow, latest, shapeOf, useShapeRefresh } from "../ops-live";
+import { everyText, failMsg } from "../ops-result";
 import "../ops.css";
 
 const STATES: ShopState[] = ["prep", "open", "break", "closed"];
@@ -18,38 +19,127 @@ const STATES: ShopState[] = ["prep", "open", "break", "closed"];
 /** ready：お客さんに見せる準備（サーバーで lib/readiness.ts の readinessOf で決める） */
 export type QuickRow = { shop: Shop; deptName: string; color: Tone; placeName: string; ready: Readiness };
 
+/** しぼり込み（1 つだけ選ぶ）。数は、いまの値で数える */
+type Filter = "all" | "todo" | "noplace" | "hidden" | "prep" | "out";
+const FILTERS: { key: Filter; label: string; test: (r: QuickRow, s: Shop) => boolean }[] = [
+  { key: "all", label: "すべて", test: () => true },
+  { key: "todo", label: "準備がまだ", test: (r) => !r.ready.ready },
+  { key: "noplace", label: "場所が未定", test: (r) => r.ready.missing.some((x) => x.key === "place") },
+  { key: "hidden", label: "非表示", test: (_, s) => s.hidden },
+  { key: "prep", label: "「準備中」のまま", test: (_, s) => !s.hidden && s.state === "prep" },
+  { key: "out", label: "売り切れあり", test: (_, s) => s.menu.some((m) => m.stock === "out") },
+];
+
+/** 名前で探すときの形（全角・半角、大文字・小文字、カタカナ・ひらがなのちがいを無くす） */
+const norm = (t: string) =>
+  t
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/\s+/g, "");
+
 /**
- * 実行委員の「お店の情報」の一覧。行を押すと編集の画面へ。
+ * 実行委員の「お店の情報」の一覧。行を押すと編集の画面へ。部門ごとに見出しを付けて並べる。
  * 当日よく使う 3 つ（営業の状態・品物の売り切れ・お客さんの画面に出すか）は、一覧のまま押してすぐ保存する。
- * 15 秒ごとに「いまの様子」を読み直すので、お店の人が押した売り切れなども入る。
- * 上に準備の進み具合（「準備ができたお店 5／9」と［まだのお店だけ］）、行の名前の下に「まだ：場所・ひとこと」（声をかけるお店を探す）
+ * 15 秒ごとに「いまの様子」を読み直すので、お店の人が押した売り切れなども入る（読めないときは、いつの様子かを赤で出す）。
+ * 上に準備の進み具合（「準備ができたお店 5／9」）、名前で探す欄と、しぼり込み（準備がまだ・場所が未定・非表示・「準備中」のまま・売り切れあり）。
+ * しぼり込んだときに当てはまったお店は、押して当てはまらなくなっても、しぼり込みを変えるまで出しておく（押した結果が見えるように）
  */
-export function ShopQuickList({ rows }: { rows: QuickRow[] }) {
-  const { live, refresh } = useStaffLive<AdminLive>();
-  const [onlyTodo, setOnlyTodo] = useState(false);
+export function ShopQuickList({ rows, depts, phase }: { rows: QuickRow[]; depts: Dept[]; phase: Phase }) {
+  const { live, failed, expired, refresh } = useStaffLive<AdminLive>();
+  useReportLive(live, expired);
+  const [filter, setFilter] = useState<{ key: Filter; ids: string[] }>({ key: "all", ids: [] });
+  const [q, setQ] = useState("");
+  const searchId = useId();
   useShapeRefresh(live, shapeOf(rows.map((r) => r.shop)));
+
   const list = rows.filter((r) => !live || live.shops[r.shop.id]); // 消されたお店は出さない
+  // しぼり込みは、15 秒ごとの「いまの様子」も入れた値で
+  const now = (r: QuickRow) => latest(r.shop, null, live?.shops[r.shop.id]);
   const readyCount = list.filter((r) => r.ready.ready).length;
-  const shown = onlyTodo ? list.filter((r) => !r.ready.ready) : list;
+  const f = FILTERS.find((x) => x.key === filter.key) ?? FILTERS[0];
+  const words = norm(q);
+  const shown = list.filter(
+    (r) => (filter.key === "all" || filter.ids.includes(r.shop.id) || f.test(r, now(r))) && (!words || norm(r.shop.name).includes(words) || r.shop.id.includes(words)),
+  );
+  const groups = [...depts, { ...NO_DEPT, id: "__none" }]
+    .map((d) => ({ d, items: shown.filter((r) => (d.id === "__none" ? !depts.some((x) => x.id === r.shop.dept) : r.shop.dept === d.id)) }))
+    .filter((g) => g.items.length);
+
+  function pick(key: Filter) {
+    setFilter({ key, ids: key === "all" ? [] : list.filter((r) => FILTERS.find((x) => x.key === key)!.test(r, now(r))).map((r) => r.shop.id) });
+  }
+
   return (
     <>
+      <p className={failed ? "ops-clock ops-clock--ng" : "ops-clock"}>
+        <span>
+          {!live
+            ? "いまの様子を読んでいます…"
+            : failed
+              ? `読み直せませんでした（電波を確かめてください）。営業・売り切れの表示は ${clock(live.at)} のままです`
+              : `営業・売り切れは ${clock(live.at)} の様子（${everyText(live.phase ? phaseOf(live.at, live.phase) : phase)}に更新）`}
+        </span>
+      </p>
+
       <div className="st-ready-bar">
         <p className="st-ready-count">
           準備ができたお店 <strong>{readyCount}／{list.length}</strong>
         </p>
-        <OnlyToggle on={onlyTodo} onChange={setOnlyTodo}>
-          まだのお店だけ
-        </OnlyToggle>
-        {onlyTodo && <p className="st-ready-what">場所・ひとこと・どんなお店？・メニューと値段（食べる・飲むのお店だけ）のどれかが、まだ入っていないお店です</p>}
       </div>
-      {shown.length ? (
-        <ul className="st-list">
-          {shown.map((r) => (
-            <QuickItem key={r.shop.id} row={r} live={live?.shops[r.shop.id]} onSaved={refresh} />
-          ))}
-        </ul>
+
+      <div className="st-find">
+        <div className="ui-field st-find-q">
+          <label className="ui-label" htmlFor={searchId}>
+            名前で探す
+          </label>
+          <input id={searchId} type="search" className="ui-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="例：やきそば" autoComplete="off" enterKeyHint="search" />
+        </div>
+        <div className="st-filters" role="group" aria-label="しぼり込み">
+          {FILTERS.map((x) => {
+            const n = x.key === "all" ? list.length : list.filter((r) => x.test(r, now(r))).length;
+            return (
+              <button key={x.key} type="button" className="st-filter" aria-pressed={filter.key === x.key} onClick={() => pick(x.key)}>
+                {x.label}
+                <span className="st-filter-n">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+        {filter.key === "todo" && (
+          <p className="st-ready-what">場所・ひとこと・どんなお店？・メニューと値段（食べる・飲むのお店だけ）のどれかが、まだ入っていないお店です</p>
+        )}
+        {filter.key !== "all" && <p className="st-ready-what">しぼり込んだときに当てはまったお店は、押して変わっても、しぼり込みを変えるまで出しておきます。</p>}
+      </div>
+
+      <p className="st-find-count" role="status">
+        {filter.key === "all" && !words ? `お店 ${list.length}` : `${shown.length} 店が当てはまります（全部で ${list.length}）`}
+      </p>
+
+      {groups.length ? (
+        groups.map(({ d, items }) => (
+          <section key={d.id} className={`st-dept tone-${d.color}`} aria-labelledby={`st-qd-${d.id}`}>
+            <h2 id={`st-qd-${d.id}`} className="st-dept-title">
+              {d.name}
+              <span className="st-dept-n">{items.length}</span>
+            </h2>
+            <ul className="st-list">
+              {items.map((r) => (
+                <QuickItem key={r.shop.id} row={r} live={live?.shops[r.shop.id]} onSaved={refresh} />
+              ))}
+            </ul>
+          </section>
+        ))
       ) : (
-        <p className="st-ready-none">{list.length ? "✓ 全部のお店の準備ができています" : "お店がまだありません（下の「お店を足す」で足せます）"}</p>
+        <p className="st-ready-none">
+          {!list.length
+            ? "お店がまだありません（上の［＋ お店を足す］で足せます）"
+            : words
+              ? "その名前のお店は見つかりません"
+              : filter.key === "todo"
+                ? "✓ 全部のお店の準備ができています"
+                : "当てはまるお店はありません"}
+        </p>
       )}
     </>
   );
@@ -81,7 +171,8 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
   const [mine, setMine] = useState<Shop | null>(null);
   /** 送っている間に先に出しておく値。答えが来るまで、このお店のボタンは押せない */
   const [pending, setPending] = useState<Partial<Shop> | null>(null);
-  const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [msg, setMsg] = useState<{ id: number; text: string; error: boolean } | null>(null);
+  const msgId = useRef(0);
   const [hideOpen, setHideOpen] = useState(false);
   const [outOpen, setOutOpen] = useState(false);
   /** 「全部売り切れにする」を押す前の、品物ごとの残り（「販売を再開する」で元に戻す。この画面を開いているあいだだけ） */
@@ -92,17 +183,27 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
   const busy = !!pending;
   const id = `q-${shop.id}`;
 
-  async function patch(body: object, optimistic: Partial<Shop>, done: string) {
+  // うまくいった知らせは 6 秒で消す（失敗は、次に押すまで残す）
+  useEffect(() => {
+    if (!msg || msg.error) return;
+    const t = setTimeout(() => setMsg((m) => (m?.id === msg.id ? null : m)), 6000);
+    return () => clearTimeout(t);
+  }, [msg]);
+
+  /** what は「「休憩中」に」のような「何を」の所。done は成功の文 */
+  async function patch(body: object, optimistic: Partial<Shop>, what: string, done: string) {
+    if (busy) return false;
     setPending(optimistic);
     setMsg(null);
-    const r = await send<{ shop: Shop | null }>(`/api/staff/shops/${shop.id}`, "PATCH", body);
+    const r = noteAuth(await send<{ shop: Shop | null }>(`/api/staff/shops/${shop.id}`, "PATCH", body));
     setPending(null);
     if (!r.ok) {
-      setMsg({ text: r.error, error: true });
+      setMsg({ id: ++msgId.current, text: failMsg(what, r), error: true });
+      if (r.unsure) onSaved();
       return false;
     }
     if (r.shop) setMine(r.shop);
-    setMsg({ text: `${done}・${clockNow()}`, error: false });
+    setMsg({ id: ++msgId.current, text: `${done}（${clockNow()}）`, error: false });
     onSaved();
     return true;
   }
@@ -116,6 +217,7 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
     const ok = await patch(
       { stock: shop.menu.map((m) => ({ id: m.id, stock: "out" })) },
       { menu: shop.menu.map((m) => ({ ...m, stock: "out" as const })) },
+      "全部の品物を売り切れに",
       "全部の品物を売り切れにしました",
     );
     if (ok) setBefore(keep);
@@ -128,6 +230,7 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
     const ok = await patch(
       { stock: shop.menu.map((m) => ({ id: m.id, stock: back(m) })) },
       { menu: shop.menu.map((m) => ({ ...m, stock: back(m) })) },
+      "販売を再開",
       restored ? "販売を再開しました（売り切れにする前の残りに戻しました）" : "販売を再開しました（全部を販売中に）",
     );
     if (ok) setBefore(null);
@@ -142,13 +245,14 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
           {shop.hidden && <span className="st-badge st-badge--hidden">非表示</span>}
           <br />
           <span className="st-muted">
-            {row.deptName} ・ {row.placeName} ・ 品物 {shop.menu.length}
+            {row.placeName} ・ 品物 {shop.menu.length}
           </span>
           <br />
           <ReadyLine r={row.ready} />
         </span>
         <Icon name="右へ" size={20} />
       </Link>
+      {/* 送っているあいだは「押せない」印だけ（disabled にすると、キーボードで選んでいた所が消えるため） */}
       <div className="st-quick" aria-busy={busy || undefined}>
         <div className="st-qgroup st-qgroup--state" role="group" aria-labelledby={`${id}-state`}>
           <p className="st-qgroup-h" id={`${id}-state`}>
@@ -162,8 +266,8 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
                 className="st-state"
                 data-v={v}
                 aria-pressed={shop.state === v}
-                disabled={busy}
-                onClick={() => shop.state !== v && patch({ state: v }, { state: v }, `「${STATE_LABEL[v]}」にしました`)}
+                aria-disabled={busy || undefined}
+                onClick={() => shop.state !== v && patch({ state: v }, { state: v }, `「${STATE_LABEL[v]}」に`, `「${STATE_LABEL[v]}」にしました`)}
               >
                 {STATE_LABEL[v]}
               </button>
@@ -177,11 +281,11 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
           </p>
           <div className="st-qline">
             {!shop.menu.length ? null : allOut ? (
-              <button type="button" className="st-qbtn" disabled={busy} onClick={reopen}>
+              <button type="button" className="st-qbtn" aria-disabled={busy || undefined} onClick={reopen}>
                 販売を再開する
               </button>
             ) : (
-              <button type="button" className="st-qbtn st-qbtn--out" disabled={busy} onClick={() => (mixed ? setOutOpen(true) : soldOut())}>
+              <button type="button" className="st-qbtn st-qbtn--out" aria-disabled={busy || undefined} onClick={() => !busy && (mixed ? setOutOpen(true) : soldOut())}>
                 全部売り切れにする
               </button>
             )}
@@ -195,11 +299,16 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
           </p>
           <div className="st-qline">
             {shop.hidden ? (
-              <button type="button" className="st-qbtn" disabled={busy} onClick={() => patch({ hidden: false }, { hidden: false }, "お客さんの画面に出しました")}>
+              <button
+                type="button"
+                className="st-qbtn"
+                aria-disabled={busy || undefined}
+                onClick={() => patch({ hidden: false }, { hidden: false }, "お客さんの画面に出すことが", "お客さんの画面に出しました")}
+              >
                 見せる
               </button>
             ) : (
-              <button type="button" className="st-qbtn st-qbtn--hide" disabled={busy} onClick={() => setHideOpen(true)} aria-haspopup="dialog">
+              <button type="button" className="st-qbtn st-qbtn--hide" aria-disabled={busy || undefined} onClick={() => !busy && setHideOpen(true)} aria-haspopup="dialog">
                 隠す
               </button>
             )}
@@ -208,7 +317,7 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
         </div>
 
         <p className={msg?.error ? "st-quick-msg st-quick-msg--err" : "st-quick-msg"} role={msg?.error ? "alert" : "status"}>
-          {msg?.text}
+          {busy ? "送信中…" : msg?.text}
         </p>
       </div>
 
@@ -218,10 +327,10 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
         open={hideOpen}
         onOpenChange={setHideOpen}
         onConfirm={async () => {
-          await patch({ hidden: true }, { hidden: true }, "お客さんの画面から隠しました");
+          await patch({ hidden: true }, { hidden: true }, "お客さんの画面から隠すことが", "お客さんの画面から隠しました");
         }}
       >
-        一覧・地図から消え、貼ってあるポスターの QR も「見つかりません」になります。
+        お客さんの一覧・地図から消え、貼ってあるポスターの QR も「見つかりません」になります。［見せる］で、また出せます。
       </ConfirmDialog>
       <ConfirmDialog
         title={`全部の品物（${shop.menu.length} つ）を売り切れにしますか？`}

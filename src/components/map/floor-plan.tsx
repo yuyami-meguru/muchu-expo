@@ -79,15 +79,22 @@ export function FloorPlanSvg({ shapes, label }: { shapes: PlanShape[]; label: st
   );
 }
 
-/** 使わない部屋（職員室など）・階段の名前。トイレは「WC」のピンが、P・S とバルコニーは来た人に要らないので出さない */
+/**
+ * 使わない部屋（職員室など）・階段の名前。トイレは「WC」のピンが、P・S とバルコニーは来た人に要らないので出さない。
+ * 字の位置は、もとの見取り図で決めた位置（lx・ly）があればそこ、無ければ真ん中。非常階段は丸い絵に重ならないよう絵の下に 2 行で。
+ * 字が入らないほど小さい所（3 階・4 階の湯沸など）は出さない（線に重なって読めないので）
+ */
 export function FloorLabels({ shapes }: { shapes: PlanShape[] }) {
   const labels = shapes.flatMap((s) => {
     const name =
-      s.k === "stairs" ? "階段" : s.k === "spiral" ? "非常階段" : (s.k === "fixed" || s.k === "label") && s.name ? s.name : "";
+      s.k === "stairs" ? "階段" : s.k === "spiral" ? "非常\n階段" : (s.k === "fixed" || s.k === "label") && s.name ? s.name : "";
     if (!name || name.startsWith("トイレ") || name === "P・S" || name === "バルコニー") return [];
-    const cx = s.k === "label" ? s.x : s.x + (s.w ?? 0) / 2;
-    const cy = s.k === "label" ? s.y : s.y + (s.h ?? 0) / 2;
-    return [{ name, x: pct(cx, "x"), y: pct(cy, "y"), w: s.w ? (s.w / FLOOR_VIEW.w) * 100 : 8 }];
+    const w = s.w ?? 0;
+    const h = s.h ?? 0;
+    if (s.k === "fixed" && (w < FLOOR_VIEW.w * 0.03 || h < FLOOR_VIEW.h * 0.035)) return [];
+    const cx = s.k === "label" ? s.x : s.k === "spiral" ? (s.cx ?? s.x + w / 2) : s.lx !== undefined ? s.x + s.lx : s.x + w / 2;
+    const cy = s.k === "label" ? s.y : s.k === "spiral" ? s.y + h + FLOOR_VIEW.h * 0.06 : s.ly !== undefined ? s.y + s.ly : s.y + h / 2;
+    return [{ name, x: pct(cx, "x"), y: pct(cy, "y"), w: w ? (w / FLOOR_VIEW.w) * 100 : 8 }];
   });
   return (
     <>

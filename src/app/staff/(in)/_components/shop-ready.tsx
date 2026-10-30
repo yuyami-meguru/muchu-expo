@@ -2,9 +2,9 @@
 
 import { useState, type MouseEvent } from "react";
 import { buttonClass } from "@/components/ui/button";
-import { missingText, readinessOf, type ReadyItem } from "@/lib/readiness";
+import { readinessOf, type ReadyItem } from "@/lib/readiness";
 import type { Shop } from "@/lib/types";
-import { INTRO_ID } from "./shop-intro";
+import { INTRO_ID, partLabel } from "./shop-intro";
 
 /**
  * 欄へ飛ぶ：下の「お店の紹介を書く」が閉じていたら開き、その欄を画面の真ん中に出して、すぐ書けるようにする。
@@ -32,12 +32,15 @@ export function ShopReady({ shop, places, early }: { shop: Shop; places: Map<str
   const r = readinessOf(shop, places);
   const [open, setOpen] = useState(() => early && !r.ready);
   const placeName = places.get(shop.placeId);
+  // 欄の名前は「お店の紹介を書く」と同じ字に（出し物は「どんな出し物？」「出し物にこめた思い」）
+  const labelOf = (x: ReadyItem) => (x.key === "description" || x.key === "message" ? partLabel(x.key, shop.kind) : x.label);
+  const shortOf = (x: ReadyItem) => (x.key === "description" || x.key === "message" ? partLabel(x.key, shop.kind) : x.short);
   // お店の人が書けるもののうち、まだのもの（場所は実行委員が決める）
   const todo = r.missing.filter((x) => x.key !== "place");
   const summary = r.ready
     ? "✓ 準備ができました"
     : todo.length
-      ? `まだ ${todo.length} つ：${missingText({ missing: todo })}`
+      ? `まだ ${todo.length} つ：${todo.map(shortOf).join("・")}`
       : "書く所はそろいました（場所は実行委員が決めます）";
   const tone = r.ready ? "sh-ready-sum sh-ready-sum--ok" : todo.length ? "sh-ready-sum" : "sh-ready-sum sh-ready-sum--wait";
 
@@ -68,12 +71,12 @@ export function ShopReady({ shop, places, early }: { shop: Shop; places: Map<str
           {x.done && <span className="sr-only">（できています）</span>}
         </span>
         <span className="sh-ready-text">
-          {x.label}
+          {labelOf(x)}
           {detail && <small>{detail}</small>}
         </span>
         {write && (
           <a href={`#${id}`} className={buttonClass({ variant: "secondary", size: "md", className: "sh-ready-go" })} onClick={(e) => jump(e, id)}>
-            書く<span className="sr-only">（{x.label}）</span>
+            書く<span className="sr-only">（{labelOf(x)}）</span>
           </a>
         )}
       </li>

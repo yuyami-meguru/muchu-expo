@@ -4,7 +4,6 @@ import { Icon } from "@/components/icons";
 import { PageHeader } from "@/components/ui/card";
 import { ListRow, RowList } from "@/components/ui/list-row";
 import { ADMIN_GROUPS } from "@/components/shell";
-import { AppVersion } from "@/components/shell/app-version";
 import { adminOnly } from "../_components/admin-only";
 import "./more.css";
 
@@ -17,6 +16,7 @@ export const metadata: Metadata = { title: "その他" };
 const PLAIN: Record<string, { title: string[]; sub: string[] }> = {
   qr: { title: ["お店の人に配る", " QR"], sub: ["売り切れを変える用・", "会場に貼らない"] },
   posters: { title: ["会場に貼る", "ポスター"], sub: ["お客さんが読む", " QR コード"] },
+  site: { title: ["お客さんの画面"], sub: ["新しいタブで", "開きます"] },
 };
 /** 「 QR」のように先頭が空白のまとまりは、空白をまとまりの外に出す（中の先頭の空白は消えてしまうため） */
 const phrases = (parts: string[]) =>
@@ -27,9 +27,12 @@ const phrases = (parts: string[]) =>
     </Fragment>
   ));
 
-/** スマホの下のメニューに入りきらない画面（AVERIX の「その他」と同じ形）。名前は途中で切らずに折り返す */
+/**
+ * スマホの下のメニューに入りきらない画面（AVERIX の「その他」と同じ形）。名前は途中で切らずに折り返す。
+ * 「お客さんの画面」（メニューの newTab）は新しいタブで開く（いまの画面はそのまま残す）。版の番号は、どの画面もいちばん下（枠）に出るので、ここには出さない
+ */
 export default async function StaffMorePage() {
-  await adminOnly();
+  await adminOnly("/staff/more");
   return (
     <div className="st-page st-stack">
       <PageHeader title="その他" />
@@ -46,6 +49,7 @@ export default async function StaffMorePage() {
                 sub={PLAIN[i.key] && phrases(PLAIN[i.key].sub)}
                 href={i.href}
                 icon={i.icon}
+                newTab={i.newTab}
                 chevron
               />
             ))}
@@ -55,7 +59,6 @@ export default async function StaffMorePage() {
       <p className="st-muted">
         <Icon name="情報" size={16} /> ログアウトは、各画面のいちばん下にあります
       </p>
-      <AppVersion className="shell-version--menu" />
     </div>
   );
 }

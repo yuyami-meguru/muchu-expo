@@ -406,7 +406,7 @@ a.ui-stat:hover { border-color: var(--primary); }
     width: 100%; max-width: 100%; margin: auto 0 0;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
   }
-  .ui-dialog-inner { padding: 12px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .ui-dialog-inner { padding: 12px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
   .ui-dialog[open] { animation: ui-sheet 0.2s ease-out; }
   .ui-dialog-grip { display: block; width: 40px; height: 4px; margin: 0 auto 16px; border-radius: var(--r-pill); background: var(--line); }
   .ui-dialog-mark { display: none; }
@@ -434,7 +434,7 @@ a.ui-stat:hover { border-color: var(--primary); }
 }
 .ui-toast-action:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 @media (max-width: 767px) {
-  .ui-toast-region { left: 16px; right: 16px; align-items: stretch; }
+  .ui-toast-region { left: calc(16px + env(safe-area-inset-left)); right: calc(16px + env(safe-area-inset-right)); align-items: stretch; }
   .ui-toast { width: 100%; }
 }
 
@@ -456,7 +456,7 @@ a.ui-stat:hover { border-color: var(--primary); }
 .ui-offline {
   position: sticky; top: 0; z-index: 70;
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 12px 16px; background: var(--warn-soft); color: var(--ink);
+  padding: 12px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); background: var(--warn-soft); color: var(--ink);
   font-size: 0.875rem; line-height: 1.6; border-bottom: 1px solid var(--line);
   padding-top: calc(12px + env(safe-area-inset-top));
 }
@@ -473,7 +473,7 @@ a.ui-stat:hover { border-color: var(--primary); }
 .ui-logo-word { height: calc(var(--logo-h, 34px) * 0.53); }
 .ui-logo--sm { --logo-h: 27px; --logo-gap: 8px; }
 .ui-logo--auto .ui-logo-ondark { display: none; }
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   .ui-logo--auto .ui-logo-onlight { display: none; }
   .ui-logo--auto .ui-logo-ondark { display: block; }
 }

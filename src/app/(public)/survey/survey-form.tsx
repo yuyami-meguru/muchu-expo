@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
 import { HOW, HOW_LABEL, TRANSPORT, WHO, WHO_GROUPS } from "@/lib/survey";
+import { deviceId } from "../_components/device";
 
 type Choice = { id: string; name: string; dept: string; color: string };
 type Answers = { who: string; how: string[]; howOther: string; transport: string[]; transportOther: string; fav: string[]; favText: string; impression: string };
@@ -13,7 +15,7 @@ const DONE_KEY = "muchu-survey-done";
 const DRAFT_KEY = "muchu-survey-draft";
 /** 送るのを待つ長さ（電波が弱い所で、いつまでも「送っています…」にしない） */
 const SEND_MS = 20_000;
-const NET_ERROR = "電波が弱くて送れませんでした。書いた内容は消えていません。電波のよい所で、もう一度『アンケートを送る』を押してください。";
+const NET_ERROR = "電波が弱くて送れませんでした。書いた内容は消えていません。電波のよい所で、もう一度［アンケートを送る］を押してください。";
 
 const isBlank = (a: Answers) => !a.who && !a.how.length && !a.howOther && !a.transport.length && !a.transportOther && !a.fav.length && !a.favText && !a.impression;
 const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -115,7 +117,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
       const r = await fetch("/api/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...a, website }),
+        body: JSON.stringify({ ...a, website, device: deviceId() }),
         signal: ctl.signal,
       });
       const j = (await r.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
@@ -172,7 +174,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
     <>
       <div className="sv-top" ref={topRef} tabIndex={-1}>
         <p className="sv-lead">
-          本日はエンカレ夢中万博にお越しいただき、ありがとうございます。よりよい行事にするために、アンケートへのご協力をお願いします。
+          エンカレ夢中万博にお越しいただき、ありがとうございます。よりよい行事にするために、アンケートへのご協力をお願いします。
           <br />
           <strong>どの問いも、答えられるものだけで大丈夫です。</strong>お名前や連絡先はうかがいません。
         </p>
@@ -189,9 +191,10 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
           <legend>
             <span className="sv-no">1</span>あなたについて、あてはまるものを 1 つ選んでください（よろしければ）
           </legend>
+          {/* まとまりごとに fieldset と legend（2 つある「その他」が、読み上げでもどちらのまとまりか分かるように） */}
           {WHO_GROUPS.map((g) => (
-            <div key={g.label} className="sv-group">
-              <p className="sv-group-l">{g.label}</p>
+            <fieldset key={g.label} className="sv-group">
+              <legend className="sv-group-l">{g.label}</legend>
               <div className="sv-chips">
                 {g.options.map((o) => (
                   <label key={o} className="sv-chip">
@@ -200,7 +203,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
           ))}
           {a.who && (
             <button type="button" className="sv-clear" onClick={() => set("who", "")}>
@@ -229,7 +232,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
 
         <fieldset className="sv-q">
           <legend>
-            <span className="sv-no">3</span>来るときの交通手段（いくつでも）
+            <span className="sv-no">3</span>ここまで来た方法（いくつでも）
           </legend>
           <div className="sv-chips">
             {TRANSPORT.map((o) => (
@@ -301,9 +304,16 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
             {error}
           </p>
         )}
-        <button type="submit" className="sv-send" disabled={sending}>
-          {sending ? "送っています…" : "▶ アンケートを送る"}
-        </button>
+        {/* 送っているあいだは pending（押せなくはしない＝キーボードの位置が消えない。二重に送らないのは Button と submit の中で止める） */}
+        <Button type="submit" variant="primary" size="lg" block className="sv-send" pending={sending}>
+          {sending ? (
+            "送っています…"
+          ) : (
+            <>
+              <span aria-hidden="true">▶ </span>アンケートを送る
+            </>
+          )}
+        </Button>
         <p className="sv-small">送った内容は、実行委員と先生だけが見ます。行事をよくするためだけに使います。</p>
       </form>
     </>

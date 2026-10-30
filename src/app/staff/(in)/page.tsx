@@ -9,17 +9,18 @@ import { getShop, listLiveLog, loadAll, storeReady } from "@/lib/store";
 import { deptLookup, placeLabeler } from "@/lib/types";
 import { AdminOverview } from "./_components/admin-overview";
 import { ShopHome } from "./_components/shop-home";
+import { loadAdminOps, serverNow } from "./_components/staff-settings";
 
 export const dynamic = "force-dynamic";
 
-/** いまの時刻（サーバー。ページを開くたびに 1 回だけ読む）。お店の人の画面の表示の時期を決めるのに使う */
-const serverNow = () => Date.now();
-
-/** タブの名前：お店の人は自分のお店の名前（画面の見出しと同じ）、実行委員は「いまの様子」 */
+/**
+ * タブの名前：お店の人は自分のお店の名前（画面の見出しと同じ）、実行委員は「いまの様子」。
+ * この画面は枠（layout.tsx）と同じ階なので、枠の「○○ | 夢中万博 お店・実行委員」の形が効かない。ここで同じ形にする
+ */
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSession();
   const shop = s?.role === "shop" ? await getShop(s.shop) : null;
-  return { title: shop?.name ?? "いまの様子" };
+  return { title: { absolute: `${shop?.name ?? "いまの様子"} | 夢中万博 お店・実行委員` } };
 }
 
 export default async function StaffHome() {
@@ -58,12 +59,19 @@ export default async function StaffHome() {
     );
   }
 
-  const { shops, depts } = await loadAll({ fresh: true });
+  // 運営の設定（全体の帯・表示の時期・ラジオ）は、上の帯（枠）と同じ 1 回の読み込みを使う
+  const [{ shops, depts }, ops] = await Promise.all([loadAll({ fresh: true }), loadAdminOps()]);
+  const now = serverNow();
   return (
     <div className="st-page st-page--wide st-stack">
       <PageHeader title="いまの様子" sub="札を押すと「販売中 → 残りわずか → 売り切れ」の順に変わります" />
       {notReady}
-      <AdminOverview shops={shops} depts={depts} />
+      <AdminOverview
+        shops={shops}
+        depts={depts}
+        exp={s.exp}
+        ops={{ alert: ops.alert, phase: ops.phase, phaseNow: phaseOf(now, ops.phase), onAir: ops.radio.onAir, at: now }}
+      />
     </div>
   );
 }

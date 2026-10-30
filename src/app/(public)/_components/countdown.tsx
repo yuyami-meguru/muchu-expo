@@ -22,8 +22,7 @@ export function Countdown() {
     return (
       <>
         <span className="cd-l">ご来場</span>
-        <span className="cd-n cd-today">感謝！</span>
-        <span className="cd-u">ありがとうございました</span>
+        <span className="cd-n cd-today cd-thanks">ありがとうございました</span>
       </>
     );
   if (phase === "during")
@@ -31,14 +30,14 @@ export function Countdown() {
       <>
         <span className="cd-l">本日</span>
         <span className="cd-n cd-today">開催中！</span>
-        <span className="cd-u">{EVENT.hours}</span>
+        <span className="cd-u nowrap">{EVENT.hours}</span>
       </>
     );
   if (phase === "morning" || (days !== null && days <= 0))
     return (
       <>
         <span className="cd-n cd-today">まもなく開場</span>
-        <span className="cd-u">（10:00〜）</span>
+        <span className="cd-u nowrap">（10:00〜）</span>
       </>
     );
   if (days === null) return <span className="cd-n">…</span>;

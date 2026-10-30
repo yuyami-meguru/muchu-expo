@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { Icon } from "@/components/icons";
 import { LiveShopBadges } from "@/components/live/live-parts";
 import { Sprite } from "@/components/pixel/sprites";
@@ -7,20 +8,26 @@ import { AWARD_KEY, parseAward } from "./award/award-data";
 import { EVENT, VENUE } from "@/lib/venue";
 import { allSchedule } from "@/lib/schedule";
 import { Countdown } from "./_components/countdown";
+import { DayStrip, HeroCta, HeroSection } from "./_components/hero-parts";
 import { HomeTop } from "./_components/home-top";
 import { NowSection } from "./_components/now-section";
+import { ShareButton } from "./_components/share-button";
 import { SurveyEntry } from "./_components/survey-entry";
 import { InPhase } from "./_components/in-phase";
 import "./home.css";
 
 const PAMPHLET = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
 
+/**
+ * ホーム。上から：（あれば）終了のごあいさつ・アワード・ON AIR → 表紙 → 流れる帯 → いまの様子 → 入口のカード → 部門 → 万博ってなに？。
+ * 当日（朝・開催中）は表紙を低くし、ボタンを［マップ］［このあと］に、表紙の下に「売り切れ・次の送迎バス」の 1 行を出す
+ */
 export default async function HomePage() {
-  const [{ shops, depts }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
+  const [{ shops, depts, places, areas }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
   const award = parseAward(awardRaw);
   const visible = shops.filter((s) => !s.hidden);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));
-  const { timed } = allSchedule(shops, depts);
+  const { timed } = allSchedule(shops, depts, { places, areas });
   const marquee = visible.flatMap((s) => (s.menu.length ? s.menu.map((m) => m.name) : [s.name])).slice(0, 14);
 
   return (
@@ -29,7 +36,7 @@ export default async function HomePage() {
       <HomeTop awardTitle={award.title} />
 
       {/* 表紙（学校のパンフレットの表紙と同じ並び） */}
-      <section className="hm-hero">
+      <HeroSection>
         <div className="hm-sprites" aria-hidden="true">
           <Sprite name="camera" size={150} className="sp sp-camera" />
           <Sprite name="controller" size={110} className="sp sp-controller" />
@@ -41,7 +48,15 @@ export default async function HomePage() {
           <Sprite name="note" size={40} className="sp sp-note" />
         </div>
         <div className="hm-wrap hm-hero-in">
-          <p className="hm-org">{EVENT.organizer}</p>
+          {/* 主催・学校名は区切り（空白）ごとにまとめて折り返す（「エン｜カレッジ」のように途中で切れないように） */}
+          <p className="hm-org">
+            {EVENT.organizer.split(" ").map((w, i) => (
+              <Fragment key={i}>
+                {i > 0 && " "}
+                <span className="keep">{w}</span>
+              </Fragment>
+            ))}
+          </p>
           <h1 className="hm-title px-title">
             <span className="t1">エンカレ</span>
             <span className="t2">夢中万博</span>
@@ -50,33 +65,37 @@ export default async function HomePage() {
             <div>
               <dt>日時</dt>
               <dd className="hm-date">
-                2026.11.28
+                <span>
+                  <span aria-hidden="true">2026.11.28</span>
+                  <span className="sr-only">2026年11月28日</span>
+                </span>
                 <span className="hm-dow">
                   土<span className="sr-only">曜日</span>
                 </span>
-                <span className="hm-hours">{EVENT.hours}</span>
+                <span className="hm-hours nowrap">{EVENT.hours}</span>
               </dd>
             </div>
             <div>
               <dt>場所</dt>
-              <dd className="hm-place">{VENUE.name}</dd>
+              <dd className="hm-place">
+                {VENUE.name.split(" ").map((w, i) => (
+                  <Fragment key={i}>
+                    {i > 0 && " "}
+                    <span className="keep">{w}</span>
+                  </Fragment>
+                ))}
+              </dd>
             </div>
           </dl>
           <p className="hm-count px-box">
             <Countdown />
           </p>
-          <p className="hm-cta">
-            <Link href="/shops" className="hm-btn hm-btn--main">
-              ▶ お店・出し物を見る
-            </Link>
-            <Link href="/info#access" className="hm-btn">
-              行き方・送迎バス
-            </Link>
-          </p>
+          <HeroCta hasNext={timed.length > 0} />
+          <DayStrip names={names} />
         </div>
-      </section>
+      </HeroSection>
 
-      {/* 流れる帯（3 回で止まる。押すと止まる） */}
+      {/* 流れる帯（2 回流れたら止まる。押したり、指・マウスをのせたりしたら止まる） */}
       <div className="hm-marquee" aria-hidden="true">
         <div className="hm-track">
           {[...marquee, ...marquee].map((t, i) => (
@@ -102,7 +121,7 @@ export default async function HomePage() {
           <Link href="/map" className="hm-door tone-blue">
             <Sprite name="controller" size={44} />
             <span className="hm-door-t">マップ</span>
-            <span className="hm-door-s">どの部門がどこにあるか</span>
+            <span className="hm-door-s">どこで何をしているか（外・知育館の各階）</span>
           </Link>
           <Link href="/info" className="hm-door tone-purple">
             <Sprite name="sneaker" size={44} />
@@ -112,7 +131,7 @@ export default async function HomePage() {
           <Link href="/radio" className="hm-door tone-orange">
             <Sprite name="guitar" size={44} />
             <span className="hm-door-t">校内ラジオ</span>
-            <span className="hm-door-s">番組表・メッセージやリクエストを送る</span>
+            <span className="hm-door-s">番組表を見る・メッセージを送る</span>
           </Link>
         </div>
       </section>
@@ -140,7 +159,9 @@ export default async function HomePage() {
                 return (
                   <div key={d.id} className={`hm-pav tone-${d.color}`}>
                     <div className="hm-pav-head">
-                      <span className="hm-pav-no">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="hm-pav-no" aria-hidden="true">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
                       <h3>{d.name}</h3>
                       {d.tagline && <p>{d.tagline}</p>}
                     </div>
@@ -184,6 +205,7 @@ export default async function HomePage() {
                 準備の様子（Instagram・別の画面で開きます）
               </a>
             </p>
+            <ShareButton path="/" title={`エンカレ夢中万博 ${EVENT.date} ${EVENT.hours}`} className="hm-share" />
             <Sprite name="paint" size={56} className="hm-about-sp" />
           </div>
         </div>

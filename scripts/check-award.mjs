@@ -49,7 +49,7 @@ const award = (published) => ({
   awards: [{ id: "award-1", name: "テスト大賞", note: "ためし", winners: [{ shop: SHOP, comment: mark }, { shop: "nai-shop", comment: "x" }] }],
 });
 
-check("ログインなしでは変えられない", (await anon.req("PUT", "/api/staff/award", award(false))).status === 403);
+check("ログインなしでは変えられない（ログインの案内）", (await anon.req("PUT", "/api/staff/award", award(false))).status === 401);
 check("お店の人は変えられない", (await shop.req("PUT", "/api/staff/award", award(false))).status === 403);
 check("ほかのサイトからは断る", (await admin.req("PUT", "/api/staff/award", award(false), { origin: "https://evil.example" })).status === 403);
 check("名前が空なら断る（形のちがうデータ）", (await admin.req("PUT", "/api/staff/award", { ...award(false), title: "" })).status === 400);

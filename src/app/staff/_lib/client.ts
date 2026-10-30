@@ -10,6 +10,8 @@ export type SendResult<T = Record<string, unknown>> =
       status?: number;
       /** 返事を待ちきれずに打ち切った。サーバーには届いて保存されているかもしれない（いまの様子を読み直して確かめる） */
       unsure?: boolean;
+      /** 409 のとき、ほかの人が直していた欄（"menu"・"description" など。PATCH /api/staff/shops/<id> の base） */
+      conflict?: string[];
     };
 
 /** 電波で送れなかったときの文（画面の側で「電波のせいか」を見分けるのにも使う） */
@@ -36,8 +38,11 @@ export async function send<T = Record<string, unknown>>(url: string, method: "PO
       credentials: "same-origin",
       signal: ctl.signal,
     });
-    const json = (await res.json().catch(() => null)) as ({ ok?: boolean; error?: string } & T) | null;
-    if (!res.ok || !json?.ok) return { ok: false, error: json?.error ?? `うまくいきませんでした（${res.status}）。少し待って、もう一度ためしてください`, status: res.status };
+    const json = (await res.json().catch(() => null)) as ({ ok?: boolean; error?: string; conflict?: unknown } & T) | null;
+    if (!res.ok || !json?.ok) {
+      const conflict = Array.isArray(json?.conflict) ? json.conflict.filter((x): x is string => typeof x === "string") : undefined;
+      return { ok: false, error: json?.error ?? `うまくいきませんでした（${res.status}）。少し待って、もう一度ためしてください`, status: res.status, ...(conflict ? { conflict } : {}) };
+    }
     return json as { ok: true } & T;
   } catch {
     // 打ち切ったのは、送ったあとに返事が遅れただけかもしれない（電波で送れなかったのとは分ける）

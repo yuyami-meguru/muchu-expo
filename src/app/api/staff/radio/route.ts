@@ -1,16 +1,15 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { fail, guarded, ok, readBody, sameOrigin } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { fail, guarded, needAdmin, ok, readBody, sameOrigin } from "@/lib/api";
 import { radioStateBody } from "@/lib/radio";
 import { loadRadio, loadRadioMsgs } from "@/lib/radio-server";
 import { clearList, setSetting } from "@/lib/store";
 
 /* 校内ラジオの窓口（実行委員だけ） */
 
-async function adminOr403() {
-  const s = await getSession();
-  return s?.role === "admin" ? null : fail(403, "実行委員の合言葉でログインしてください");
+/** 実行委員だけ（ログインしていない・切れた → 401、お店の人 → 403） */
+function adminOr403() {
+  return needAdmin();
 }
 
 /** 状態と、届いたメッセージ */

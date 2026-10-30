@@ -7,19 +7,26 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TextField } from "@/components/ui/field";
 import { TONES, type Dept, type Tone } from "@/lib/types";
 import { savedAt, send } from "../../_lib/client";
+import { noteAuth } from "../_components/session-signal";
+import { failMsg } from "../ops-result";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
 
 type Draft = Dept & { isNew?: boolean; dirty?: boolean };
 
 const bodyOf = (d: Dept) => ({ name: d.name.trim(), short: d.short.trim(), tagline: d.tagline.trim(), color: d.color, order: d.order });
 
-/** 部門の一覧。1 つずつカードで直して「保存」。並び順は ↑↓ で（押すとすぐ保存。並び順だけが変わり、書きかけの名前・色は送らない） */
+/**
+ * 部門の一覧。1 つずつカードで直して「保存」。並び順は ↑↓ で（押すとすぐ保存。並び順だけが変わり、書きかけの名前・色は送らない）。
+ * 保存・並び順の結果は、そのカードの中（ボタンのそば）に出す（画面の上に出すと、下の部門では見えないため）。消したときだけ上に出す
+ */
 export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsIn: Record<string, string[]> }) {
   const router = useRouter();
   const [list, setList] = useState<Draft[]>(initial);
   // 保存してある値（↑↓ では、これに並び順だけを変えて送る）
   const [saved, setSaved] = useState<Record<string, Dept>>(() => Object.fromEntries(initial.map((d) => [d.id, d])));
   const [msg, setMsg] = useState("");
+  /** カードの中に出す結果（部門 id → 文） */
+  const [done, setDone] = useState<{ id: string; text: string } | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   useUnsavedGuard(list.some((d) => d.dirty));
@@ -31,20 +38,21 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
     if (!d.short.trim()) return setError({ id: d.id, text: "短い名前（カードや地図に出る 8 文字まで）を入れてください" });
     setPending(d.id);
     setError(null);
+    setDone(null);
     const body = bodyOf(d);
-    const r = await send(`/api/staff/depts/${d.id}`, "PUT", body);
+    const r = noteAuth(await send(`/api/staff/depts/${d.id}`, "PUT", body));
     setPending(null);
-    if (!r.ok) return setError({ id: d.id, text: r.error });
+    if (!r.ok) return setError({ id: d.id, text: failMsg("保存", r, "少し待ってから、もう一度［保存］を押してください") });
     setList((l) => l.map((x) => (x.id === d.id ? { ...x, isNew: false, dirty: false } : x)));
     setSaved((s) => ({ ...s, [d.id]: { id: d.id, ...body } }));
-    setMsg(`「${d.name}」を${savedAt()}`);
+    setDone({ id: d.id, text: `「${d.name}」を${savedAt()}` });
     router.refresh();
   }
 
   async function remove(d: Draft) {
     if (!d.isNew) {
-      const r = await send(`/api/staff/depts/${d.id}`, "DELETE");
-      if (!r.ok) return setError({ id: d.id, text: r.error });
+      const r = noteAuth(await send(`/api/staff/depts/${d.id}`, "DELETE"));
+      if (!r.ok) return setError({ id: d.id, text: failMsg("この部門を消すことが", r, "この画面を読み込み直して、消えているか確かめてください") });
       setSaved((s) => Object.fromEntries(Object.entries(s).filter(([id]) => id !== d.id)));
     }
     setList((l) => l.filter((x) => x.id !== d.id));
@@ -54,6 +62,8 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
 
   /** ↑↓：並び順を 10・20・30… に付け直して、変わった部門の並び順だけを保存する（名前・色などは保存してある値のまま） */
   async function move(i: number, dir: -1 | 1) {
+    // 送っているあいだは何もしない（ボタンは disabled にせず「押せない」印だけ。押したボタンから、キーボードで選んでいた所が消えないように）
+    if (pending) return;
     const j = i + dir;
     if (j < 0 || j >= list.length) return;
     const next = [...list];
@@ -61,19 +71,21 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
     const renum = next.map((d, k) => ({ ...d, order: (k + 1) * 10 }));
     setList(renum);
     setError(null);
+    setDone(null);
+    const moved = next[j];
     const changed = renum.filter((d) => !d.isNew && saved[d.id] && d.order !== saved[d.id].order);
     setPending("move");
     for (const d of changed) {
       const s = { ...saved[d.id], order: d.order };
-      const r = await send(`/api/staff/depts/${d.id}`, "PUT", bodyOf(s));
+      const r = noteAuth(await send(`/api/staff/depts/${d.id}`, "PUT", bodyOf(s)));
       if (!r.ok) {
         setPending(null);
-        return setError({ id: d.id, text: r.error });
+        return setError({ id: d.id, text: failMsg("並び順を保存", r, "この画面を読み込み直して、並び順を確かめてください") });
       }
       setSaved((all) => ({ ...all, [d.id]: s }));
     }
     setPending(null);
-    setMsg(`並び順を${savedAt()}`);
+    setDone({ id: moved.id, text: `並び順を${savedAt()}` });
     router.refresh();
   }
 
@@ -102,10 +114,10 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
                 <span className="st-dept-chip">{d.short || "（短い名前）"}</span>
                 <span className="st-muted">{d.isNew ? "まだ保存していません" : shops.length ? `お店 ${shops.length}：${shops.join("・")}` : "お店はまだありません"}</span>
                 <span className="st-dept-move">
-                  <Button size="sm" variant="ghost" disabled={i === 0 || !!pending} onClick={() => move(i, -1)} aria-label={`${d.name}を上へ`}>
+                  <Button size="sm" variant="ghost" disabled={i === 0} aria-disabled={!!pending || undefined} onClick={() => move(i, -1)} aria-label={`${d.name}を上へ`}>
                     ↑ 上へ
                   </Button>
-                  <Button size="sm" variant="ghost" disabled={i === list.length - 1 || !!pending} onClick={() => move(i, 1)} aria-label={`${d.name}を下へ`}>
+                  <Button size="sm" variant="ghost" disabled={i === list.length - 1} aria-disabled={!!pending || undefined} onClick={() => move(i, 1)} aria-label={`${d.name}を下へ`}>
                     ↓ 下へ
                   </Button>
                 </span>
@@ -156,6 +168,11 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
                 {error?.id === d.id && (
                   <p className="st-err st-span2" role="alert">
                     {error.text}
+                  </p>
+                )}
+                {done?.id === d.id && !d.dirty && (
+                  <p className="st-saved st-span2" role="status">
+                    ✓ {done.text}
                   </p>
                 )}
               </form>

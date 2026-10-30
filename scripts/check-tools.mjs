@@ -83,6 +83,33 @@ let now = (await admin.req("GET", "/api/staff/export")).json;
 check("全部の品物が販売中", now.shops.every((s) => s.menu.every((m) => m.stock === "on")));
 check("全部のお店が準備中・お知らせなし", now.shops.every((s) => s.state === "prep" && s.notice === ""));
 
+// まとめて戻すで、全体の帯・お店の人への連絡・ラジオの放送中もいっしょに消せる（also）。試したあと、帯とラジオは元に戻す
+const alertBefore = (await admin.req("GET", "/api/staff/news")).json?.alert;
+const radioBefore = (await admin.req("GET", "/api/staff/radio")).json?.state;
+const memoBefore = (await admin.req("GET", "/api/staff/live?fresh=1")).json?.memo ?? null;
+await admin.req("PUT", "/api/staff/alert", { on: true, level: "info", text: "まとめて戻すの確認" });
+await admin.req("PUT", "/api/staff/radio", { onAir: true, now: "まとめて戻すの確認" });
+// 連絡は、出ていないときだけ試す（出し直すと連絡の印が変わり、お店の［見ました］が消えるため）
+if (!memoBefore) await admin.req("PUT", "/api/staff/memo", { text: "まとめて戻すの確認" });
+const also = !memoBefore ? ["alert", "memo", "radio"] : ["alert", "radio"];
+const ra = await admin.req("POST", "/api/staff/reset", { confirm: "リセット", also });
+check("まとめて戻すで、帯・連絡・ラジオもいっしょに消せる", ra.status === 200 && JSON.stringify(ra.json?.also?.slice().sort()) === JSON.stringify(also.slice().sort()), JSON.stringify(ra.json?.also));
+const liveAfter = (await admin.req("GET", "/api/staff/live?fresh=1")).json;
+check("全体の帯が消えた", liveAfter?.alert?.on === false);
+check("ラジオの放送中が止まった", liveAfter?.radio?.onAir === false);
+if (!memoBefore) check("お店の人への連絡が消えた", liveAfter?.memo === null);
+else console.log("--  お店の人への連絡が出ているので、連絡を消す確認は飛ばした");
+check("also の中身がちがえば断る", (await admin.req("POST", "/api/staff/reset", { confirm: "リセット", also: ["all"] })).status === 400);
+await admin.req("PUT", "/api/staff/alert", { on: !!alertBefore?.on, level: alertBefore?.level ?? "info", text: alertBefore?.text ?? "" });
+await admin.req("PUT", "/api/staff/radio", { onAir: !!radioBefore?.onAir, now: radioBefore?.now ?? "" });
+
+// 同じ文のお知らせを続けて出しても 1 つだけ（返事が遅れて押し直したとき）
+const newsText = `確認用のお知らせ ${Date.now()}`;
+const n1 = await admin.req("POST", "/api/staff/news", { text: newsText, pinned: false });
+const n2 = await admin.req("POST", "/api/staff/news", { text: newsText, pinned: false });
+check("同じ文のお知らせを 1 分のうちに出し直しても 1 つだけ", n1.status === 200 && n2.status === 200 && n2.json?.news?.id === n1.json?.news?.id && n2.json?.again === true);
+check("確認用のお知らせを消す", (await admin.req("DELETE", `/api/staff/news/${n1.json?.news?.id}`)).status === 200);
+
 // 一斉に営業中
 check("一斉に営業中にできる", (await admin.req("POST", "/api/staff/open-all", {})).status === 200);
 now = (await admin.req("GET", "/api/staff/export")).json;

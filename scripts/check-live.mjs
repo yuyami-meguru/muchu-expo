@@ -96,12 +96,29 @@ check("全体の帯がお客さんの「いまの様子」に乗る", st.alert?.
 await admin.req("PUT", "/api/staff/alert", { on: false, level: "rain", text: "雨のため屋内に移っています" });
 st = await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json());
 check("全体の帯を消せる", st.alert === null);
-await admin.req("PUT", "/api/staff/phase", { mode: "during" });
+const phaseBefore = st.phase ?? "auto";
+const ph = await admin.req("PUT", "/api/staff/phase", { mode: "during" });
 st = await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json());
 check("表示の時期を「当日」にできる", st.phase === "during");
+// 手で選んだ時期は、その日の 24:00（日本時間）に「日時で自動」に戻る
+const jstMidnight = (() => {
+  const d = new Date(Date.now() + 9 * 3600e3);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - 9 * 3600e3;
+})();
+check("手で選んだ時期は、今日の 24:00 に自動に戻る（until）", ph.json?.until === jstMidnight, `${ph.json?.until} / ${jstMidnight}`);
 check("お店の人の「いまの様子」も「当日」になる", (await a.req("GET", "/api/staff/live")).json.phase === "during");
-await admin.req("PUT", "/api/staff/phase", { mode: "auto" });
-check("表示の時期を「日時で自動」に戻せる", (await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json())).phase === "auto");
+check("実行委員の「いまの様子」に表示の時期・全体の帯・ラジオが入る", (await admin.req("GET", "/api/staff/live?fresh=1")).json?.phase === "during" && "alert" in (await admin.req("GET", "/api/staff/live")).json);
+// /api/status を CDN に置く秒数は、表示の時期で変える（開催中は短く、開催前・終了後は長く）
+const ccDuring = (await fetch(`${BASE}/api/status`, { cache: "no-store" })).headers.get("cache-control") ?? "";
+check("開催中の /api/status は CDN に 3 秒", /s-maxage=3\b/.test(ccDuring), ccDuring);
+await admin.req("PUT", "/api/staff/phase", { mode: "before" });
+const ccBefore = (await fetch(`${BASE}/api/status`, { cache: "no-store" })).headers.get("cache-control") ?? "";
+check("開催前の /api/status は CDN に 60 秒", /s-maxage=60\b/.test(ccBefore), ccBefore);
+await admin.req("PUT", "/api/staff/phase", { mode: phaseBefore });
+check("表示の時期を元（ふつうは「日時で自動」）に戻せる", (await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json())).phase === phaseBefore);
+// ? を付けた /api/status は Redis に通さず、? の無いアドレスへ回す（CDN を外していたずらされないように）
+const q = await fetch(`${BASE}/api/status?nocache=${Date.now()}`, { redirect: "manual" });
+check("? を付けた /api/status は ? なしへ回す（308）", q.status === 308 && new URL(q.headers.get("location") ?? "", BASE).search === "", `${q.status} ${q.headers.get("location")}`);
 
 // 7. チェックリスト
 check("チェックリストに印を付けられる", (await admin.req("PUT", "/api/staff/check", { id: "qr", done: true })).status === 200);

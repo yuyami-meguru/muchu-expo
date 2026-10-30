@@ -54,7 +54,12 @@ export function stamp(at: number, now: number) {
   return DAY.format(at) === DAY.format(now) ? clock(at) : `${DAY.format(at)} ${clock(at)}`;
 }
 
-/** いまの時刻を「13:05」で（押したあとの「○○しました・13:05」に使う） */
+/** いまの時刻を「13:05」で（押したあとの「○○しました（13:05）」に使う） */
 export function clockNow() {
   return clock(Date.now());
+}
+
+/** いまの時刻（ミリ秒。押したあとの処理で使う。描画の中では使わない） */
+export function nowMs() {
+  return Date.now();
 }

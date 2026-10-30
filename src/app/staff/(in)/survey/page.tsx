@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/card";
+import { phaseOf } from "@/lib/ops";
 import { listSurvey, loadAll, storeReady, surveyOpen } from "@/lib/store";
 import { summarize, type SurveyAnswer } from "@/lib/survey";
 import { adminOnly } from "../_components/admin-only";
+import { loadAdminOps, serverNow } from "../_components/staff-settings";
 import { SurveyTools } from "./survey-tools";
 import "./survey-results.css";
 
@@ -11,8 +13,11 @@ export const dynamic = "force-dynamic";
 
 const fmt = (at: number) => new Date(at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" });
 
-/** 横の棒グラフ（1 色。数は棒の右に書く。棒にマウスを当てると数と割合） */
-function Bars({ rows, total, label }: { rows: { label: string; n: number }[]; total: number; label: string }) {
+/**
+ * 横の棒グラフ（1 色。数は棒の右に書く。棒にマウスを当てると数と割合）。
+ * alt を渡すと、数の下に「端末で数えると N」（同じ端末の回答を 1 つに数えた数）も出す
+ */
+function Bars({ rows, total, label, alt }: { rows: { label: string; n: number }[]; total: number; label: string; alt?: Record<string, number> }) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   return (
     <table className="sr-bars" aria-label={label}>
@@ -30,6 +35,7 @@ function Bars({ rows, total, label }: { rows: { label: string; n: number }[]; to
               <td className="sr-n">
                 {r.n}
                 <small>{pct}%</small>
+                {alt && alt[r.label] !== undefined && alt[r.label] !== r.n && <small className="sr-alt">端末で {alt[r.label]}</small>}
               </td>
             </tr>
           );
@@ -56,14 +62,20 @@ function Texts({ items, empty }: { items: { at: number; text: string; who?: stri
   );
 }
 
-/** アンケートの集計（実行委員・先生だけ） */
+/**
+ * アンケートの集計（実行委員・先生だけ）。
+ * 同じ端末から何度も答えた分を 1 つに数えた数（端末で数えると）も出す（夢中アワードの参考に。端末の印が無い古い回答は 1 つずつ数える）
+ */
 export default async function SurveyResultsPage() {
-  await adminOnly();
-  const [{ shops }, raw, open] = await Promise.all([loadAll({ fresh: true }), listSurvey(), surveyOpen()]);
+  await adminOnly("/staff/survey");
+  const [{ shops }, raw, open, ops] = await Promise.all([loadAll({ fresh: true }), listSurvey(), surveyOpen(), loadAdminOps()]);
   const answers = raw as SurveyAnswer[];
   const names = Object.fromEntries(shops.filter((s) => !s.hidden).map((s) => [s.id, s.name]));
   const s = summarize(answers, names);
   const answeredWho = s.total - s.whoBlank;
+  const favAlt = Object.fromEntries(s.favByDevice.map((r) => [r.label, r.n]));
+  // 開催前は、受付をオンにしていても、お客さんは答えられない（11/28 の当日から。練習で表示の時期を「当日」にしたときは答えられる）
+  const before = phaseOf(serverNow(), ops.phase) === "before";
 
   return (
     <div className="st-page st-page--wide st-stack sr">
@@ -74,12 +86,20 @@ export default async function SurveyResultsPage() {
           <span className="sr-stat-l">回答の数</span>
           <span className="sr-stat-v">{s.total}</span>
           <span className="sr-stat-u">件</span>
+          {s.total > 0 && (
+            <span className="sr-stat-alt">
+              同じ端末の回答を 1 つに数えると <strong>{s.totalByDevice}</strong> 件
+            </span>
+          )}
         </div>
-        <SurveyTools open={open} total={s.total} ready={storeReady()} />
+        <SurveyTools open={open} total={s.total} ready={storeReady()} before={before} />
       </div>
 
       {s.total === 0 ? (
-        <p className="sr-empty sr-card">まだ回答はありません。お客さんのページは「/survey」です（ホーム・下の帯・案内ポスターから開けます）。</p>
+        <p className="sr-empty sr-card">
+          まだ回答はありません。お客さんのページは「/survey」です（ホーム・ページのいちばん下・会場に貼るポスターから開けます）。
+          {before && "開催前は、お客さんは答えられません（11/28 の当日から受け付けます）。"}
+        </p>
       ) : (
         <div className="sr-grid">
           <section className="sr-card">
@@ -104,10 +124,10 @@ export default async function SurveyResultsPage() {
 
           <section className="sr-card">
             <h2>
-              <span className="sr-no">3</span>交通手段（いくつでも）
+              <span className="sr-no">3</span>ここまで来た方法（いくつでも）
             </h2>
             <p className="sr-sub">割合は回答 {s.total} 件の中で</p>
-            <Bars rows={s.transport} total={s.total} label="交通手段" />
+            <Bars rows={s.transport} total={s.total} label="ここまで来た方法" />
             <h3>その他</h3>
             <Texts items={s.transportOther} empty="なし" />
           </section>
@@ -116,8 +136,10 @@ export default async function SurveyResultsPage() {
             <h2>
               <span className="sr-no">4</span>印象に残ったお店・出し物
             </h2>
-            <p className="sr-sub">多い順。割合は回答 {s.total} 件の中で（夢中アワードの参考に）</p>
-            <Bars rows={s.fav} total={s.total} label="印象に残ったお店・出し物" />
+            <p className="sr-sub">
+              多い順。割合は回答 {s.total} 件の中で（夢中アワードの参考に）。「端末で」は、同じ端末から何度答えても 1 票に数えた数です
+            </p>
+            <Bars rows={s.fav} total={s.total} label="印象に残ったお店・出し物" alt={favAlt} />
             <h3>よかったところ・ほかに印象に残ったもの（{s.favText.length} 件）</h3>
             <Texts items={s.favText} empty="なし" />
           </section>

@@ -6,26 +6,32 @@ import { Icon } from "@/components/icons";
 import { Button, buttonClass } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import { send } from "../../_lib/client";
+import { noteAuth } from "../_components/session-signal";
+import { clockNow } from "../ops-live";
+import { failMsg } from "../ops-result";
 
-/** 受付のオン・オフ、表（CSV）で保存、回答を全部消す */
-export function SurveyTools({ open, total, ready }: { open: boolean; total: number; ready: boolean }) {
+/**
+ * 受付のオン・オフ、表（CSV）で保存、回答を全部消す。
+ * before（開催前）：受付をオンにしていても、お客さんは答えられない（サーバーが 11/28 の当日まで断る）ことを出す
+ */
+export function SurveyTools({ open, total, ready, before }: { open: boolean; total: number; ready: boolean; before: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   async function toggle() {
     setBusy(true);
-    const r = await send("/api/staff/survey", "PUT", { open: !open });
+    const r = noteAuth(await send("/api/staff/survey", "PUT", { open: !open }));
     setBusy(false);
-    setMsg(r.ok ? (open ? "受付を止めました" : "受付を始めました") : r.error);
+    setMsg(r.ok ? `${open ? "受付を止めました" : "受付を始めました"}（${clockNow()}）` : failMsg(open ? "受付を止めることが" : "受付を始めることが", r, "この画面を読み込み直して確かめてください"));
     router.refresh();
   }
 
   async function clearAll() {
     setBusy(true);
-    const r = await send("/api/staff/survey", "DELETE", { confirm: "消す" });
+    const r = noteAuth(await send("/api/staff/survey", "DELETE", { confirm: "消す" }));
     setBusy(false);
-    setMsg(r.ok ? "回答を全部消しました" : r.error);
+    setMsg(r.ok ? `回答を全部消しました（${clockNow()}）` : failMsg("回答を全部消すことが", r, "この画面を読み込み直して、回答の数を確かめてください"));
     router.refresh();
   }
 
@@ -33,6 +39,7 @@ export function SurveyTools({ open, total, ready }: { open: boolean; total: numb
     <div className="sr-tools">
       <p className="sr-state">
         受付：<strong className={open ? "sr-on" : "sr-off"}>{open ? "受け付けています" : "止めています"}</strong>
+        {before && open && <span className="sr-before">（いまは開催前なので、お客さんは答えられません。11/28 の当日から受け付けます）</span>}
       </p>
       <div className="sr-tool-row">
         <Button onClick={toggle} pending={busy} disabled={!ready} variant={open ? "secondary" : "primary"}>

@@ -1,27 +1,56 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cache } from "react";
 import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges, LiveStock } from "@/components/live/live-parts";
+import { MiniFloorMap } from "@/components/map/mini-floor-map";
+import { canEditShop, getSession } from "@/lib/auth";
 import { getShop, loadAll } from "@/lib/store";
 import { deptLookup, KIND_LABEL, type Kind, placeLabeler } from "@/lib/types";
+import { ByPhase } from "../../_components/in-phase";
+import { ShareButton } from "../../_components/share-button";
+import PublicNotFound from "../../not-found";
 import "../shops.css";
+
+/** ログインしている人（題名とページで 1 回だけ読む。お店の人のときは保存先のかぎも確かめるため） */
+const sessionOnce = cache(getSession);
+
+/**
+ * 非表示のお店を見てよい人か（実行委員と、そのお店の人だけ。下見として帯つきで見せる）。ほかの人には「見つかりません」のまま。
+ * 非表示のお店を開いたときだけログインを確かめる（ふつうのお店では読まない）
+ */
+async function previewer(shopId: string) {
+  const s = await sessionOnce();
+  return canEditShop(s, shopId) ? s : null;
+}
+
+/** 見つからないとき（id のまちがい・非表示）の題名。検索エンジンには載せない */
+const NOT_FOUND_META: Metadata = { title: "ページが見つかりません", robots: { index: false, follow: false } };
 
 export async function generateMetadata({ params }: PageProps<"/shops/[id]">): Promise<Metadata> {
   const { id } = await params;
   const s = await getShop(id);
-  return { title: s && !s.hidden ? s.name : "お店" };
+  if (!s) return NOT_FOUND_META;
+  if (s.hidden) return (await previewer(s.id)) ? { title: `下見：${s.name}`, robots: { index: false, follow: false } } : NOT_FOUND_META;
+  return { title: s.name };
 }
 
 /** 「見る・聴く」は出し物、ほかはお店と呼ぶ */
 const nounOf = (kind: Kind) => (kind === "see" ? "出し物" : "お店");
 
-/** お店の詳細：いまの状態と場所・どんなお店？・メニューと値段（売り切れ）・当日の流れ・お店の思い */
+/**
+ * お店の詳細：いまの状態と場所・どんなお店？・メニューと値段（売り切れ）・当日の流れ・お店の思い・［このページを送る］。
+ * 空の欄は出さない（「まだ書かれていません」を並べない）。時期で変わる文は ByPhase（設定を読み直さない）。
+ * 見つからないとき（id のまちがい・非表示）は notFound() を投げずに「ページが見つかりません」をそのまま描く
+ * （投げると Next 16 は中身の無い HTML を返し、スクリプトが届くまで真っ白になるため。題名は「見つかりません」・検索には載せない）
+ */
 export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
   const { id } = await params;
   const { shops, places, areas, depts } = await loadAll();
   const s = shops.find((x) => x.id === id);
-  if (!s || s.hidden) notFound();
+  if (!s) return <PublicNotFound />;
+  const viewer = s.hidden ? await previewer(s.id) : null;
+  if (s.hidden && !viewer) return <PublicNotFound />;
   const place = places.find((p) => p.id === s.placeId);
   // 場所：フロアなら「知育館 2階・201 小講義室」。補足（placeNote）はその下に
   const placeText = place ? placeLabeler(areas)(place) : s.placeNote;
@@ -31,9 +60,24 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
   const others = shops.filter((x) => !x.hidden && x.dept === s.dept && x.id !== s.id);
   const otherNouns = new Set(others.map((o) => nounOf(o.kind)));
   const othersNoun = otherNouns.size === 1 ? [...otherNouns][0] : "お店・出し物";
+  const priced = s.menu.filter((m) => m.price).length;
 
   return (
     <article className={`sd tone-${dept.color}`}>
+      {viewer && (
+        <div className="sd-preview" role="note" aria-label="下見">
+          <div className="sp-wrap">
+            <p className="sd-preview-t">非表示（お客さんには見えていません）</p>
+            <p className="sd-preview-d">
+              このページは、実行委員とこのお店の人だけが見られる下見です。お客さんが開くと「ページが見つかりません」になります。
+              {viewer.role === "admin" ? "お客さんに見せるときは、「お店の情報」の一覧で［見せる］を押してください。" : "お客さんに見せる準備ができたら、実行委員に伝えてください。"}
+            </p>
+            <p className="sd-preview-a">
+              {viewer.role === "admin" ? <Link href={`/staff/shops/${s.id}`}>このお店の情報を直す</Link> : <Link href="/staff">お店の画面へ戻る</Link>}
+            </p>
+          </div>
+        </div>
+      )}
       <header className="sd-hero">
         <div className="sp-wrap">
           <Link href="/shops" className="sd-back">
@@ -57,7 +101,13 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
             <Icon name="場所" size={20} />
             <p>
               <span className="sd-place-k">場所</span>
-              {placeText ? <strong>{placeText}</strong> : <span className="sd-tbd">決まりしだいお知らせします</span>}
+              {placeText ? (
+                <strong>{placeText}</strong>
+              ) : (
+                <span className="sd-tbd">
+                  <ByPhase before="決まりしだいお知らせします" day="近くの係（生徒・先生）におたずねください" after="未定" />
+                </span>
+              )}
               {placeExtra && <span className="sd-place-extra">{placeExtra}</span>}
             </p>
             {place && (
@@ -67,9 +117,12 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
               </Link>
             )}
           </div>
+          {/* 建物の中の場所なら、小さな見取り図でその部屋に色を付ける（外の場所・見取り図の無い階では何も出ない）。押すとマップ */}
+          <MiniFloorMap place={place} areas={areas} href={place ? `/map?place=${place.id}` : undefined} />
+
           {s.id === "radio" && (
             <Link href="/radio" className="sd-radio">
-              ▶ ラジオの番組表・メッセージを送る
+              <span aria-hidden="true">▶ </span>番組表を見る・メッセージを送る
             </Link>
           )}
         </section>
@@ -81,9 +134,9 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
           </section>
         )}
 
-        <section className="sd-card">
-          <h2>メニューと値段</h2>
-          {s.menu.length ? (
+        {s.menu.length > 0 ? (
+          <section className="sd-card">
+            <h2>{priced ? "メニューと値段" : "メニュー"}</h2>
             <ul className="sd-menu">
               {s.menu.map((m) => (
                 <li key={m.id}>
@@ -91,19 +144,38 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
                     {m.name}
                     {m.note && <small>{m.note}</small>}
                   </span>
-                  <span className="sd-menu-price">{m.price || <span className="sd-tbd">値段は当日お店で</span>}</span>
+                  {m.price && <span className="sd-menu-price">{m.price}</span>}
                   <LiveStock shopId={s.id} itemId={m.id} />
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="sd-text ink-3">見て・聴いて楽しむ出し物です。</p>
-          )}
-        </section>
+            {priced < s.menu.length && (
+              <p className="sd-menu-note">
+                <ByPhase
+                  before={priced ? "値段の書いていないものは、まだ決まっていません。" : "値段は、まだ決まっていません。決まりしだいお知らせします。"}
+                  day={priced ? "値段の書いていないものは、お店でおたずねください。" : "値段は、お店でおたずねください。"}
+                />
+              </p>
+            )}
+          </section>
+        ) : (
+          s.kind !== "see" && (
+            <ByPhase
+              before={
+                <section className="sd-card">
+                  <h2>メニュー</h2>
+                  <p className="sd-text">
+                    <span className="sd-tbd">メニューは決まりしだいお知らせします。</span>
+                  </p>
+                </section>
+              }
+            />
+          )
+        )}
 
-        <section className="sd-card">
-          <h2>当日の流れ</h2>
-          {s.schedule.length ? (
+        {s.schedule.length > 0 && (
+          <section className="sd-card">
+            <h2>当日の流れ</h2>
             <ol className="sd-flow">
               {s.schedule.map((x, i) => (
                 <li key={i}>
@@ -112,17 +184,15 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
                 </li>
               ))}
             </ol>
-          ) : (
-            <p className="sd-text">
-              <span className="sd-tbd">当日の流れは決まりしだいお知らせします</span>
-            </p>
-          )}
-        </section>
+          </section>
+        )}
 
-        <section className="sd-card sd-message">
-          <h2>{noun === "出し物" ? "出し物にこめた思い" : "お店の思い"}</h2>
-          {s.message ? <blockquote>{s.message}</blockquote> : <p className="sd-text ink-3">まだ書かれていません。</p>}
-        </section>
+        {s.message && (
+          <section className="sd-card sd-message">
+            <h2>{noun === "出し物" ? "出し物にこめた思い" : "お店の思い"}</h2>
+            <blockquote>{s.message}</blockquote>
+          </section>
+        )}
 
         {others.length > 0 && (
           <section className="sd-others" aria-labelledby="others-h">
@@ -141,6 +211,9 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
             </ul>
           </section>
         )}
+
+        {/* 家族や友だちに送る（非表示のお店の下見では出さない） */}
+        {!viewer && <ShareButton path={`/shops/${s.id}`} title={`${s.name}｜エンカレ夢中万博`} className="sd-share" />}
       </div>
     </article>
   );

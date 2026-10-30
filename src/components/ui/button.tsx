@@ -23,7 +23,10 @@ type Common = {
 
 type AsButton = Common & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className"> & {
   href?: undefined;
-  /** 送信中。押せなくして「送信中」と読み上げる */
+  /**
+   * 送信中。もう一度押しても何もしない（二重に送らない）。「送信中」と読み上げる。
+   * disabled にはしない（押したボタンから選んだ印が消えて、キーボードやスイッチで使う人が場所を見失うため）
+   */
   pending?: boolean;
 };
 
@@ -73,9 +76,20 @@ export function Button(props: ButtonProps) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { variant: _v, size: _s, icon: _i, iconRight: _r, block: _b, children: _c, className: _cl, pending, type = "button", disabled, href: _h, ...rest } = props;
+  const { variant: _v, size: _s, icon: _i, iconRight: _r, block: _b, children: _c, className: _cl, pending, type = "button", disabled, onClick, href: _h, ...rest } = props;
+  // 送信中に押されたら止める（フォームの送信も）。pending を使わないボタン（サーバーの画面のものも）は、渡された onClick のまま
+  const click: typeof onClick =
+    pending === undefined
+      ? onClick
+      : (e) => {
+          if (pending) {
+            e.preventDefault();
+            return;
+          }
+          onClick?.(e);
+        };
   return (
-    <button type={type} className={cls} disabled={disabled || pending} aria-busy={pending || undefined} {...rest}>
+    <button type={type} className={cls} disabled={disabled} aria-disabled={pending || undefined} aria-busy={pending || undefined} onClick={click} {...rest}>
       {pending ? (
         <>
           <span className="ui-btn-spin" aria-hidden="true" />

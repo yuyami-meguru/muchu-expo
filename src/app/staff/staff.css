@@ -3,11 +3,48 @@
 /* 下の余白（下のタブの分）は、ページの下に必ずある .st-foot（版・ログアウト）の側で取る */
 .st-page--wide { max-width: 1120px; }
 .st-stack > * + * { margin-top: 16px; }
+/* 確認の小窓（ConfirmDialog の dialog）が .st-stack の中にあっても、上のあきを付けない（スマホで下から出る小窓が浮かないように） */
+.st-stack > dialog { margin-top: auto; }
 .st-muted { color: var(--ink-3); font-size: 0.875rem; }
 .st-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .st-grow { flex: 1 1 auto; min-width: 0; }
 .st-saved { font-size: 0.8rem; color: var(--ok-ink); font-weight: 700; min-height: 1.4em; }
 .st-err { font-size: 0.875rem; color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 8px 12px; margin: 8px 0 0; }
+
+/* 実行委員の画面のいちばん上の帯（(in)/_components/staff-bands.tsx）。幅はページの中身（.st-page）にそろえる
+   ログイン：残り 60 分を切ったら黄色、切れたら赤。スクロールしても上に貼りつく（スマホは上の帯 55px の下） */
+.st-session, .st-session-ok, .st-phase-band { width: calc(100% - 32px); max-width: 1088px; margin: 0 auto 8px; }
+.st-session {
+  position: sticky; top: calc(55px + env(safe-area-inset-top)); z-index: 29;
+  padding: 6px 8px 6px 12px; border: 2px solid var(--warn); border-radius: var(--r-lg);
+  background: var(--warn-soft); color: var(--warn); box-shadow: var(--shadow-pop);
+}
+.st-session--out { border-color: var(--ng); background: var(--ng-soft); color: var(--ng-ink); }
+/* 入れる欄を開いたら、貼りつけをやめる（欄が画面の外に出ないように） */
+.st-session--open { position: relative; top: auto; }
+@media (min-width: 1024px) { .st-session { top: 8px; } }
+.st-session-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.st-session-row > .ui-icon { flex: none; }
+.st-session-text { flex: 1 1 12em; min-width: 0; margin: 0; font-size: 0.9rem; font-weight: 700; line-height: 1.5; }
+.st-session-text b { font-weight: 900; }
+.st-session-btn {
+  flex: none; min-height: 44px; padding: 0 14px; border: 2px solid currentColor; border-radius: var(--r-md);
+  background: var(--surface); color: inherit; font: inherit; font-size: 0.875rem; font-weight: 900; cursor: pointer;
+}
+.st-session-btn:hover { background: var(--surface-2); }
+.st-session-form { display: grid; gap: 8px; justify-items: start; margin-top: 8px; padding: 10px 0 4px; border-top: 1px dashed currentColor; color: var(--ink); }
+.st-session-note { margin: 0; font-size: 0.85rem; font-weight: 700; line-height: 1.6; }
+.st-session-ok { padding: 8px 14px; border-radius: var(--r-lg); background: var(--ok-soft); color: var(--ok-ink); font-weight: 900; }
+/* 表示の時期が「日時で自動」でないとき（貼りつけない。ページを開くたびに目に入る） */
+.st-phase-band {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 8px 6px 12px;
+  border: 2px solid var(--warn); border-radius: var(--r-lg); background: var(--warn-soft); color: var(--warn);
+}
+.st-phase-band > .ui-icon { flex: none; }
+.st-phase-band-text { flex: 1 1 14em; min-width: 0; margin: 0; display: grid; font-size: 0.85rem; line-height: 1.5; }
+.st-phase-band-text b { font-weight: 900; font-size: 0.9rem; }
+.st-phase-band .st-session-btn { display: inline-flex; align-items: center; text-decoration: none; }
+@media print { .st-session, .st-session-ok, .st-phase-band { display: none !important; } }
 
 /* ログイン */
 .st-login { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
@@ -72,7 +109,7 @@
 .st-chip[data-v="few"]::before { background: var(--accent); }
 .st-chip[data-v="out"]::before { background: var(--ng); }
 .st-chip[data-v="out"] { text-decoration: line-through; color: var(--ink-3); }
-.st-chip:disabled { opacity: 0.6; cursor: progress; }
+.st-chip:disabled, .st-chip[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
 .st-chip[aria-busy="true"] { opacity: 1; border-color: var(--primary); border-style: dashed; }
 .st-badge { display: inline-block; font-size: 0.75rem; font-weight: 900; padding: 2px 10px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
 .st-badge[data-v="open"] { background: var(--ok-soft); color: var(--ok-ink); }
@@ -80,13 +117,30 @@
 .st-badge[data-v="closed"] { background: var(--ng-soft); color: var(--ng-ink); }
 .st-badge[data-v="hidden"] { background: var(--ink-3); color: var(--surface); }
 
+/* お店の編集（shops/[id]/shop-form.tsx）：非表示のお店のいちばん上の箱（いまは見えていない・次にすること・［見せる］） */
+.st-hidden-box { padding: 14px 16px; border: 2px solid var(--warn); border-radius: var(--r-card); background: var(--warn-soft); color: var(--ink); }
+.st-hidden-h { margin: 0 0 4px; font-size: 1rem; line-height: 1.5; color: var(--warn); }
+.st-hidden-ready { margin: 0 0 6px; font-size: 0.875rem; font-weight: 900; }
+.st-hidden-steps { margin: 0 0 10px; padding-left: 1.4em; font-size: 0.875rem; line-height: 1.7; }
+.st-hidden-steps a { font-weight: 900; }
+/* ほかの人が同じ欄を直していた（読み込み直したあと）：自分の書いた文を残して見せる */
+.st-clash { padding: 12px 16px; border: 2px solid var(--blue); border-radius: var(--r-card); background: var(--blue-soft); }
+.st-clash-h { margin: 0 0 4px; font-size: 0.95rem; line-height: 1.5; }
+.st-clash .st-more-opt { margin: 4px 0; }
+.st-clash-text { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--r-md); background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* 保存の帯の中の失敗：文と［読み込み直す］ */
+.st-err-text { margin: 0; }
+.st-err > .ui-btn { margin-top: 6px; }
+
 /* 編集の表（品物・流れ） */
 .st-rows { display: grid; gap: 10px; }
 .st-rowbox { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; background: var(--bg); display: grid; gap: 8px; }
 .st-rowbox-grid { display: grid; gap: 8px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .st-rowbox-grid { grid-template-columns: 2fr 1fr 2fr; } .st-rowbox-grid--2 { grid-template-columns: 1fr 3fr; } }
 .st-rowbox .ui-field { margin: 0; }
-.st-form-grid { display: grid; gap: 4px 16px; grid-template-columns: 1fr; }
+/* 2 列のとき、右の欄だけが上にあく（.ui-field + .ui-field のあき）のを止め、あきは grid の gap でそろえる */
+.st-form-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+.st-form-grid > .ui-field + .ui-field { margin-top: 0; }
 @media (min-width: 720px) { .st-form-grid { grid-template-columns: 1fr 1fr; } .st-span2 { grid-column: span 2; } }
 .st-actions { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px); z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; box-shadow: var(--shadow-pop); margin-top: 20px; }
 @media (min-width: 1024px) { .st-actions { bottom: 12px; } }
@@ -128,6 +182,29 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-ready-price { font-size: 0.8rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
 .st-ready-none { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); font-weight: 700; color: var(--ok-ink); }
 
+/* お店を足す（「お店の情報」のいちばん上。ふだんはたたんで［＋ お店を足す］だけ。shops/new-shop-form.tsx） */
+.st-new { background: var(--surface); border: 2px solid var(--primary); border-radius: var(--r-card); }
+.st-new-sum { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 16px; font-weight: 900; color: var(--primary); }
+.st-new-sum::-webkit-details-marker { display: none; }
+.st-new-plus { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-size: 1rem; line-height: 1; }
+.st-new[open] > .st-new-sum { border-bottom: 1px dashed var(--line); }
+.st-new-body { padding: 12px 16px 16px; }
+@media (max-width: 380px) { .st-new-body { padding: 12px 12px 14px; } }
+
+/* 名前で探す・しぼり込み（「お店の情報」。shops/quick-list.tsx）。しぼり込みは 1 つだけ選ぶ。横の数はいまの数 */
+.st-find { display: grid; gap: 8px; }
+.st-find .ui-field { margin: 0; max-width: 420px; }
+.st-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-filter {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-pill);
+  border: 2px solid var(--field-line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.85rem; font-weight: 900; cursor: pointer;
+}
+.st-filter:hover { background: var(--surface-2); }
+.st-filter[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.st-filter-n { min-width: 1.6em; padding: 0 6px; border-radius: var(--r-pill); background: color-mix(in srgb, currentColor 15%, transparent); font-size: 0.75rem; text-align: center; font-variant-numeric: tabular-nums; }
+.st-find-count { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+.st-dept-n { padding: 0 8px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink-2); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
 /* 一覧のまま押す 3 つの組（営業・品物・お客さんの画面）。小さな見出しを付けて、組のあいだをあける。
    ボタンの文字は「押すと起きること」、その横の「いま：○○」が今の様子 */
 .st-quick { display: grid; gap: 12px 24px; grid-template-columns: minmax(0, 1fr); padding: 0 14px 14px 36px; }
@@ -136,6 +213,9 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-qline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .st-qnow { font-size: 0.8rem; font-weight: 700; color: var(--ink-2); }
 .st-states--sm .st-state { min-height: 44px; font-size: 0.85rem; }
+/* せまいとき・字を大きくしたとき（4 つ並ぶと「準備／中」と割れる幅）は 2 つずつ 2 段に。幅は字の大きさ（em）で決める */
+.st-qgroup--state { container-type: inline-size; }
+@container (max-width: 13em) { .st-states--sm { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .st-qbtn {
   min-height: 44px; border-radius: var(--r-md); border: 2px solid var(--field-line); background: var(--surface); color: var(--ink); cursor: pointer;
   font: inherit; font-weight: 900; font-size: 0.875rem; padding: 4px 14px; line-height: 1.3; white-space: nowrap;
@@ -145,6 +225,9 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-qbtn--out:hover:not(:disabled), .st-qbtn--hide:hover:not(:disabled) { background: var(--ng-soft); }
 .st-qbtn:disabled, .st-states--sm .st-state:disabled { opacity: 0.6; cursor: progress; }
 .st-qbtn--out:disabled { cursor: not-allowed; }
+/* 送っているあいだ（「押せない」印だけ。押した札は「送信中…」が読めるようそのまま、ほかは薄く） */
+.st-qbtn[aria-disabled="true"], .st-states--sm .st-state[aria-disabled="true"] { cursor: progress; }
+.st-qbtn[aria-disabled="true"], .st-states--sm .st-state[aria-disabled="true"]:not([aria-pressed="true"]) { opacity: 0.6; }
 .st-quick-msg { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--ok-ink); }
 .st-quick-msg:empty { display: none; }
 .st-quick-msg--err { color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 4px 8px; }
@@ -219,12 +302,15 @@ a.st-list-row:hover { background: var(--surface-2); }
 /* 確認の小窓は、カードの中央寄せを受けつがない */
 .st-qr .ui-dialog { text-align: left; }
 /* 紙の色のカードなので、暗い画面でも部門の名前は濃い色で */
-@media (prefers-color-scheme: dark) { .st-qr-dept { color: #6e5c4a; } }
+@media screen and (prefers-color-scheme: dark) { .st-qr-dept { color: #6e5c4a; } }
 @media print {
   @page { size: A4; margin: 12mm; }
   .shell-sidebar, .shell-phonebar, .shell-tabs, .st-noprint, .st-foot, .ui-page-head .ui-btn { display: none !important; }
   .shell-side, .shell-main, .shell-side-main { display: block !important; margin: 0 !important; padding: 0 !important; }
-  body { background: #fff !important; }
+  /* ダークモードの端末から刷っても、紙は白地・濃い字（余白が黒くならないように） */
+  :root { color-scheme: light; }
+  html, body { background: #fff !important; color: #241b14 !important; }
+  .ui-page-head, .ui-page-title, .ui-page-sub { color: #241b14 !important; }
   .st-page { padding: 0; max-width: none; }
   .st-qrs { grid-template-columns: 1fr 1fr; gap: 10mm; }
   .st-qr { --c: #241b14; }
@@ -273,6 +359,10 @@ a.st-list-row:hover { background: var(--surface-2); }
   display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
   background: var(--primary); color: var(--on-primary); font-weight: 900; font-size: 1.1rem;
 }
+/* まとめて戻す：いっしょに消すもの（全体の帯・お店の人への連絡・ラジオの放送中）。チェックの下に、いまの様子 */
+.st-also { border: 0; margin: 8px 0 0; padding: 0; min-width: 0; }
+.st-also-h { padding: 0; margin: 0 0 2px; font-size: 0.85rem; font-weight: 900; color: var(--ink-2); }
+.st-also:disabled { opacity: 0.6; }
 /* 表示の時期 */
 .st-phase-now { margin: 0 0 8px; }
 .st-phase { border: 0; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
@@ -342,7 +432,9 @@ a.st-list-row:hover { background: var(--surface-2); }
 .aw-ed-rank li { display: flex; align-items: center; gap: 10px; border-left: 6px solid var(--c); padding: 6px 10px; background: var(--surface-2); border-radius: var(--r-sm); }
 .aw-ed-rank-name { flex: 1; min-width: 0; font-weight: 700; line-height: 1.4; }
 .aw-ed-rank-name small { display: block; font-size: 0.72rem; color: var(--ink-3); }
-.aw-ed-rank-n { font-weight: 900; font-variant-numeric: tabular-nums; }
+.aw-ed-rank-n { font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; }
+/* 「回答 5」（同じ端末の分も数えた数。端末で数えた数とちがうときだけ） */
+.aw-ed-rank-all { display: block; font-size: 0.7rem; font-weight: 700; color: var(--ink-3); white-space: nowrap; }
 
 /* 校内ラジオ（/staff/radio、rda-） */
 .rda-card h2 { font-size: 1.1rem; margin-bottom: 4px; }
@@ -356,6 +448,9 @@ a.st-list-row:hover { background: var(--surface-2); }
 .rda-air-btn { min-height: 64px; border-radius: var(--r-md); border: 3px solid #c73a2b; background: #c73a2b; color: #fff; font: inherit; font-weight: 900; font-size: 1.15rem; cursor: pointer; }
 .rda-air--on .rda-air-btn { background: transparent; border-color: #ff6b5a; color: #ffb3a8; }
 .rda-air-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 送っているあいだ（「押せない」印だけ。押したボタンはそのまま） */
+.rda-air-btn[aria-disabled="true"] { cursor: progress; }
+.rda-air-btn[aria-disabled="true"]:not([aria-busy="true"]) { opacity: 0.5; }
 .rda-now { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
 .rda-now label { display: grid; gap: 4px; font-size: 0.85rem; color: #bfcbe6; }
 .rda-now input { width: 100%; min-height: 46px; font: inherit; border-radius: var(--r-md); border: 2px solid #3a4772; background: #182747; color: #eef4ff; padding: 8px 12px; }
@@ -386,3 +481,5 @@ a.st-list-row:hover { background: var(--surface-2); }
 .rda-new { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: var(--r-pill); background: var(--ng); color: var(--on-primary); font-size: 0.75rem; font-weight: 900; vertical-align: 2px; }
 .rda-msg-meta .rda-new { margin-left: 0; }
 .rda-fresh { display: inline-flex; align-items: center; min-height: 44px; color: var(--footer-accent); font-weight: 900; }
+/* お店の編集の「場所」：選んでいる場所に、ほかのお店もいるとき */
+.st-place-share { margin: 0 0 8px; font-weight: 700; }

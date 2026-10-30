@@ -63,7 +63,7 @@ const planSrc = readFileSync(new URL("../src/lib/floor-plans.ts", import.meta.ur
 check("見取り図のデータに物品・メモの欄が無い", !/\b(note|memo|items?|owner)\s*:/.test(planSrc));
 
 // フロアの窓口の守り
-check("ログインなしではフロアを作れない", (await anon.req("PUT", "/api/staff/areas/floor-x", { building: "テスト館", floor: "1階", order: 9 })).status === 403);
+check("ログインなしではフロアを作れない（ログインの案内）", (await anon.req("PUT", "/api/staff/areas/floor-x", { building: "テスト館", floor: "1階", order: 9 })).status === 401);
 check("お店の人はフロアを作れない", (await shop.req("PUT", "/api/staff/areas/floor-x", { building: "テスト館", floor: "1階", order: 9 })).status === 403);
 check("outside という名前のフロアは作れない", (await admin.req("PUT", "/api/staff/areas/outside", { building: "テスト館", floor: "1階", order: 9 })).status === 400);
 check("建物の名前がないフロアは作れない", (await admin.req("PUT", "/api/staff/areas/floor-x", { building: "", floor: "1階", order: 9 })).status === 400);
@@ -87,13 +87,38 @@ check("消したフロアは控えに残らない", !(await admin.req("GET", "/a
 const placed = (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId;
 const toRoom = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "f3-301" });
 check("実行委員はお店の場所をフロアの部屋にできる", toRoom.status === 200 && toRoom.json?.shop?.placeId === "f3-301");
-// お客さんのページは読んだ中身を 2 秒だけ使い回すので、少し待ってから見る
-await new Promise((r) => setTimeout(r, 2100));
+// お客さんのページは読んだ中身を使い回すが、同じサーバーで書いたら使い回しを捨てるので、すぐ新しい中身が出る
 check("お店のページに「知育館 3階・301 教室」と出る", (await page("/shops/yakisoba")).includes("知育館 3階・301 教室"));
+if (placed !== "f3-301") {
+  const placeLog = (await admin.req("GET", "/api/staff/log?shop=yakisoba")).json?.log?.[0];
+  check("変更の記録の場所は、英字ではなくピンの名前で残る", placeLog?.field === "場所" && placeLog?.after === "知育館 3階・301 教室", JSON.stringify(placeLog));
+}
 const toTbd = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "" });
 check("お店の場所を未定に戻せる", toTbd.status === 200 && toTbd.json?.shop?.placeId === "");
 await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed });
 check("お店の場所を元に戻した", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === placed);
+
+// ピンを消したら、そのピンを場所にしていたお店は「未定」に戻る（同じ名前のピンをあとで足しても、勝手につながらない）
+const tmpPin = await admin.req("PUT", "/api/staff/places/check-unlink", { name: "確認用のピン", x: 20, y: 20, note: "" });
+const linked = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "check-unlink" });
+check("確認用のピンをお店の場所にできる", tmpPin.status === 200 && linked.json?.shop?.placeId === "check-unlink");
+const del = await admin.req("DELETE", "/api/staff/places/check-unlink");
+check("ピンを消すと、つながっていたお店を返す", del.status === 200 && del.json?.unlinked?.includes("yakisoba"), JSON.stringify(del.json));
+check("ピンを消したお店は場所が未定になる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === "");
+await admin.req("PUT", "/api/staff/places/check-unlink", { name: "確認用のピン", x: 20, y: 20, note: "" });
+check("同じ名前のピンを足し直しても、お店はつながらない", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === "");
+await admin.req("DELETE", "/api/staff/places/check-unlink");
+await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed });
+check("お店の場所をもう一度元に戻した", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === placed);
+
+// フォントを先に読む印（<link rel="preload" as="font">）がたくさんあると、遅い回線で最初の表示が何十秒も遅れる（R8）。
+// 字の形は表示のあとに読めばよいので、HTML と Link ヘッダーの as="font" は 0 か、ごく少ないこと
+for (const path of ["/", "/shops", "/map?area=f3", "/staff/login"]) {
+  const r = await fetch(BASE + path, { cache: "no-store" });
+  const html = await r.text();
+  const n = (html.match(/as="font"/g) ?? []).length + ((r.headers.get("link") ?? "").match(/as=font/g) ?? []).length;
+  check(`${path} でフォントを先に読む印が 4 つ以下`, n <= 4, `${n} 個`);
+}
 
 console.log(failed ? `\n${failed} 件 NG` : "\nすべて OK");
 process.exit(failed ? 1 : 0);

@@ -1,5 +1,5 @@
 // 校内ラジオの守りを確かめる（手元の next dev に向けて実行）。 npm run check:radio
-// テストのあと、ラジオの状態は元に戻す（ON AIR はオフ）。テストで送ったメッセージは残る（実行委員の画面で消せる）
+// テストのあと、ラジオの状態は元に戻す（ON AIR はオフ）。テストで送ったメッセージ（4 通）は残る（実行委員の画面で消せる）
 import { readFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:3470";
@@ -42,10 +42,10 @@ const before = (await admin.req("GET", "/api/staff/radio")).json?.state;
 check("実行委員は状態を読める", !!before);
 const count = async () => (await admin.req("GET", "/api/staff/radio")).json?.messages?.length ?? -1;
 
-check("ログインなしでは状態を変えられない", (await anon.req("PUT", "/api/staff/radio", { onAir: true })).status === 403);
+check("ログインなしでは状態を変えられない（ログインの案内）", (await anon.req("PUT", "/api/staff/radio", { onAir: true })).status === 401);
 check("お店の人は状態を変えられない", (await shop.req("PUT", "/api/staff/radio", { onAir: true })).status === 403);
 check("お店の人はメッセージ一覧を見られない", (await shop.req("GET", "/api/staff/radio")).status === 403);
-check("ログインなしではメッセージ一覧を見られない", (await anon.req("GET", "/api/staff/radio")).status === 403);
+check("ログインなしではメッセージ一覧を見られない", (await anon.req("GET", "/api/staff/radio")).status === 401);
 check("お店の人は読んだ印を付けられない", (await shop.req("PUT", "/api/staff/radio/read", { ids: ["abcdef"], read: true })).status === 403);
 check("お店の人はメッセージを消せない", (await shop.req("DELETE", "/api/staff/radio", { confirm: "消す" })).status === 403);
 
@@ -56,15 +56,29 @@ check("長すぎる「いまの内容」は断る", (await admin.req("PUT", "/ap
 check("21 行の番組表は断る", (await admin.req("PUT", "/api/staff/radio", { program: Array.from({ length: 21 }, () => ({ time: "10:00", text: "x" })) })).status === 400);
 
 const n0 = await count();
-check("ログインなしでメッセージを送れる", (await anon.req("POST", "/api/radio/message", { kind: "質問", name: "テスト", text: "テストの質問です" })).status === 200);
+// 同じ文の送り直しは 10 分は 1 通にまとめるので、試すたびにちがう文にする
+const msgText = `テストの質問です ${Date.now()}`;
+check("ログインなしでメッセージを送れる", (await anon.req("POST", "/api/radio/message", { kind: "質問", name: "テスト", text: msgText })).status === 200);
 check("空のメッセージは断る", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: "  " })).status === 400);
 check("長すぎるメッセージは断る", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: "あ".repeat(201) })).status === 400);
 check("ない種類は断る", (await anon.req("POST", "/api/radio/message", { kind: "悪口", text: "x" })).status === 400);
 check("長すぎるラジオネームは断る", (await anon.req("POST", "/api/radio/message", { kind: "質問", name: "あ".repeat(21), text: "x" })).status === 400);
 check("ほかのサイトからは断る", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: "x" }, { origin: "https://evil.example" })).status === 403);
 check("見えない欄の送りつけは、送れたふりで保存しない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: "bot", website: "http://spam" })).status === 200);
+check("同じ文を続けて送っても、送れたことになる", (await anon.req("POST", "/api/radio/message", { kind: "質問", name: "テスト", text: msgText })).status === 200);
 const n1 = await count();
-check("保存されたのは 1 通だけ", n1 === n0 + 1, `${n0} → ${n1}`);
+check("保存されたのは 1 通だけ（送りつけと送り直しは残さない）", n1 === n0 + 1, `${n0} → ${n1}`);
+// 端末の印があれば、同じ文の送り直しは端末ごとに見る。クイズの答えは、印が無ければ同じ文でも残す（みんな同じ答えになるので）
+const quiz = `A ${Date.now()}`;
+await anon.req("POST", "/api/radio/message", { kind: "クイズの答え", text: quiz });
+await anon.req("POST", "/api/radio/message", { kind: "クイズの答え", text: quiz });
+const n2 = await count();
+check("クイズの答えは、端末の印が無ければ同じ文でも残す", n2 === n1 + 2, `${n1} → ${n2}`);
+const dev = `check${Date.now().toString(36)}`;
+await anon.req("POST", "/api/radio/message", { kind: "クイズの答え", text: quiz, device: dev });
+await anon.req("POST", "/api/radio/message", { kind: "クイズの答え", text: quiz, device: dev });
+const n3 = await count();
+check("同じ端末から同じ答えを 2 回送っても 1 通", n3 === n2 + 1, `${n2} → ${n3}`);
 const first = (await admin.req("GET", "/api/staff/radio")).json?.messages?.[0];
 check("届いたメッセージに id が付く", /^[a-f0-9]{10}$/.test(first?.id ?? ""));
 const marked = await admin.req("PUT", "/api/staff/radio/read", { ids: [first.id], read: true });

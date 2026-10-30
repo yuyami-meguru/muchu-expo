@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Sprite } from "@/components/pixel/sprites";
 import { getSetting, loadAll } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
+import { InPhase } from "../_components/in-phase";
 import { IfSurveyOpen } from "../_components/survey-entry";
 import { AWARD_KEY, parseAward } from "./award-data";
 import { AwardWatch } from "./award-watch";
@@ -35,9 +36,12 @@ export default async function AwardPage() {
           <p className="aw-sub">生徒たちの「夢中」の中から、心に残ったものを表彰します。発表されたら、このページに出ます。</p>
           <p className="aw-links">
             <Link href="/shops">お店・出し物を見る</Link>
-            <IfSurveyOpen>
-              <Link href="/survey">アンケートで「印象に残ったもの」を教える</Link>
-            </IfSurveyOpen>
+            {/* アンケートは当日から（開催前は答えようがないので誘わない） */}
+            <InPhase only={["morning", "during", "after"]}>
+              <IfSurveyOpen>
+                <Link href="/survey">アンケートで「印象に残ったもの」を教える</Link>
+              </IfSurveyOpen>
+            </InPhase>
           </p>
         </header>
       </div>
@@ -54,7 +58,9 @@ export default async function AwardPage() {
       </div>
       <header className="aw-head">
         <Sprite name="crown" size={88} />
-        <p className="aw-eyebrow">RESULT</p>
+        <p className="aw-eyebrow" aria-hidden="true">
+          RESULT
+        </p>
         <h1 className="aw-h1 px-title">{a.title}</h1>
         <p className="aw-sub">たくさんの「夢中」の中から、選ばれたのはこちら！</p>
       </header>
@@ -93,7 +99,7 @@ export default async function AwardPage() {
           </li>
         ))}
       </ol>
-      <p className="aw-thanks">すべての出し物に、たくさんの「夢中」がつまっていました。ご来場ありがとうございました！</p>
+      <p className="aw-thanks">すべてのお店・出し物に、たくさんの「夢中」がつまっていました。ご来場ありがとうございました！</p>
     </div>
   );
 }

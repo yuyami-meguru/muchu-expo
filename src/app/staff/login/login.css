@@ -12,6 +12,9 @@
 .lg-pass { display: flex; gap: 8px; }
 .lg-pass .ui-input { flex: 1 1 auto; min-width: 0; }
 .lg-pass .ui-btn { flex: none; min-height: 48px; }
+/* 画面の上の帯の中で入り直すとき（_components/staff-bands.tsx）：せまく、ボタンは左に */
+.lg-form--compact { gap: 10px; margin-top: 0; width: 100%; max-width: 420px; justify-items: start; }
+.lg-form--compact .ui-field { width: 100%; margin: 0; }
 
 /* お店の QR を読んだ画面（/join） */
 .lg-actions { display: grid; gap: 10px; margin-top: 16px; }

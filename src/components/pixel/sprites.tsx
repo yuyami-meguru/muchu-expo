@@ -1,8 +1,12 @@
+"use client";
+
 import type { CSSProperties } from "react";
 
 /*
  * ドット絵の小物（学校のパンフレットの雰囲気。絵はここで 1 マスずつ描いたもの）。
  * 1 文字 = 1 マス。「.」は透明。色は PAL の文字で選ぶ。
+ * 画面の側の部品にしてある（サーバーの部品だと、絵の中身が HTML と画面への受け渡しの 2 か所に入って重くなるため）。
+ * 色ごとに 1 本の線（path）にまとめて描く（1 マスずつ四角を並べるより HTML がずっと小さい）
  */
 const PAL: Record<string, string> = {
   k: "#1f2547", // 線（紺）
@@ -26,21 +30,32 @@ const PAL: Record<string, string> = {
 
 type Rows = readonly string[];
 
-/** 描きかけの行の長さがそろっていなくても、短い行は右を透明でうめる */
-function Pixels({ rows, size, label, style, className }: { rows: Rows; size: number; label?: string; style?: CSSProperties; className?: string }) {
-  const w = Math.max(...rows.map((r) => r.length));
-  const h = rows.length;
-  const rects: React.ReactElement[] = [];
+type Drawn = { w: number; h: number; paths: { fill: string; d: string }[] };
+/** 絵ごとに 1 回だけ組み立てる（同じ絵を何度出しても作り直さない） */
+const drawn = new Map<Rows, Drawn>();
+
+/** 横に続く同じ色のマスを 1 つの四角にし、色ごとに 1 本の path にまとめる。描きかけの行の長さがそろっていなくても、短い行は右を透明でうめる */
+function draw(rows: Rows): Drawn {
+  const hit = drawn.get(rows);
+  if (hit) return hit;
+  const byColor = new Map<string, string>();
   rows.forEach((row, y) => {
     let x = 0;
     while (x < row.length) {
       const c = row[x];
       let run = 1;
       while (x + run < row.length && row[x + run] === c) run++;
-      if (c !== "." && PAL[c]) rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={run} height={1} fill={PAL[c]} />);
+      if (c !== "." && PAL[c]) byColor.set(PAL[c], `${byColor.get(PAL[c]) ?? ""}M${x} ${y}h${run}v1h-${run}z`);
       x += run;
     }
   });
+  const d: Drawn = { w: Math.max(...rows.map((r) => r.length)), h: rows.length, paths: [...byColor].map(([fill, d]) => ({ fill, d })) };
+  drawn.set(rows, d);
+  return d;
+}
+
+function Pixels({ rows, size, label, style, className }: { rows: Rows; size: number; label?: string; style?: CSSProperties; className?: string }) {
+  const { w, h, paths } = draw(rows);
   return (
     <svg
       viewBox={`0 0 ${w} ${h}`}
@@ -51,7 +66,9 @@ function Pixels({ rows, size, label, style, className }: { rows: Rows; size: num
       style={style}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >
-      {rects}
+      {paths.map((p) => (
+        <path key={p.fill} fill={p.fill} d={p.d} />
+      ))}
     </svg>
   );
 }

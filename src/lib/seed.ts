@@ -1,7 +1,8 @@
 import type { Dept, MenuItem, Place, Shop, SiteData } from "./types";
 
 // はじめに入れておくデータ（実行委員まとめ 8 月末時点・LINE 10 月まで）。
-// 値段・場所・時間はほとんど決まっていないので「（予定）」か空にしてある。当日までに実行委員の画面で直す。
+// 値段・場所・時間はほとんど決まっていないので「（予定）」か空にしてある（「準備中」はお店の状態だけに使う）。当日までに実行委員の画面で直す。
+// ここを直しても、もう入っているデータ（本番・手元の .data/dev.json）は変わらない（はじめて入れるときだけ使う）。
 // 生徒・先生の名前は入れない。
 
 const item = (id: string, name: string, price = "", note = ""): MenuItem => ({ id, name, price, note, stock: "on" });
@@ -31,8 +32,8 @@ export const SEED_DEPTS: Dept[] = [
 export const SEED_PLACES: Place[] = [
   { id: "tent-chiiku", name: "知育館そばのテント", x: 72, y: 30, note: "射的・くじ引き・押し花しおり" },
   { id: "tent-food", name: "屋外テント（食べ物）", x: 48, y: 62, note: "焼きそば・唐揚げ（予定）" },
-  { id: "classroom", name: "校舎の教室", x: 24, y: 36, note: "喫茶・発表・展示" },
-  { id: "radio", name: "放送ブース", x: 36, y: 74, note: "場所は決まり次第" },
+  { id: "classroom", name: "知育館の教室", x: 24, y: 36, note: "喫茶・発表・展示" },
+  { id: "radio", name: "放送ブース", x: 36, y: 74, note: "場所は決まりしだいお知らせします" },
 ];
 
 export const SEED_SHOPS: Shop[] = [
@@ -47,8 +48,7 @@ export const SEED_SHOPS: Shop[] = [
     description:
       "学校の竹林で取った竹で、輪ゴム鉄砲を手作りしました。高得点の人にはお菓子、そのほかの人にも生徒が3Dプリンターなどでつくったオリジナルグッズの景品があります。参加賞は駄菓子です。",
     placeId: "tent-chiiku",
-    placeNote: "知育館のそば（屋外テント）",
-    menu: [item("shateki", "射的", "", "値段は準備中"), item("kuji", "くじ引き", "", "値段は準備中"), item("keihin", "手作りの景品")],
+    menu: [item("shateki", "射的"), item("kuji", "くじ引き")],
   },
   {
     ...base,
@@ -60,7 +60,6 @@ export const SEED_SHOPS: Shop[] = [
     catch: "生徒が育てた花で、自分だけのしおりを",
     description: "夏から生徒が種をまいて育てた花（キク・パンジー・コスモス・ジニア・ビオラ）を押し花にして、しおりをつくれます。",
     placeId: "tent-chiiku",
-    placeNote: "知育館のそば（屋外テント）",
     menu: [item("shiori", "押し花しおり")],
   },
   {
@@ -84,7 +83,6 @@ export const SEED_SHOPS: Shop[] = [
     catch: "鉄板で焼きたて",
     description: "鉄板で焼きたての焼きそば。青のり・マヨネーズのトッピングも。",
     placeId: "tent-food",
-    placeNote: "屋外テント（予定）",
     menu: [item("yakisoba", "焼きそば", "400円前後（予定）", "青のり・マヨ")],
   },
   {
@@ -97,8 +95,7 @@ export const SEED_SHOPS: Shop[] = [
     catch: "揚げたてにオーロラソースとレモン",
     description: "揚げたての唐揚げに、オーロラソースとレモンを添えて。",
     placeId: "tent-food",
-    placeNote: "屋外テント（予定）",
-    menu: [item("karaage", "唐揚げ", "", "値段は準備中")],
+    menu: [item("karaage", "唐揚げ")],
   },
   {
     ...base,
@@ -110,7 +107,7 @@ export const SEED_SHOPS: Shop[] = [
     catch: "メイド喫茶風のお店でひと休み",
     description: "メイド喫茶風のお店で、バナナジュースとチェキ撮影が楽しめます。",
     placeId: "classroom",
-    placeNote: "201 または 303 号室（予定）",
+    placeNote: "201 小講義室か 303 教室（予定）",
     menu: [item("banana", "バナナジュース", "300円前後（予定）"), item("cheki", "チェキ撮影", "350円前後（予定）")],
   },
   {
@@ -133,7 +130,7 @@ export const SEED_SHOPS: Shop[] = [
     catch: "作品・探究・バンド演奏など",
     description: "作品の展示、探究の発表、バンド演奏など、生徒が夢中になっていることを一人ひとりが表現します。",
     placeId: "classroom",
-    placeNote: "校舎内の各教室",
+    placeNote: "知育館の各教室",
   },
   {
     ...base,
@@ -146,8 +143,8 @@ export const SEED_SHOPS: Shop[] = [
     description: "実行委員が会場全体に向けて放送します。お店や発表のお知らせ、クイズやゲーム。会場をまわると答えがわかる問題も出るかも？ 放送のない時間は、会場を盛り上げる音楽を流します。",
     placeId: "radio",
     schedule: [
-      { time: "午前", text: "生放送 1 回目（時刻は準備中）" },
-      { time: "午後", text: "生放送 2 回目（時刻は準備中）" },
+      { time: "午前", text: "生放送 1 回目（時刻は未定）" },
+      { time: "午後", text: "生放送 2 回目（時刻は未定）" },
     ],
   },
 ];

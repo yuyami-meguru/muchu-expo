@@ -28,7 +28,8 @@ export const PUBLIC_NAV: NavItem[] = [
   { key: "shops", label: "お店・出し物", short: "お店", href: "/shops", icon: "一覧" },
   { key: "schedule", label: "タイムテーブル", short: "予定", href: "/schedule", icon: "時間" },
   { key: "map", label: "マップ", href: "/map", icon: "地図" },
-  { key: "info", label: "ご案内", href: "/info", icon: "情報" },
+  // パソコンの上のメニューはページの名前（ご来場の方へ）、スマホの下のタブは短く（ご案内）
+  { key: "info", label: "ご来場の方へ", short: "ご案内", href: "/info", icon: "情報" },
 ];
 
 export const PUBLIC_FOOTER: FooterColumn[] = [
@@ -62,6 +63,8 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { key: "radio", label: "校内ラジオ", short: "ラジオ", href: "/staff/radio", icon: "マイク" },
       { key: "survey", label: "アンケートの集計", href: "/staff/survey", icon: "成績" },
       { key: "award", label: "夢中アワード", href: "/staff/award", icon: "星" },
+      // お客さんが見ている画面をすぐ確かめられるように（新しいタブで。いまの画面は閉じない）
+      { key: "site", label: "お客さんの画面", href: "/", icon: "外へ", newTab: true },
     ],
   },
   {
@@ -84,7 +87,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
 /** スマホの下のメニュー（当日よく使う順）。地図のピンなど準備の画面は「その他」から */
 export const ADMIN_TABS: NavItem[] = [
   { key: "home", label: "いまの様子", href: "/staff", icon: "ホーム" },
-  { key: "shops", label: "お店", href: "/staff/shops", icon: "一覧" },
+  { key: "shops", label: "お店の情報", short: "お店", href: "/staff/shops", icon: "一覧" },
   { key: "news", label: "全体のお知らせ", short: "お知らせ", href: "/staff/news", icon: "お知らせ" },
   { key: "radio", label: "校内ラジオ", short: "ラジオ", href: "/staff/radio", icon: "マイク" },
   { key: "more", label: "その他", href: "/staff/more", icon: "その他" },

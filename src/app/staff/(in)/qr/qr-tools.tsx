@@ -14,10 +14,21 @@ export function PrintButton({ label = "印刷する" }: { label?: string }) {
   );
 }
 
-/**
- * 1 枚だけ印刷する。押した 1 枚（id の要素。data-print-unit を付けておく）に印を付けて、ほかは印刷に出さない（CSS の html.st-print-one）。
- * 印刷が終わったら（afterprint）印を外す。
- */
+/** 印を付けた紙（data-print-unit の要素）だけを印刷する。ほかは CSS（html.st-print-one）で隠す。印刷が終わったら（afterprint）印を外す */
+function printOnly(els: Element[]) {
+  if (!els.length) return;
+  const root = document.documentElement;
+  const done = () => {
+    for (const el of els) el.removeAttribute("data-print-one");
+    root.classList.remove("st-print-one");
+  };
+  for (const el of els) el.setAttribute("data-print-one", "");
+  root.classList.add("st-print-one");
+  window.addEventListener("afterprint", done, { once: true });
+  window.print();
+}
+
+/** 1 枚だけ印刷する。押した 1 枚（id の要素。data-print-unit を付けておく）に印を付けて、ほかは印刷に出さない */
 export function PrintOneButton({ target, label = "この 1 枚だけ印刷" }: { target: string; label?: string }) {
   return (
     <Button
@@ -25,17 +36,21 @@ export function PrintOneButton({ target, label = "この 1 枚だけ印刷" }: {
       icon="写す"
       onClick={() => {
         const el = document.getElementById(target);
-        if (!el) return;
-        const root = document.documentElement;
-        const done = () => {
-          el.removeAttribute("data-print-one");
-          root.classList.remove("st-print-one");
-        };
-        el.setAttribute("data-print-one", "");
-        root.classList.add("st-print-one");
-        window.addEventListener("afterprint", done, { once: true });
-        window.print();
+        if (el) printOnly([el]);
       }}
+    >
+      {label}
+    </Button>
+  );
+}
+
+/** ひとまとまりの紙（フロアの案内を全部、など）だけを印刷する。group は data-print-group の値 */
+export function PrintGroupButton({ group, label, size = "md" }: { group: string; label: string; size?: "sm" | "md" }) {
+  return (
+    <Button
+      size={size}
+      icon="写す"
+      onClick={() => printOnly([...document.querySelectorAll(`[data-print-unit][data-print-group="${group}"]`)])}
     >
       {label}
     </Button>

@@ -29,10 +29,46 @@
 
 /* ドット文字の題字：32px より小さいときは、ふちを細く・影を短く（字がつぶれないように） */
 @media (max-width: 459px) {
-  .hm-h2.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .rd-h1.px-title {
+  .hm-h2.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .sc-h1, .rd-h1.px-title, .aw-h1.px-title {
     text-shadow: 1px 0 var(--title-edge), -1px 0 var(--title-edge), 0 1px var(--title-edge), 0 -1px var(--title-edge), 2px 2px 0 var(--title-edge);
   }
 }
+/* 時刻・日付・住所は、globals.css の .nowrap（折り返さない・短い時刻だけ）と .keep（入れば 1 行、長ければ中で折る）を付けて書く */
+/* 見出しは言葉の切れ目で折り返す（「茶屋部｜門」「万｜博ってなに？」にしない。対応していないブラウザは今までどおり） */
+.hm-h2, .hm-pav-head h3, .hm-door-t, .sp-h1, .sp-dept-h, .sp-card-name, .sd-name, .sc-h1, .if-h1, .if-h2, .sv-h1, .rd-h1, .aw-h1, .aw-name { word-break: auto-phrase; }
+
+/* ───── 画面を移るあいだの知らせ（_components/nav-pending.tsx） ───── */
+.mx-navbar { position: fixed; inset: 0 0 auto; z-index: 60; pointer-events: none; }
+.mx-navbar-line {
+  display: block; height: 4px; background: linear-gradient(90deg, var(--title) 0 40%, var(--date) 40% 60%, var(--title) 60%);
+  background-size: 200% 100%; animation: mx-navbar 1.1s linear infinite;
+}
+@keyframes mx-navbar { to { background-position: -200% 0; } }
+/* 3 秒こえたら出る「少し時間がかかっています」（SlowHint）。下のメニューの上に */
+.mx-navbar .ui-slow:not(:empty) {
+  position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: max-content; max-width: calc(100% - 32px); margin: 0; padding: 10px 16px; border-radius: var(--r-md);
+  background: var(--ink); color: var(--bg); font-weight: 900; line-height: 1.5; box-shadow: var(--shadow-pop);
+}
+@media (min-width: 1024px) { .mx-navbar .ui-slow:not(:empty) { bottom: 24px; } }
+/* 押してから少したっても次の画面にならないときだけ、いまの本文をうすく（すぐ変わるときはちらつかせない） */
+html.mx-navigating .shell-pub-main { opacity: 0.55; transition: opacity 0.2s 0.25s; }
+@media (prefers-reduced-motion: reduce) { .mx-navbar-line { background: var(--title); } }
+
+/* ───── ［このページを送る］（_components/share-button.tsx。ホーム・お店のページ） ───── */
+.mx-share { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.mx-share-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 22px; border-radius: var(--r-pill);
+  border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; cursor: pointer;
+}
+.mx-share-btn:active { transform: translateY(2px); }
+.mx-share-msg { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--ok-ink); }
+.mx-share-msg:empty { display: none; }
+.mx-share-url {
+  width: min(100%, 30em); font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--bg); border: 2px solid var(--field-line);
+  border-radius: var(--r-md); padding: 8px 10px; min-height: 44px;
+}
+@media print { .mx-share, .mx-navbar { display: none !important; } }
 
 /* ───── 全体の帯（components/live/live-parts.tsx の SiteAlertBar）。上の帯のすぐ下、本文を押し下げる ───── */
 .mx-alert { border-bottom: 3px solid var(--al-line); background: var(--al-bg); color: var(--al-ink); }
@@ -58,6 +94,8 @@
 .mx-news { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
 .mx-news li { display: flex; flex-direction: column; gap: 2px; background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
 .mx-news li.mx-news--pin { background: var(--ink); color: var(--bg); }
+/* 印刷では地の色が出ないので、固定のお知らせは枠線と濃い字に（白い字が消えないように） */
+@media print { .mx-news li.mx-news--pin { background: none; color: var(--ink); border: 2px solid var(--ink); } }
 .mx-news time { font-size: 0.8rem; opacity: 0.85; }
 .mx-board-wait { margin: 4px 0 0; padding: 12px 14px; border-radius: var(--r-md); border: 2px dashed var(--line); font-weight: 900; line-height: 1.6; }
 .mx-soldout { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -68,9 +106,11 @@
 }
 .mx-soldout a:hover { border-color: var(--primary); }
 .mx-soldout-shop { font-weight: 900; font-size: 1.05rem; line-height: 1.4; }
-.mx-soldout-shop::after { content: " ▶"; font-size: 0.75em; color: var(--ink-3); }
+/* ▶ は読み上げない（2 つ目の content は読み上げの代わりの文。読めない古いブラウザは 1 つ目を使う） */
+.mx-soldout-shop::after { content: " ▶"; content: " ▶" / ""; font-size: 0.75em; color: var(--ink-3); }
 .mx-soldout-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-weight: 700; line-height: 1.5; }
-.mx-soldout-line .ui-badge { flex: none; }
+/* 札は縮めない。ただし字がとても大きくて 1 行に入らないときは、札の中で折り返す（横にはみ出さない） */
+.mx-soldout-line .ui-badge { flex: 0 1 auto; max-width: 100%; }
 .mx-soldout-line > span:last-child { min-width: 0; }
 .mx-board-empty { margin: 4px 0 8px; font-weight: 700; color: var(--ok-ink); }
 .mx-board-more { display: inline-flex; align-items: center; min-height: var(--tap); margin-top: 8px; font-weight: 900; }

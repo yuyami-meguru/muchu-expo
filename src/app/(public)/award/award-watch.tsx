@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLive } from "@/components/live/live-provider";
 
 /**
- * /award を開いて発表を待っている人のために、15 秒ごとの「いまの様子」で発表（live.awardOn）を見張る。
+ * /award を開いて発表を待っている人のために、「いまの様子」の読み直し（開催中は 15 秒ごと）で発表（live.awardOn）を見張る。
  * 発表されたら「発表されました！」を出して、ページを読み直す（取り消されたときも読み直す）。
  * 変わったときだけ読み直す（ページの中身と食いちがっていても、くり返し読み直さない）
  */

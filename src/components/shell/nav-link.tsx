@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { NavItem } from "./nav-items";
@@ -15,6 +15,15 @@ export function matchActive(path: string, items: Pick<NavItem, "key" | "href">[]
     }
   }
   return best?.key;
+}
+
+/**
+ * 押してから次の画面が届くまでの印（画面には出さない）。shell.css が :has() でこの印を見て、
+ * 押した項目をすぐ「選んだ形」にする（遅い回線で、押せたのか分からず何度も押すのを防ぐ）
+ */
+function PendingMark() {
+  const { pending } = useLinkStatus();
+  return <span className="shell-pending" data-pending={pending || undefined} hidden />;
 }
 
 /**
@@ -48,6 +57,7 @@ export function NavLink({
   return (
     <Link href={item.href} className={className} aria-current={current ? "page" : undefined}>
       {children}
+      <PendingMark />
     </Link>
   );
 }

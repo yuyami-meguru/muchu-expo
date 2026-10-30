@@ -4,22 +4,34 @@
 .sc-h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 8vw, 2.6rem); line-height: 1.25; margin: 2px 0 6px; }
 .sc-lead { color: var(--ink-2); }
 .sc-empty { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 20px; font-weight: 700; }
-.sc-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.sc-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 14px; }
 .sc-list li { position: relative; display: grid; grid-template-columns: 4.6em 1fr; gap: 12px; align-items: stretch; }
-.sc-time { font-family: var(--font-display); font-size: 1.25rem; color: var(--date); padding-top: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.sc-body {
-  display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: var(--r-card); background: var(--surface);
-  border: 3px solid var(--c); box-shadow: 0 4px 0 var(--c); color: var(--ink); text-decoration: none; min-height: 56px;
-}
+.sc-time { font-family: var(--font-display); font-size: 1.25rem; color: var(--date); padding-top: 12px; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: normal; word-break: keep-all; }
+/* 1 行のカード：すること（押すとお店のページ）と、その下に場所（押すとマップ） */
+.sc-body { display: flex; flex-direction: column; min-width: 0; border-radius: var(--r-card); background: var(--surface); border: 3px solid var(--c); box-shadow: 0 4px 0 var(--c); overflow: hidden; }
+.sc-main { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; color: var(--ink); text-decoration: none; min-height: 56px; }
 .sc-text { font-weight: 900; font-size: 1.05rem; line-height: 1.5; }
 .sc-shop { font-size: 0.85rem; color: var(--ink-2); font-weight: 700; }
-.sc-now, .sc-done { position: absolute; left: 0; top: -10px; z-index: 1; font-size: 0.72rem; font-weight: 900; padding: 1px 8px; border-radius: var(--r-pill); }
+/* 場所（_components/row-place.tsx）。地図のピンがあれば押すとマップ */
+.sc-place {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-height: 44px; padding: 6px 16px; border-top: 2px dashed var(--line);
+  background: var(--c-soft); color: var(--ink); font-size: 0.9rem; font-weight: 700; text-decoration: none; line-height: 1.5;
+}
+.sc-place .ui-icon { flex: none; color: var(--c); }
+.sc-place .mx-rowplace-t { min-width: 0; }
+.sc-place .mx-rowplace-go { margin-left: auto; font-size: 0.82rem; font-weight: 900; color: var(--primary); }
+a.sc-main:hover .sc-text, a.sc-place:hover .mx-rowplace-t { text-decoration: underline; }
+.sc-main:focus-visible, .sc-place:focus-visible { outline-offset: -4px; }
+/* 当日の札（いまやっている・おわり・あと N 分）。時刻の上に重ねる */
+.sc-now, .sc-done, .sc-soon { position: absolute; left: 0; top: -11px; z-index: 1; max-width: 100%; font-size: 0.72rem; font-weight: 900; line-height: 1.6; padding: 0 8px; border-radius: var(--r-pill); white-space: nowrap; }
 .sc-now { background: var(--ng); color: var(--on-primary); }
 .sc-done { background: var(--surface-2); color: var(--ink-3); }
+.sc-soon { background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); }
 .sc-other { margin-top: 32px; }
-.sc-other h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; line-height: 1.5; }
+.sc-other h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; line-height: 1.5; word-break: auto-phrase; }
 /* おわったもの（字は読める濃さのまま、線と影を落とす） */
 .sc-row--done .sc-body { border-color: var(--line); box-shadow: none; }
+.sc-row--done .sc-place { background: var(--surface-2); }
 .sc-row--done .sc-time { color: var(--ink-3); }
 /* 「これからの予定だけ」 */
 .sc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0 16px; }
@@ -30,3 +42,20 @@
 .sc-toggle[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .sc-toggle-box { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 2px solid currentColor; border-radius: 4px; font-size: 13px; line-height: 1; }
 .sc-hidden-n { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+/* 狭い画面で「文字を大きく」のとき：時刻の列を少し細く */
+@media (max-width: 374px) { .sc-list li { grid-template-columns: 4.1em 1fr; gap: 8px; } .sc-time { font-size: 1.1rem; } }
+/* 字がとても大きいとき（端末の文字 200% など）：時刻を上の行に（横に並べると、カードの幅が足りない） */
+.sc-list { container-type: inline-size; }
+@container (max-width: 17em) {
+  .sc-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .sc-time { text-align: left; padding-top: 12px; }
+}
+
+/* 印刷：押す物（これからの予定だけ）は出さない。カードの色の線は残す */
+@media print {
+  .sc-tools { display: none !important; }
+  .sc-list li { break-inside: avoid; }
+  .sc-body { box-shadow: none; }
+  .sc-place .mx-rowplace-go { display: none; }
+  .sc-now, .sc-done, .sc-soon { display: none; }
+}

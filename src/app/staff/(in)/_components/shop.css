@@ -1,38 +1,114 @@
-/* お店の人の画面（_components/shop-*.tsx と、ページのいちばん下の版・ログアウト）。クラスは sh- で始める。色は globals.css の変数だけ */
+/* お店の人の画面（_components/shop-*.tsx と、ページのいちばん下の版・ログアウト）。クラスは sh- で始める。色は globals.css の変数だけ
+   （.sh-result・.sh-result-ok・.sh-result-ng は「お店の場所を決める」（places/shop-places.tsx）、.sh-foot・.sh-version は (in)/layout.tsx も使う） */
 
-/* いまの様子を読めているか（見出しの下の小さな行） */
-.sh-live { margin: 0; font-size: 0.8rem; color: var(--ink-3); }
-.sh-live--ng { color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 6px 10px; font-weight: 700; }
+/* 見出しの下の場所の行 */
+.sh-where { display: block; margin-top: 2px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+
+/* いまの様子を読めているか（見出しの下の小さな行）。読めなくなって赤くなっても高さが変わらないよう、2 行ぶんの高さと上下の余白を決めておく */
+.sh-live { margin: 0; min-height: calc(2.9em + 12px); padding: 6px 0; border-radius: var(--r-sm); font-size: 0.8rem; line-height: 1.45; color: var(--ink-3); }
+.sh-live--ng { color: var(--ng-ink); background: var(--ng-soft); padding: 6px 10px; font-weight: 700; }
+
+/* 当日のボタンの見出しは下を詰める（売り切れのボタンを少しでも上に） */
+.sh-editor h2 { margin-bottom: 8px; }
+/* お店の人の画面は、上の余白を少し詰める（320px でも売り切れのボタンが最初の画面に入るように） */
+@media (max-width: 480px) { .sh-home.st-page { padding-top: 8px; } }
+/* たたむ箱の見出し：▶ と題を同じ行に（「文字を大きく」でも ▶ だけの行にしない） */
+.sh-home .st-intro-sum > span:first-child { flex: 1 1 calc(100% - 2em); min-width: 0; word-break: auto-phrase; }
 
 /* 押した結果の行（押した所のすぐ下）。2 行ぶんの場所を先に空けておき、結果が出ても下のボタンがずれないように */
 .sh-result { min-height: 2.9em; margin-top: 8px; display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; line-height: 1.45; font-weight: 700; }
 .sh-result p { margin: 0; }
 .sh-result-ok { color: var(--ok-ink); }
 .sh-result-ng { flex: 1 1 auto; min-width: 0; color: var(--ng-ink); }
+.sh-result-wait { flex: 1 1 auto; min-width: 0; color: var(--ink-2); }
 .sh-result > .ui-btn { flex: none; }
+/* 売り切れ・状態の下：文と［元に戻す］を 1 行に（文は左で折り返し、ボタンは右）。高さは小さいボタン 1 つぶんを空けておく
+   （［元に戻す］の押せる所は .ui-btn--sm の ::after で上下に広げて 44px） */
+.sh-result--row { min-height: 40px; margin-top: 4px; align-items: center; }
+.sh-result--row .sh-result-ok { flex: 1 1 auto; min-width: 0; }
 /* ボタンの横に出すとき（お知らせ） */
 .sh-result--side { flex: 1 1 220px; min-height: 44px; margin-top: 0; align-items: center; }
-/* 押したボタンの中の「送信中…」と、送れなかったボタンの「もう一度」（赤い点線の枠） */
-.sh-sending, .sh-again { display: block; font-size: 0.7rem; font-weight: 700; }
-.sh-again { color: var(--ng-ink); font-weight: 900; }
-.st-state[data-again], .st-stock-btn[data-again] { border-color: var(--ng); border-style: dashed; }
+.sh-result--side .sh-result-ok { flex: 1 1 auto; min-width: 0; }
 @media (max-width: 380px) { .sh-result { font-size: 0.75rem; } }
 /* 状態のボタンのまとまり。まちがいのときだけ赤い枠（線で囲むだけなので、大きさは変わらない） */
 .sh-box[data-ng] { outline: 2px solid var(--ng); outline-offset: 4px; border-radius: var(--r-md); }
 
-/* 実行委員からの連絡（黄色いカード）。まだ見ていなければ太い枠 */
+/* 品物ごとのカード */
+.sh-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.sh-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px 14px 4px; box-shadow: var(--shadow-card); }
+/* 送れなかった品物は赤い枠（影で囲むだけなので、大きさは変わらない） */
+.sh-item[data-ng] { border-color: var(--ng); box-shadow: 0 0 0 2px var(--ng); }
+.sh-item-head { display: flex; align-items: baseline; gap: 2px 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.sh-item-name { font-weight: 900; font-size: 1.1rem; line-height: 1.4; overflow-wrap: anywhere; }
+
+/* 押すボタン（状態 4 つ・品物の残り 3 つ）。実行委員の一覧（.st-state）とは別に、ここで形を持つ。字は明るい画面・ダークとも 4.5:1 以上 */
+.sh-states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sh-stocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sh-choice {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0;
+  min-height: 56px; padding: 13px 2px; border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font: inherit; font-weight: 900; font-size: 0.95rem; line-height: 1.3; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 状態は小さめ（いちばん押すのは売り切れ） */
+.sh-choice--state { min-height: 48px; font-size: 0.9rem; color: var(--ink); }
+/* 字は「残り／わずか」の所でだけ折り返す（「残りわず／か」にしない） */
+.sh-choice-label { word-break: keep-all; overflow-wrap: normal; text-align: center; }
+/* いまの値の ✓ は上、「送信中…」「もう一度」は下の、先に空けた所に重ねる（出ても消えても、ボタンの大きさが変わらない。
+   字の横に並べると、狭い画面で「✓」だけの行ができる） */
+.sh-mark, .sh-sending, .sh-again { position: absolute; left: 0; right: 0; text-align: center; font-size: 0.7rem; line-height: 1.2; }
+.sh-mark { top: 1px; }
+.sh-sending, .sh-again { bottom: 1px; font-weight: 700; }
+.sh-choice[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.sh-choice--state[data-v="open"][aria-pressed="true"], .sh-choice--stock[data-v="on"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--on-primary); }
+.sh-choice--stock[data-v="few"][aria-pressed="true"] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.sh-choice--stock[data-v="out"][aria-pressed="true"] { background: var(--ng); border-color: var(--ng); color: var(--on-primary); }
+/* 送っている途中：押したボタンは点線の枠と「送信中…」（✓ は届いてから付く）。同じ組のほかのボタンは薄く（押しても何もしない） */
+.sh-choice[data-sending] { border-style: dashed; border-color: var(--primary); }
+.sh-choice[aria-disabled="true"] { cursor: progress; }
+.sh-choice[aria-disabled="true"]:not([data-sending]):not([aria-pressed="true"]) { opacity: 0.6; }
+/* 送れなかったボタン：赤い点線の枠と「もう一度」 */
+.sh-choice[data-again] { border-color: var(--ng); border-style: dashed; }
+.sh-again { color: var(--ng-ink); font-weight: 900; }
+.sh-choice[aria-pressed="true"] .sh-again { color: inherit; }
+@media (max-width: 380px) {
+  .sh-item { padding: 10px 8px 4px; }
+  .sh-states, .sh-stocks { gap: 4px; }
+  .sh-choice { font-size: 0.85rem; padding-left: 1px; padding-right: 1px; }
+  .sh-choice--state { font-size: 0.8rem; }
+}
+/* 開催前は、当日のボタンをたたんでおく（「お店の紹介を書く」と同じ箱） */
+.sh-day .st-intro-body { padding-top: 4px; }
+
+/* 実行委員からの連絡（ページのいちばん下のカード）。まだ見ていなければ太い枠 */
 .sh-memo { background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); border-radius: var(--r-card); padding: 12px 14px; }
 .sh-memo--new { border-width: 4px; box-shadow: var(--shadow-card); }
 .sh-memo-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; font-size: 0.9rem; }
 .sh-memo-head strong { font-size: 1rem; }
 .sh-memo-head time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .sh-memo-badge { margin-left: auto; font-size: 0.75rem; font-weight: 900; background: var(--warn); color: var(--warn-soft); border-radius: var(--r-pill); padding: 2px 10px; }
-.sh-memo-text { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.7; white-space: pre-wrap; }
+.sh-memo-text { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sh-memo-done { margin: 0; font-weight: 900; color: var(--ok-ink); }
 .sh-memo .st-err { margin-top: 8px; }
+.sh-memo-wait { margin: 8px 0 0; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+/* 上の帯の［見る］で開く小窓 */
+.sh-memo-dialog .sh-memo-text { color: var(--ink); }
+.sh-memo-dialog .st-err, .sh-memo-dialog .sh-memo-wait { margin: 0 0 12px; }
+
+/* 画面のいちばん上に重ねる帯（あとから届いた知らせ）。スマホは上の帯（ロゴ）に重なる。中身がないときは何も出ない */
+.sh-alert-slot { position: fixed; z-index: 35; top: 0; left: 0; right: 0; pointer-events: none; }
+@media (min-width: 1024px) { .sh-alert-slot { left: var(--sidebar-w); } }
+.sh-alert {
+  pointer-events: auto; display: flex; align-items: center; gap: 6px 12px;
+  min-height: calc(55px + env(safe-area-inset-top)); padding: calc(6px + env(safe-area-inset-top)) 12px 6px 16px;
+  background: var(--warn-soft); color: var(--ink); border-bottom: 3px solid var(--warn); box-shadow: var(--shadow-pop);
+}
+.sh-alert--info { background: var(--primary-soft); border-bottom-color: var(--primary); }
+.sh-alert-text { flex: 1 1 auto; min-width: 0; margin: 0; font-weight: 900; font-size: 0.95rem; line-height: 1.4; }
+.sh-alert .ui-btn { flex: none; }
 
 /* お店からのお知らせ */
-.sh-notice-now { margin: 0 0 10px; font-size: 0.9rem; color: var(--ink-2); }
+.sh-notice-now { margin: 0 0 10px; font-size: 0.9rem; color: var(--ink-2); overflow-wrap: anywhere; }
 .sh-notice-now strong { color: var(--ink); }
 .sh-notice-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 
@@ -40,6 +116,25 @@
 .sh-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; background: var(--warn-soft); color: var(--ink); border-radius: var(--r-md); padding: 8px 12px; }
 .sh-draft p { margin: 0; font-size: 0.9rem; font-weight: 700; }
 .sh-unsaved { font-size: 0.8rem; font-weight: 900; color: var(--warn); }
+/* 「人の名前・アレルギーは書かない」（書く欄のそば） */
+.sh-rule { margin: 0; padding: 6px 10px; border-radius: var(--r-sm); background: var(--warn-soft); color: var(--ink); font-size: 0.85rem; font-weight: 700; line-height: 1.5; }
+.st-intro-set .sh-rule { margin: 6px 0 8px; }
+/* 時刻として読めないとき（まちがいではないので赤にしない） */
+.sh-warn { color: var(--warn); font-weight: 700; }
+/* ほかの人が同じ欄を直していた（どちらにするか選ぶ） */
+.sh-conflict { margin-top: 8px; padding: 10px 12px; border: 2px solid var(--warn); border-radius: var(--r-md); background: var(--warn-soft); color: var(--ink); }
+.sh-conflict:focus { outline: 3px solid var(--primary); outline-offset: 2px; }
+.sh-conflict-h { margin: 0 0 4px; font-size: 0.9rem; font-weight: 900; }
+.sh-conflict-now { margin: 0 0 8px; font-size: 0.85rem; overflow-wrap: anywhere; }
+.sh-conflict-now span { font-weight: 700; }
+.sh-conflict-act { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 消した品物・行（保存するまで［元に戻す］で戻せる） */
+.sh-gone { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 12px; border: 1px dashed var(--field-line); border-radius: var(--r-lg); background: var(--surface-2); }
+.sh-gone p { flex: 1 1 180px; min-width: 0; margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); overflow-wrap: anywhere; }
+/* 保存できなかったときのくわしい文（保存の帯の外、すぐ上）。帯の中は短い 1 行だけ */
+.sh-problem { margin: 0; }
+.sh-save-wait { font-size: 0.8rem; font-weight: 700; color: var(--ink-2); }
+.sh-save-ng { font-size: 0.8rem; font-weight: 900; color: var(--ng-ink); }
 
 /* お客さんに見せる準備（_components/shop-ready.tsx）。箱と開け閉めは「お店の紹介を書く」（.st-intro）と同じ形。
    札は ✓（緑）・まだ（黄）・あるとよいもの／場所の未定（灰）。まだの所の右に［書く］ */

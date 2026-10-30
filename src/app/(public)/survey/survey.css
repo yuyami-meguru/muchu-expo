@@ -18,17 +18,21 @@
 .sv-note { background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
 .sv-form { display: grid; gap: 16px; }
 .sv-q { margin: 0; border: 3px solid var(--line); border-radius: var(--r-card); background: var(--surface); padding: 14px 16px 16px; box-shadow: var(--shadow-card); min-width: 0; }
-.sv-q legend { float: left; width: 100%; display: flex; gap: 10px; align-items: center; font-weight: 900; font-size: 1.05rem; line-height: 1.5; padding: 0; margin: 0 0 4px; }
-.sv-q legend + * { clear: both; }
+.sv-q > legend { float: left; width: 100%; display: flex; gap: 10px; align-items: center; font-weight: 900; font-size: 1.05rem; line-height: 1.5; padding: 0; margin: 0 0 4px; }
+.sv-q > legend + * { clear: both; }
 .sv-no { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; background: var(--title); color: #10331f; font-family: var(--font-display); font-size: 1.1rem; }
-.sv-group { margin-top: 10px; }
-.sv-group-l { margin: 0 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--ink-3); }
+/* 問 1 のまとまり（エンカレ関係者・関係者以外）。fieldset の枠は出さない */
+.sv-group { margin: 10px 0 0; padding: 0; border: 0; min-width: 0; }
+.sv-group-l { float: left; width: 100%; margin: 0 0 6px; padding: 0; font-size: 0.85rem; font-weight: 700; color: var(--ink-3); }
+.sv-group-l + * { clear: both; }
 .sv-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sv-group .sv-chips { margin-top: 0; }
 .sv-chip { position: relative; }
 .sv-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+/* 選ぶ札・入力欄の枠は --field-line（白の上で 4.5:1。--line は飾りの線用でうすすぎる） */
 .sv-chip > span {
   display: inline-flex; flex-direction: row; align-items: center; justify-content: center; min-height: 46px; padding: 6px 16px; border-radius: var(--r-pill);
-  border: 2px solid var(--line); background: var(--bg); font-weight: 900; line-height: 1.35;
+  border: 2px solid var(--field-line); background: var(--surface); font-weight: 900; line-height: 1.35;
 }
 .sv-chip input:checked + span { background: var(--title); border-color: var(--title-edge); color: #10331f; }
 .sv-chip input:checked + span::before { content: "✓"; margin-right: 4px; }
@@ -50,7 +54,7 @@
 .sv-text { display: grid; gap: 4px; margin-top: 12px; }
 .sv-text > span { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
 .sv-text input, .sv-text textarea {
-  width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 2px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; min-height: 46px;
+  width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--field-line); border-radius: var(--r-md); padding: 10px 12px; min-height: 46px;
 }
 .sv-text textarea { resize: vertical; }
 .sv-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -60,6 +64,9 @@
   font-family: var(--font-display); font-size: 1.3rem; box-shadow: 0 5px 0 var(--title-edge);
 }
 .sv-send:active { transform: translateY(4px); box-shadow: none; }
-.sv-send:disabled { opacity: 0.6; cursor: progress; }
+.sv-send[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+.sv-send[aria-disabled="true"]:active { transform: none; box-shadow: 0 5px 0 var(--title-edge); }
 .sv-small { font-size: 0.8rem; color: var(--ink-3); margin: 0; }
+.sv-closed p { margin: 0 0 8px; }
+.sv-closed .sv-closed-sub { font-weight: 500; color: var(--ink-2); }
 .sv-chips--shops .sv-chip > span { display: flex; width: 100%; }

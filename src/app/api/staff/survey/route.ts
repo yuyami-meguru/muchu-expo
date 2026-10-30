@@ -1,15 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { fail, guarded, ok, readBody, sameOrigin } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { fail, guarded, needAdmin, ok, readBody, sameOrigin } from "@/lib/api";
 import { clearSurvey, listSurvey, loadAll, setSurveyOpen } from "@/lib/store";
 import { toCsv, type SurveyAnswer } from "@/lib/survey";
 
 /* アンケートの集計の窓口（実行委員・先生だけ） */
 
-async function adminOr403() {
-  const s = await getSession();
-  return s?.role === "admin" ? null : fail(403, "実行委員の合言葉でログインしてください");
+/** 実行委員だけ（ログインしていない・切れた → 401、お店の人 → 403） */
+function adminOr403() {
+  return needAdmin();
 }
 
 /** 回答を表（CSV）で書き出す */

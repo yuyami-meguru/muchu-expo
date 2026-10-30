@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
 import { MSG_KINDS, type MsgKind } from "@/lib/radio";
+import { deviceId } from "../_components/device";
 
 /** 送るのを待つ長さ（電波が弱い所で、いつまでも「送っています…」にしない） */
 const SEND_MS = 20_000;
-const NET_ERROR = "電波が弱くて送れませんでした。書いたメッセージは消えていません。電波のよい所で、もう一度『ラジオに送る』を押してください。";
+const NET_ERROR = "電波が弱くて送れませんでした。書いたメッセージは消えていません。電波のよい所で、もう一度［ラジオに送る］を押してください。";
 /** 種類ごとの入力例 */
 const EXAMPLE: Record<MsgKind, string> = {
   質問: "例：〇〇先生の好きな食べ物は何ですか？",
@@ -40,8 +42,8 @@ export function MessageForm() {
     setHint("");
     if (!text.trim()) {
       // 送れたあとにもう一度押したときは、「送りました」を消さずに続け方を案内する
-      if (sent) return setHint("続けて送るときは、メッセージを書いてから押してください。");
-      return setError("メッセージを書いてください。");
+      if (sent) return setHint(`続けて送るときは、${kind}を書いてから押してください。`);
+      return setError(`${kind}を書いてください。`);
     }
     setSending(true);
     // AbortSignal.timeout は古い iPhone に無いので、自分で 20 秒で止める
@@ -51,7 +53,7 @@ export function MessageForm() {
       const r = await fetch("/api/radio/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, name, text, website }),
+        body: JSON.stringify({ kind, name, text, website, device: deviceId() }),
         signal: ctl.signal,
       });
       const j = (await r.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
@@ -119,9 +121,16 @@ export function MessageForm() {
         )}
         {hint && <p className="rd-hint">{hint}</p>}
       </div>
-      <button type="submit" className="rd-send" disabled={sending}>
-        {sending ? "送っています…" : "▶ ラジオに送る"}
-      </button>
+      {/* 送っているあいだは pending（押せなくはしない＝キーボードの位置が消えない。二重に送らないのは Button と submit の中で止める） */}
+      <Button type="submit" variant="primary" size="lg" block className="rd-send" pending={sending}>
+        {sending ? (
+          "送っています…"
+        ) : (
+          <>
+            <span aria-hidden="true">▶ </span>ラジオに送る
+          </>
+        )}
+      </Button>
     </form>
   );
 }

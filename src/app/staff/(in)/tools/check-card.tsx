@@ -6,12 +6,15 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/field";
 import { CHECK_ITEMS } from "@/lib/ops";
 import { clock, send } from "../../_lib/client";
+import { noteAuth } from "../_components/session-signal";
+import { nowMs } from "../ops-live";
+import { failMsg } from "../ops-result";
 
 const WHEN = ["前日まで", "当日の朝", "終わったら"] as const;
 const DAY = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" });
 
 /**
- * 当日のチェックリスト。押すとすぐ保存し、実行委員みんなで同じ印を見る（ページは 30 秒ごとに読み直す）。
+ * 当日のチェックリスト。押すとすぐ保存し、実行委員みんなで同じ印を見る（ページは 60 秒ごとと、画面に戻ったときに読み直す）。
  * 印を付けた時刻も出す。
  */
 export function CheckCard({ ready, checks }: { ready: boolean; checks: Record<string, string> }) {
@@ -30,10 +33,12 @@ export function CheckCard({ ready, checks }: { ready: boolean; checks: Record<st
   const done = CHECK_ITEMS.filter((c) => mark(c.id)).length;
 
   async function toggle(id: string, on: boolean) {
+    // 送っているあいだは何もしない（チェックは disabled にせず「押せない」印だけ。キーボードで選んでいた所が消えないように）
+    if (busy[id]) return;
     setErr(null);
     setBusy((b) => ({ ...b, [id]: true }));
-    setOver((o) => ({ ...o, [id]: on ? Date.now() : null }));
-    const r = await send("/api/staff/check", "PUT", { id, done: on });
+    setOver((o) => ({ ...o, [id]: on ? nowMs() : null }));
+    const r = noteAuth(await send("/api/staff/check", "PUT", { id, done: on }));
     setBusy((b) => {
       const next = { ...b };
       delete next[id];
@@ -45,15 +50,15 @@ export function CheckCard({ ready, checks }: { ready: boolean; checks: Record<st
         delete next[id];
         return next;
       });
-      setErr({ id, text: r.error });
+      setErr({ id, text: failMsg(on ? "印を付けることが" : "印を外すことが", r, "少しして、この画面が読み直されたら確かめてください") });
       return;
     }
     router.refresh();
   }
 
   return (
-    <Card title="当日のチェックリスト" aside={`済み ${done}/${CHECK_ITEMS.length}`}>
-      <p className="st-muted">押すとすぐ保存します。実行委員みんなで同じ印を見ます（30 秒ごとに読み直します）。</p>
+    <Card title="当日のチェックリスト" aside={`済み ${done}/${CHECK_ITEMS.length}`} id="checks">
+      <p className="st-muted">押すとすぐ保存します。実行委員みんなで同じ印を見ます（1 分ごとと、この画面に戻ったときに読み直します）。</p>
       {WHEN.map((w) => (
         <fieldset key={w} className="st-checks">
           <legend>{w}</legend>
@@ -65,7 +70,8 @@ export function CheckCard({ ready, checks }: { ready: boolean; checks: Record<st
                   label={c.text}
                   hint={at ? `${DAY.format(at)} ${clock(at)} に印` : undefined}
                   checked={!!at}
-                  disabled={!ready || !!busy[c.id]}
+                  disabled={!ready}
+                  aria-disabled={!!busy[c.id] || undefined}
                   onChange={(e) => toggle(c.id, e.target.checked)}
                 />
                 {err?.id === c.id && (

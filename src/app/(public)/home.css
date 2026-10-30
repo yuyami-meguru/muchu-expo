@@ -35,6 +35,8 @@
 .cd-l { font-weight: 700; color: var(--ink-2); font-size: 0.9rem; }
 .cd-n { font-family: var(--font-display); font-size: 2.6rem; line-height: 1; color: var(--primary); }
 .cd-n.cd-today { font-size: 1.6rem; }
+/* 終了後の「ありがとうございました」（長いので少し小さく） */
+.cd-n.cd-thanks { font-size: 1.35rem; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
 .cd-u { font-weight: 700; }
 .hm-cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 0; }
 .hm-btn {
@@ -45,9 +47,38 @@
 .hm-btn--main { background: var(--title); color: #10331f; border-color: var(--title-edge); box-shadow: 0 4px 0 var(--title-edge); }
 .hm-btn:active { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
 
-/* ドット絵の小物（パンフの表紙のように散らす。スマホでは小さく・数を減らす） */
+/* 当日だけ：表紙の下の 1 行（売り切れの数・次の送迎バス。_components/hero-parts.tsx の DayStrip） */
+.hm-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+.hm-strip-a {
+  flex: 1 1 13em; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; min-height: 52px; padding: 8px 14px;
+  border-radius: var(--r-md); background: var(--surface); border: 2px solid var(--ink); color: var(--ink); text-decoration: none; line-height: 1.5;
+}
+.hm-strip-k { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+.hm-strip-a strong { font-size: 1.1rem; color: var(--date); }
+.hm-strip-go { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); }
+
+/* 当日の表紙：低くして、売り切れ・このあとを最初の画面に入れる（小物も減らす）。
+   主催の札と日付の行はしまう（日付・時刻は「本日 開催中！ 10:00〜14:00」の札にある。場所は残す） */
+.hm-hero.hm-hero--day { min-height: 0; padding: 16px 0 28px; }
+.hm-hero--day .hm-org, .hm-hero--day .hm-when > div:first-child { display: none; }
+.hm-hero--day .hm-title .t1 { font-size: clamp(2rem, 9vw, 3.6rem); }
+.hm-hero--day .hm-title .t2 { font-size: clamp(2.6rem, 13vw, 5.6rem); }
+.hm-hero--day .hm-when { margin-top: 14px; gap: 6px; }
+.hm-hero--day .hm-date { font-size: clamp(1.5rem, 6.5vw, 2.6rem); }
+.hm-hero--day .hm-place { font-size: clamp(1.15rem, 5vw, 1.7rem); }
+.hm-hero--day .hm-count { margin-top: 14px; }
+.hm-hero--day .hm-cta { margin-top: 16px; }
+.hm-hero--day .sp-cube, .hm-hero--day .sp-ball, .hm-hero--day .sp-sneaker, .hm-hero--day .sp-note, .hm-hero--day .sp-guitar, .hm-hero--day .sp-camera, .hm-hero--day .sp-skate { display: none; }
+.hm-hero--day .hm-strip { max-width: 760px; }
+
+/* ドット絵の小物（パンフの表紙のように散らす。スマホでは小さく・数を減らす）。
+   はねる動きは数回で止める（ずっと動くと気が散る・電池も減る。動きを減らす設定では、はじめから動かない） */
 .hm-sprites { position: absolute; inset: 0; pointer-events: none; }
-.hm-sprites .sp { position: absolute; image-rendering: pixelated; animation: hm-bob 3.2s steps(4) infinite alternate; }
+.hm-sprites .sp { position: absolute; image-rendering: pixelated; animation: hm-bob 3.2s steps(4) 6 alternate; }
+/* ダークでは、小物の紺の線が地に溶けるので、うすい色のふちを付ける */
+@media screen and (prefers-color-scheme: dark) {
+  .hm-sprites .sp { filter: drop-shadow(1px 0 0 #c9d3e6) drop-shadow(-1px 0 0 #c9d3e6) drop-shadow(0 1px 0 #c9d3e6) drop-shadow(0 -1px 0 #c9d3e6); }
+}
 .sp-camera { top: 6%; left: 52%; width: clamp(80px, 16vw, 170px); height: auto; transform: rotate(-12deg); }
 .sp-controller { top: 8%; right: 4%; width: clamp(64px, 11vw, 130px); height: auto; animation-delay: -1s !important; }
 .sp-cube { top: 30%; left: 60%; width: clamp(40px, 6vw, 72px); height: auto; transform: rotate(40deg); animation-delay: -2s !important; }
@@ -57,6 +88,11 @@
 .sp-skate { bottom: 10%; right: 4%; width: clamp(110px, 18vw, 220px); height: auto; transform: rotate(-35deg); animation-delay: -0.8s !important; }
 .sp-note { top: 22%; left: 44%; width: 36px; height: auto; animation-delay: -1.2s !important; }
 @keyframes hm-bob { to { translate: 0 -8px; } }
+/* パソコン：ボール・くつは右半分へ（左下だと、表紙のボタンの裏に入る） */
+@media (min-width: 1100px) {
+  .sp-ball { left: 60%; bottom: 6%; }
+  .sp-sneaker { left: 74%; bottom: 30%; }
+}
 @media (max-width: 759px) {
   .hm-hero { min-height: 0; padding-bottom: 150px; }
   .sp-camera { top: auto; bottom: 6px; left: auto; right: 34%; width: 96px; }
@@ -68,11 +104,12 @@
   .sp-sneaker { display: none; }
   .sp-skate { bottom: 26px; right: 2px; width: 110px; }
   .sp-note { display: none; }
+  .hm-hero--day .sp-skate { display: none; }
 }
 
-/* 流れる帯（3 回流れたら止まる。押したり、指・マウスをのせたりしたら止まる） */
+/* 流れる帯（2 回流れたら止まる。押したり、指・マウスをのせたりしたら止まる） */
 .hm-marquee { background: var(--title); color: #10331f; overflow: hidden; padding: 12px 0; border-block: 4px solid var(--title-edge); }
-.hm-track { display: flex; width: max-content; gap: 18px; animation: hm-slide 40s linear 3; font-family: var(--font-display); font-size: 1.15rem; white-space: nowrap; }
+.hm-track { display: flex; width: max-content; gap: 18px; animation: hm-slide 40s linear 2; font-family: var(--font-display); font-size: 1.15rem; white-space: nowrap; }
 .hm-marquee:hover .hm-track, .hm-marquee:active .hm-track { animation-play-state: paused; }
 .hm-track span { display: inline-flex; gap: 18px; align-items: center; }
 .hm-track b { color: #fff; font-weight: 400; }
@@ -88,17 +125,18 @@
 }
 .hm-door svg { grid-row: span 2; }
 /* ダークでは、紺の線の小物（くつ など）が地に溶けるので、明るい台に乗せる */
-@media (prefers-color-scheme: dark) { .hm-door svg { background: var(--ink); border-radius: var(--r-md); padding: 4px; box-sizing: content-box; } }
+@media screen and (prefers-color-scheme: dark) { .hm-door svg { background: var(--ink); border-radius: var(--r-md); padding: 4px; box-sizing: content-box; } }
 .hm-door-t { font-family: var(--font-display); font-size: 1.3rem; color: var(--c); }
 .hm-door-s { font-size: 0.85rem; color: var(--ink-2); line-height: 1.5; }
 .hm-door:active { transform: translateY(4px); box-shadow: none; }
 
 /* 部門 */
 .hm-pavs { display: grid; gap: 18px; margin-top: 16px; }
-@media (min-width: 900px) { .hm-pavs { grid-template-columns: 1fr 1fr; } }
+/* 2 列のときは、カードを中身の高さのまま上にそろえる（短いカードに空きを作らない） */
+@media (min-width: 900px) { .hm-pavs { grid-template-columns: 1fr 1fr; align-items: start; } }
 .hm-pav { background: var(--surface); border-radius: var(--r-card); box-shadow: 0 5px 0 var(--c); border: 3px solid var(--c); overflow: hidden; }
 .hm-pav-head { background: var(--c); color: #fff; padding: 12px 18px 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; }
-@media (prefers-color-scheme: dark) { .hm-pav-head { color: #0f1a33; } }
+@media screen and (prefers-color-scheme: dark) { .hm-pav-head { color: #0f1a33; } }
 .hm-pav-no { grid-row: span 2; font-family: var(--font-display); font-size: 2.4rem; line-height: 1; }
 .hm-pav-head h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; }
 .hm-pav-head p { margin: 0; font-size: 0.85rem; }
@@ -121,11 +159,10 @@
 .hm-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 20px; margin: 16px 0 0; }
 .hm-links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 900; }
 .hm-about-sp { position: absolute; right: -10px; bottom: -22px; transform: rotate(12deg); }
-/* タブレット：題字と重ならないよう、小物を下と右はしに寄せる */
+/* タブレット：題字・ボタンと重ならないよう、小物は右はしだけに（カメラ・ボールは左下だとボタンの裏に入るので出さない） */
 @media (min-width: 760px) and (max-width: 1099px) {
   .hm-org { margin-right: 140px; }
-  .sp-camera { top: auto; bottom: 4%; left: 42%; width: 120px; }
-  .sp-note, .sp-sneaker { display: none; }
+  .sp-camera, .sp-ball, .sp-note, .sp-sneaker { display: none; }
   .sp-cube { top: auto; bottom: 26%; left: auto; right: 22%; }
 }
 
@@ -135,11 +172,28 @@
 .hm-next ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .hm-next li { display: grid; grid-template-columns: 4em 1fr; gap: 10px; align-items: baseline; border-left: 6px solid var(--c); padding: 6px 10px; background: var(--c-soft); border-radius: var(--r-sm); }
 .hm-next li.hm-next--now { border-left-width: 10px; box-shadow: inset 0 0 0 2px var(--c); }
-.hm-next-t { font-family: var(--font-display); color: var(--date); }
-.hm-next li a { color: var(--ink); font-weight: 900; text-decoration: none; }
+.hm-next-t { font-family: var(--font-display); color: var(--date); white-space: nowrap; }
+.hm-next-b { display: flex; flex-direction: column; min-width: 0; }
+.hm-next-main { display: flex; flex-direction: column; align-items: flex-start; min-height: 44px; justify-content: center; color: var(--ink); font-weight: 900; text-decoration: none; }
 .hm-next li small { display: block; font-weight: 700; color: var(--ink-2); }
-.hm-next-now { display: block; width: fit-content; font-style: normal; font-size: 0.8rem; font-weight: 900; padding: 0 8px; border-radius: var(--r-pill); background: var(--ng); color: var(--on-primary); }
+.hm-next-now, .hm-next-soon { display: block; width: fit-content; font-style: normal; font-size: 0.8rem; font-weight: 900; padding: 0 8px; border-radius: var(--r-pill); }
+.hm-next-now { background: var(--ng); color: var(--on-primary); }
+/* 始まる 15 分前から「あと N 分」 */
+.hm-next-soon { background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); }
+/* 場所（押すとマップ。_components/row-place.tsx） */
+.hm-next-place {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-height: 44px; padding: 2px 0; border-top: 1px dashed var(--line);
+  color: var(--ink); font-size: 0.9rem; font-weight: 700; text-decoration: none;
+}
+.hm-next-place .ui-icon { flex: none; color: var(--c); }
+.hm-next-place .mx-rowplace-t { min-width: 0; }
+.hm-next-place .mx-rowplace-go { margin-left: auto; font-size: 0.8rem; font-weight: 900; color: var(--primary); }
 .hm-next-all { display: inline-flex; align-items: center; min-height: 44px; margin-top: 6px; font-weight: 900; }
+/* 字がとても大きいとき（端末の文字 200%・「文字を大きく」など）：時刻を上の行に（横に並べると、すること・場所の幅が足りない） */
+.hm-next ul { container-type: inline-size; }
+@container (max-width: 15em) {
+  .hm-next li { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
 
 /* 次の送迎バス（_components/next-bus.tsx。当日だけ） */
 .hm-bus {
@@ -165,3 +219,27 @@
 .hm-survey strong { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; line-height: 1.4; }
 .hm-survey small { font-weight: 700; }
 .hm-survey:active { transform: translateY(4px); box-shadow: none; }
+
+/* ［このページを送る］（_components/share-button.tsx。形は public.css の .mx-share） */
+.hm-share { margin-top: 18px; }
+
+/* 横長のスマホ（高さが低い）：題字の大きさを高さでも抑え、小物は出さない。1 画面目に日時と場所まで入れる */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hm-hero, .hm-hero.hm-hero--day { min-height: 0; padding: 12px 0 24px; }
+  .hm-sprites, .hm-org { display: none; }
+  .hm-title .t1 { font-size: min(13vw, 11vh, 5.4rem); }
+  .hm-title .t2 { font-size: min(19vw, 15vh, 8.6rem); }
+  .hm-when { margin-top: 10px; gap: 4px; }
+  .hm-date { font-size: min(9vw, 11vh, 3.6rem); }
+  .hm-place { font-size: min(6vw, 8vh, 2.2rem); }
+  .hm-count, .hm-cta { margin-top: 12px; }
+}
+
+/* 印刷：飾り（小物・流れる帯）と押す物（表紙のボタン・送るボタン）は出さない */
+@media print {
+  .hm-sprites, .hm-marquee, .hm-cta, .hm-strip, .hm-share, .hm-about-sp, .hm-survey-wrap, .hm-next-all, .hm-next-place .mx-rowplace-go { display: none !important; }
+  .hm-hero { min-height: 0; padding: 0 0 12px; }
+  .hm-sec { padding: 16px 0; }
+  .hm-pav, .hm-next, .hm-door { break-inside: avoid; }
+  .hm-pav-head { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

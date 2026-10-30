@@ -108,7 +108,8 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
+/* ダークモードは画面だけ（印刷は、ダークの端末から刷っても明るい色。白い紙に薄い字が出ないように） */
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --bg: #0f1a33;
     --surface: #182747;
@@ -168,6 +169,12 @@ html {
   scroll-padding-top: 72px;
   scroll-padding-bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
 }
+/* 横向きのスマホ（高さ 500px まで）：上の帯は貼りつけず、下のタブは 1 段 44px にする（shell.css）。
+   上下の帯で画面の 3 割を食っていた（2026-10-31 の見直し） */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --tabbar-h: 44px; }
+  html { scroll-padding-top: 12px; }
+}
 /* 「文字を大きく」を押した人（お年寄り向け） */
 html.big { font-size: 118%; }
 body {
@@ -192,6 +199,14 @@ h3 { font-size: 1.0625rem; line-height: 1.5; font-weight: 900; }
 p { margin: 0 0 12px; }
 strong { font-weight: 900; }
 [hidden] { display: none !important; }
+/* 見出し・ボタン・札など短い文は、ことばの途中で折り返さない（「茶屋部｜門」→「茶屋｜部門」。Chrome・Android。
+   ほかのブラウザは今までどおり。入りきらない長いことばは、body の overflow-wrap で折り返す） */
+h1, h2, h3, h4, legend, .ui-btn, .ui-badge, .ui-card-title, .ui-section-title, .ui-page-title, .ui-banner-title,
+.ui-empty-title, .ui-dialog-title, .ui-label, .ui-chip-face, .shell-tab-label { word-break: auto-phrase; }
+/* 1 まとまりで読ませたい所。.nowrap は決して折り返さない（短い時刻「10:00〜14:00」など）。
+   .keep は入るときは 1 行にまとめ、画面より長いときだけ中で折り返す（日付・住所の番地など。字を 200% にしてもはみ出さない） */
+.nowrap { white-space: nowrap; }
+.keep { display: inline-block; max-width: 100%; }
 
 .t-h1 { font-size: 1.5rem; line-height: 1.4; font-weight: 900; }
 .t-h2 { font-size: 1.25rem; line-height: 1.45; font-weight: 900; }
@@ -234,10 +249,16 @@ strong { font-weight: 900; }
 .mx-logo--dark { color: #7fd6a2; }
 
 /* ドット文字の題字（パンフの「エンカレ夢中万博」：緑・こい緑のふち・右下に影）。各ページの大見出しも同じ */
-.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1 {
+.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .sc-h1 {
   font-family: var(--font-display); font-weight: 400; color: var(--title); letter-spacing: 0.02em;
   text-shadow: 2px 0 var(--title-edge), -2px 0 var(--title-edge), 0 2px var(--title-edge), 0 -2px var(--title-edge),
     2px 2px var(--title-edge), -2px 2px var(--title-edge), 2px -2px var(--title-edge), -2px -2px var(--title-edge), 4px 5px 0 var(--title-edge);
+}
+/* 32px より小さいときは、ふちを細く・影を短く（字がつぶれないように）。(public)/public.css にも同じ決まりがある（.sc-h1 はここだけ） */
+@media (max-width: 459px) {
+  .hm-h2.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .sc-h1, .rd-h1.px-title {
+    text-shadow: 1px 0 var(--title-edge), -1px 0 var(--title-edge), 0 1px var(--title-edge), 0 -1px var(--title-edge), 2px 2px 0 var(--title-edge);
+  }
 }
 /* ドットの枠（角を 1 段けずる） */
 .px-box { clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)); }
@@ -258,7 +279,7 @@ strong { font-weight: 900; }
 .mx-madeby--dark .mx-madeby-k { color: var(--footer-ink); }
 .mx-madeby--auto .mx-madeby-k { color: var(--ink-3); }
 .mx-madeby .mx-on-dark { display: none; }
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   .mx-madeby .mx-on-dark { display: block; }
   .mx-madeby .mx-on-light { display: none; }
 }
@@ -266,3 +287,15 @@ strong { font-weight: 900; }
 .mx-madeby-word { height: 12px; width: auto; }
 .mx-madeby--side { margin: 6px 0 0 16px; }
 @media (max-width: 1023px) { .mx-madeby--side { display: none; } }
+
+/* ───── 印刷（パンフの代わりに、家で刷って持ってくる人がいる）。枠（上下の帯・タブ）は shell.css、ページの中身は各ページの CSS ───── */
+@media print {
+  /* 白い紙に、地の水色やカードの影を出さない（「背景のグラフィック」をオンにしても、インクを使わない） */
+  :root { --shadow-card: none; --shadow-pop: none; }
+  body { background: #fff; }
+  /* 題字の緑のふち・影は、紙では黒い塊や、字が何重にも重なった形になる → 影なしの濃い緑 */
+  .px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .sc-h1, .mx-logo > span { text-shadow: none !important; }
+  .px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .sc-h1, .mx-logo { color: var(--title-edge) !important; }
+  /* 画面の操作のためのもの（本文へ・知らせ・電波の帯）は紙に出さない */
+  .skip, .ui-toast-region, .ui-offline { display: none !important; }
+}

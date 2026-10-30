@@ -8,12 +8,13 @@
 .shell-tabs {
   position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
   background: var(--surface); border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* iPhone の下のバーと、横向きのときの左右の切り欠きの分をあける */
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .shell-tabs ul { list-style: none; margin: 0 auto; padding: 0; max-width: 640px; display: grid; grid-template-columns: repeat(var(--tab-count, 5), minmax(0, 1fr)); }
 .shell-tab {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  min-height: var(--tabbar-h); padding: 4px 2px; color: var(--ink-3); text-decoration: none;
+  min-height: var(--tabbar-h); padding: 3px 2px; color: var(--ink-3); text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 .shell-tab-icon {
@@ -21,19 +22,38 @@
   width: 54px; height: 30px; border-radius: var(--r-pill); transition: background-color 0.15s;
 }
 .shell-tab-dot { position: absolute; top: 2px; right: 12px; }
-.shell-tab-label { font-size: 0.75rem; line-height: 1.5; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* 名前は「…」で切らない。入らないときは 2 行に折り返す。
+   ブラウザの字の大きさを 150〜200% にしても、タブの帯が画面をふさがないよう、大きさに上限をつける */
+.shell-tab-label { font-size: min(0.75rem, 15px); line-height: 1.2; font-weight: 500; max-width: 100%; text-align: center; }
+/* お客さん側の名前は 3 字までなので、少し大きく（12px は読みにくい。「文字を大きく」では 16.5px） */
+.shell-pub .shell-tab-label { font-size: min(0.875rem, 17px); }
 .shell-tab[aria-current="page"] { color: var(--primary); }
 .shell-tab[aria-current="page"] .shell-tab-icon { background: var(--primary-soft); }
 .shell-tab:active .shell-tab-icon { background: var(--surface-2); }
 @media (min-width: 1024px) {
   .shell-tabs { display: none; }
 }
+/* 文字を入れているあいだ（スマホのキーボードが出ているあいだ）は、下のタブを隠す（入れる欄にかぶらないように） */
+@media (max-width: 1023px) and (hover: none) and (pointer: coarse) {
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="range"], [type="color"], [type="file"]), textarea, [contenteditable="true"]):focus) .shell-tabs { display: none; }
+}
+
+/* 押したメニューは、次の画面が届く前から「選んだ形」にする（遅い回線でも、押せたと分かるように。nav-link.tsx の PendingMark）。
+   そのあいだ、前の「いま」の印は消す */
+.shell-pending { display: none; }
+.shell-tab:has(> .shell-pending[data-pending]) { color: var(--primary); }
+.shell-tab:has(> .shell-pending[data-pending]) .shell-tab-icon { background: var(--primary-soft); }
+.shell-tabs:has(.shell-pending[data-pending]) .shell-tab[aria-current="page"]:not(:has(> .shell-pending[data-pending])) { color: var(--ink-3); }
+.shell-tabs:has(.shell-pending[data-pending]) .shell-tab[aria-current="page"]:not(:has(> .shell-pending[data-pending])) .shell-tab-icon { background: none; }
+.shell-pnav-item:has(> .shell-pending[data-pending]), .shell-sideitem:has(> .shell-pending[data-pending]) { background: var(--primary-soft); color: var(--primary); }
+.shell-pnav:has(.shell-pending[data-pending]) .shell-pnav-item[aria-current="page"]:not(:has(> .shell-pending[data-pending])),
+.shell-sidenav:has(.shell-pending[data-pending]) .shell-sideitem[aria-current="page"]:not(:has(> .shell-pending[data-pending])) { background: none; color: var(--ink-2); font-weight: inherit; }
 
 /* スマホの上の帯（55px） */
 .shell-phonebar {
   position: sticky; top: 0; z-index: 30;
   display: flex; align-items: center; gap: 4px;
-  min-height: 55px; padding: 6px 4px 6px 16px; padding-top: calc(6px + env(safe-area-inset-top));
+  min-height: 55px; padding: 6px calc(4px + env(safe-area-inset-right)) 6px calc(16px + env(safe-area-inset-left)); padding-top: calc(6px + env(safe-area-inset-top));
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
 /* ロゴ（ホームへのリンク）の押せる所は 44px */
@@ -45,7 +65,9 @@
 /* ───── スタッフ側（事務・現場・講師）：左のメニュー 264px ───── */
 .shell-side { min-height: 100dvh; }
 .shell-sidebar { display: none; }
-.shell-side-main { padding: 16px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom)); }
+.shell-side-main {
+  padding: 16px calc(16px + env(safe-area-inset-right)) calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
 @media (min-width: 1024px) {
   .shell-side { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
   .shell-sidebar {
@@ -57,7 +79,7 @@
   .shell-side-main { padding: 28px 40px 48px; }
 }
 @media (min-width: 768px) and (max-width: 1023px) {
-  .shell-side-main { padding-left: 24px; padding-right: 24px; }
+  .shell-side-main { padding-left: calc(24px + env(safe-area-inset-left)); padding-right: calc(24px + env(safe-area-inset-right)); }
 }
 .shell-sidebar-logo { padding: 0 0 16px 8px; }
 .shell-search {
@@ -181,10 +203,13 @@
 
 /* ───── だれでも見られるページ ───── */
 .shell-pub { min-height: 100dvh; display: flex; flex-direction: column; }
-.shell-pub-main { flex: 1; min-width: 0; }
+/* 横向きの iPhone では、左右の切り欠き（safe-area）の分だけ本文を内側へ（ふつうの画面では 0） */
+.shell-pub-main { flex: 1; min-width: 0; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 .shell-ptop {
   position: sticky; top: 0; z-index: 30;
-  background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  /* 上の切り欠きの分は、中の .shell-ptop-inner があける（(public)/public.css。ここでもあけると 2 倍になる） */
+  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
 }
 .shell-ptop-inner { display: flex; align-items: center; gap: 4px; min-height: 57px; padding: 6px 4px 6px 16px; }
 .shell-ptop-logo, .shell-pnav, .shell-ptop-actions { display: none !important; }
@@ -207,26 +232,31 @@
 .shell-pnav-item[aria-current="page"] { color: var(--primary); background: var(--primary-soft); }
 
 /* いちばん下（会社の情報）：紺の帯 */
-.shell-pfoot { background: var(--footer-bg); color: var(--footer-ink); padding: 40px 20px calc(40px + env(safe-area-inset-bottom)); }
+.shell-pfoot {
+  background: var(--footer-bg); color: var(--footer-ink);
+  padding: 40px calc(20px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+}
 .shell-pfoot-inner { display: flex; flex-direction: column; gap: 20px; max-width: var(--content-max); margin: 0 auto; }
 .shell-pfoot a { color: var(--footer-ink); text-decoration: none; }
 .shell-pfoot a:hover { text-decoration: underline; }
 .shell-pfoot :focus-visible { outline-color: var(--footer-accent); }
 .shell-pfoot-brand { display: flex; flex-direction: column; gap: 12px; }
+/* ロゴは画面の幅に合わせて小さく（320px で字を 200% にしても横にはみ出さない） */
+.shell-pfoot .mx-logo { font-size: min(1.25rem, 8vw); max-width: 100%; }
 .shell-pfoot-brand p { margin: 0; }
 .shell-pfoot-motto { font-size: 0.875rem; font-weight: 700; margin-top: 4px !important; }
 .shell-pfoot-line { display: flex; align-items: flex-start; gap: 8px; font-size: 0.875rem; }
 .shell-pfoot-line .ui-icon { margin-top: 4px; }
 .shell-pfoot-title { margin: 0 0 4px; font-size: 0.875rem; font-weight: 700; color: var(--footer-accent); }
 .shell-pfoot-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.shell-pfoot-col a { display: inline-flex; align-items: center; min-height: var(--tap); font-size: 0.875rem; }
+.shell-pfoot-col a { display: inline-flex; align-items: center; min-height: var(--tap); min-width: var(--tap); font-size: 0.875rem; }
 .shell-pfoot-copy { max-width: var(--content-max); margin: 24px auto 0; font-size: 0.75rem; font-weight: 500; }
 @media (min-width: 1024px) {
   .shell-pfoot { padding: 64px 24px; }
   .shell-pfoot-inner { flex-direction: row; gap: 64px; }
   .shell-pfoot-brand { flex: 0 1 360px; }
   .shell-pfoot-col { flex: 0 1 216px; }
-  .shell-pfoot-col a { min-height: 0; padding: 6px 0; }
+  /* iPad の横向き（1024px〜）も指で押すので、リンクの高さは 44px のまま */
   .shell-pfoot-copy { margin-top: 40px; }
 }
 
@@ -245,7 +275,7 @@
 
 /* 知らせ（保存しました）を、スマホでは下のメニューの上に出す */
 @media (max-width: 1023px) {
-  .shell-side, .shell-cust { --toast-offset: calc(var(--tabbar-h) + 16px); }
+  .shell-side, .shell-cust, .shell-pub { --toast-offset: calc(var(--tabbar-h) + 16px); }
 }
 
 /* ログアウト（パソコンの左のメニューのいちばん下） */
@@ -262,3 +292,28 @@
 .shell-version { display: inline-block; margin-left: 12px; font-size: 0.75rem; font-weight: 500; opacity: 0.75; font-variant-numeric: tabular-nums; }
 .shell-version--side { display: block; margin: 8px 0 0; padding: 0 12px; color: var(--ink-3); opacity: 1; }
 .shell-version--menu { display: block; margin: 24px 0 0; text-align: center; color: var(--ink-3); opacity: 1; }
+
+/* ───── 横向きのスマホ（高さ 500px まで）：見える高さが 260px ほどしかないので、枠を小さく ─────
+   上の帯は貼りつけずに本文といっしょに流し、下のタブはアイコンと名前を横に並べた 1 段（44px。--tabbar-h は globals.css） */
+@media (orientation: landscape) and (max-height: 500px) {
+  .shell-pub.mx-pub > .shell-ptop, .shell-pub > .shell-ptop, .shell-phonebar { position: relative; }
+  .shell-tab { flex-direction: row; gap: 6px; padding: 0 4px; }
+  .shell-tab-icon { width: 36px; height: 28px; }
+  .shell-tab-label { text-align: left; }
+}
+
+/* ───── 印刷：枠（下のタブ・上の帯・「文字を大きく」・いちばん下の帯）は紙に出さないか、1 行にする ───── */
+.shell-pfoot-print { display: none; }
+@media print {
+  .shell-tabs, .shell-pcta, .shell-sidebar, .shell-phonebar, .mx-textsize, .shell-pnav { display: none !important; }
+  /* 画面の高さいっぱいの枠は、紙では中身の高さに（1 枚だけ刷ったとき、うしろに白い紙が出ないように） */
+  .shell-side, .shell-cust { min-height: 0; }
+  /* 上の帯：ロゴだけを 1 行。貼りつけず、すりガラス・線もなし */
+  .shell-pub.mx-pub > .shell-ptop, .shell-pub > .shell-ptop { position: static; background: none; border: 0; padding: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .shell-pub.mx-pub .shell-ptop-inner { min-height: 0; padding: 0 0 4mm; }
+  .shell-pub-main { padding: 0; }
+  /* いちばん下の紺の帯（白いロゴ・リンクの並び）の代わりに、行事の名前・日時・場所・アドレスの 1 行だけ */
+  .shell-pub.mx-pub .shell-pfoot { background: none; color: var(--ink); padding: 4mm 0 0; border-top: 1px solid var(--ink-3); }
+  .shell-pfoot > * { display: none !important; }
+  .shell-pfoot > .shell-pfoot-print { display: block !important; margin: 0; font-size: 9pt; line-height: 1.5; }
+}

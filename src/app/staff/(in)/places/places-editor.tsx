@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -10,6 +11,7 @@ import { Checkbox, Select, TextField } from "@/components/ui/field";
 import { areaName, areaOf, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Place, type PlaceKind } from "@/lib/types";
 import { savedAt, send, slug } from "../../_lib/client";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
+import "./places.css";
 
 /** 直している途中のピン。key は画面の中だけの名前（新しいピンは、英字の名前が空のままでもよい） */
 type Draft = Place & { key: string; isNew?: boolean };
@@ -19,6 +21,15 @@ const KIND = new Map(PLACE_KINDS.map((k) => [k.value, k]));
 const kindOf = (p: Pick<Place, "kind">) => KIND.get(placeKindOf(p)) ?? PLACE_KINDS[0];
 /** 位置・大きさは 0〜100 の、小数 1 けたまで */
 const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v * 10) / 10));
+/**
+ * 自動の英字の名前（place-mhd2k3x1 など）。時刻から作る（数で作ると、消したピンと同じ名前になり、
+ * 消したピンを指したままのお店が新しいピンにつながってしまうため）
+ */
+function autoId(used: Set<string>) {
+  let t = Date.now();
+  while (used.has(`place-${t.toString(36)}`)) t++;
+  return `place-${t.toString(36)}`;
+}
 /** 部屋の四角か（幅と高さがどちらもある） */
 const isBox = (p: Pick<Place, "w" | "h">) => !!p.w && !!p.h;
 /** 保存してあるピンと同じか（名前・種類・面・位置・大きさ・ひとこと） */
@@ -34,9 +45,11 @@ const samePlace = (a: Place, b: Place | undefined) =>
   (a.h ?? 0) === (b.h ?? 0);
 
 /**
- * 地図のピンを置く・直す（実行委員だけ）。上のボタンで「外」と建物の中のフロアを切り替える。
- * 地図に触っただけではピンは動かない：地図で場所を押す →［ここに動かす］で動く（キーボードなら位置の数や ←↑↓→ のボタンで）。
+ * 地図のピンを置く・直す（実行委員だけ）。地図の上のボタンで「外」と建物の中のフロアを切り替える。
+ * 地図に触っただけではピンは動かない：ピンを選ぶ → 地図で場所を押す（「ここ？」が出る）→［ここに動かす］で動く
+ * （ピンを選んでいるあいだは、地図のどこを押しても「ここ？」になる。ほかのピンは下の一覧から選ぶ。キーボードなら位置の数や ←↑↓→ のボタンで）。
  * フロアの部屋は「四角で描く」にすると、幅と高さのある四角になる（お客さんの地図では、押すとその部屋のお店が出る）。
+ * パソコンでは、地図と選んだピンの欄を横に並べる（places.css）。
  */
 export function PlacesEditor({ places: initial, areas: initialAreas, counts }: { places: Place[]; areas: Area[]; counts: Record<string, number> }) {
   const router = useRouter();
@@ -68,6 +81,8 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
   };
   function choose(key: string) {
     setSel(key);
+    // 前に押した「ここ？」は消す（別のピンを選んだあとで、そのピンを「ここ？」へ動かす案に変わらないように）
+    setSpot(null);
     setError("");
   }
   function switchArea(id: string) {
@@ -106,18 +121,12 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
     setMsg("");
   }
 
-  /** 自動の英字の名前（place-5 など）。いまあるピンの数と、place-○ の番号のうち大きいほうの次 */
-  function autoId() {
-    const ids = [...Object.keys(saved), ...places.map((p) => p.id)].filter(Boolean);
-    const nums = ids.map((x) => /^place-(\d+)$/.exec(x)?.[1]).filter(Boolean).map(Number);
-    return `place-${Math.max(Object.keys(saved).length, ...nums) + 1}`;
-  }
 
   async function save() {
     if (!cur) return;
     if (!cur.name.trim()) return setError("場所の名前を入れてください");
     // 英字の名前：空や日本語なら止めずに自動で付ける
-    const id = cur.isNew ? slug(cur.id) || autoId() : cur.id;
+    const id = cur.isNew ? slug(cur.id) || autoId(new Set([...Object.keys(saved), ...places.map((p) => p.id)])) : cur.id;
     if (cur.isNew && (saved[id] || places.some((p) => p.key !== cur.key && p.id === id))) {
       return setError("その英字の名前はもう使われています。空にすると自動で付けます");
     }
@@ -176,186 +185,233 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
   const curName = cur ? cur.name || "新しいピン" : "";
   const delName = cur ? (cur.isNew ? cur.name : saved[cur.id]?.name) || "新しいピン" : "";
 
+  // 外の地図に、建物（中のフロアへ）と正門（入口・門）のピンがあるか。無いと、お客さんが外の地図で建物と入口を見つけられない
+  const outside = places.filter((p) => areaOf(p) === OUTSIDE && !p.isNew);
+  const noBuilding = [...new Set(areas.map((a) => a.building))].filter((b) => !outside.some((p) => placeKindOf(p) === "building" && p.name === b));
+  const noGate = !outside.some((p) => placeKindOf(p) === "gate");
+  // 選んでいるピンの注意：建物のピンの名前がフロアの建物の名前と合わない・お店がつながったまま種類を設備にした
+  const bldNames = [...new Set(areas.map((a) => a.building))];
+  const curKind = cur ? placeKindOf(cur) : "spot";
+  const badBuilding = !!cur && curKind === "building" && !!cur.name.trim() && !bldNames.includes(cur.name.trim());
+  const linkedFac = !!cur && curKind !== "spot" && !!counts[cur.id];
+
   return (
     <div className="st-stack">
-      <div className="st-areas" role="group" aria-label="外・フロアの切り替え">
-        {[{ id: OUTSIDE, name: "外" }, ...areas.map((a) => ({ id: a.id, name: areaName(a) }))].map((t) => (
-          <Button key={t.id} size="sm" variant={area === t.id ? "primary" : "secondary"} aria-pressed={area === t.id} onClick={() => switchArea(t.id)}>
-            {t.name}
-            <span className="st-area-n">{places.filter((p) => areaOf(p) === t.id).length}</span>
-          </Button>
-        ))}
-      </div>
-
-      <SchoolMap
-        pins={pins}
-        selected={sel}
-        base={base}
-        onSelect={(id) => id !== "__spot" && choose(id)}
-        onPick={(x, y) => {
-          setSpot({ x, y });
-          setMsg("");
-        }}
-        label={`ピンを置く地図（${areaLabel(area)}）`}
-      />
-      <div className="st-place-bar" aria-live="polite">
-        {spot ? (
-          <>
-            <p className="st-place-pick">{cur ? `地図の「ここ？」の所へ、「${curName}」を動かしますか？` : "地図の「ここに足す？」の所に、新しいピンを置きますか？"}</p>
-            <div className="st-row">
-              {cur ? (
-                <Button size="sm" icon="場所" onClick={moveHere}>
-                  ここに動かす
-                </Button>
-              ) : (
-                <Button size="sm" icon="足す" onClick={() => add(spot)}>
-                  {area === OUTSIDE ? "ここにピンを足す" : "ここに部屋（四角）を足す"}
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" onClick={() => setSpot(null)}>
-                やめる
-              </Button>
-            </div>
-          </>
-        ) : (
-          <p className="st-place-pick">
-            {cur
-              ? `「${curName}」を選んでいます。動かすときは、地図で場所を押してから［ここに動かす］を押してください（保存を押すまで残りません）`
-              : "直すピンを、地図か下の一覧から選んでください。新しく置くときは、地図で場所を押すか［ピンを足す］を押します"}
+      {(noBuilding.length > 0 || noGate) && (
+        <Banner tone="warning" title={`外の地図に${[noBuilding.length ? "建物" : "", noGate ? "正門" : ""].filter(Boolean).join("・")}のピンがありません`}>
+          <p>
+            {[
+              ...noBuilding.map((b) => `「${b}」の建物のピン（種類「建物（中のフロアへ）」・名前「${b}」）`),
+              ...(noGate ? ["正門のピン（種類「入口・門」）"] : []),
+            ].join("と、")}
+            を、「外」で本当の位置に置いてください。
+            {noBuilding.length > 0 && `置くまでは、お客さんの外の地図の下に「${noBuilding[0]}の中を見る」を出しています。`}
           </p>
+        </Banner>
+      )}
+
+      <div className={cur ? "pe-cols pe-cols--side" : "pe-cols"}>
+        <div className="pe-main st-stack">
+          <div className="st-areas" role="group" aria-label="外・フロアの切り替え">
+            {[{ id: OUTSIDE, name: "外" }, ...areas.map((a) => ({ id: a.id, name: areaName(a) }))].map((t) => (
+              <Button key={t.id} size="sm" variant={area === t.id ? "primary" : "secondary"} aria-pressed={area === t.id} onClick={() => switchArea(t.id)}>
+                {t.name}
+                <span className="st-area-n">{places.filter((p) => areaOf(p) === t.id).length}</span>
+              </Button>
+            ))}
+          </div>
+
+          <SchoolMap
+            pins={pins}
+            selected={sel}
+            base={base}
+            caption={areaLabel(area)}
+            shapeRooms={false}
+            pickOnly={!!cur}
+            onSelect={(id) => id !== "__spot" && choose(id)}
+            onPick={(x, y) => {
+              setSpot({ x, y });
+              setMsg("");
+            }}
+            label={`ピンを置く地図（${areaLabel(area)}）`}
+          />
+          <div className="st-place-bar" aria-live="polite">
+            {spot ? (
+              <>
+                <p className="st-place-pick">{cur ? `地図の「ここ？」の所へ、「${curName}」を動かしますか？` : "地図の「ここに足す？」の所に、新しいピンを置きますか？"}</p>
+                <div className="st-row">
+                  {cur ? (
+                    <Button size="sm" icon="場所" onClick={moveHere}>
+                      ここに動かす
+                    </Button>
+                  ) : (
+                    <Button size="sm" icon="足す" onClick={() => add(spot)}>
+                      {area === OUTSIDE ? "ここにピンを足す" : "ここに部屋（四角）を足す"}
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setSpot(null)}>
+                    やめる
+                  </Button>
+                </div>
+              </>
+            ) : cur ? (
+              <>
+                <p className="st-place-pick">
+                  「{curName}」を選んでいます。動かすときは、地図で動かしたい所を押してから［ここに動かす］を押してください（保存を押すまで残りません）。ほかのピンは下の一覧から選べます。
+                </p>
+                <div className="st-place-nudge" role="group" aria-label="ピンを少しずつ動かす">
+                  <Button size="sm" onClick={() => nudge(-1, 0)} aria-label="左へ少し動かす">
+                    ← 左
+                  </Button>
+                  <Button size="sm" onClick={() => nudge(0, -1)} aria-label="上へ少し動かす">
+                    ↑ 上
+                  </Button>
+                  <Button size="sm" onClick={() => nudge(0, 1)} aria-label="下へ少し動かす">
+                    ↓ 下
+                  </Button>
+                  <Button size="sm" onClick={() => nudge(1, 0)} aria-label="右へ少し動かす">
+                    → 右
+                  </Button>
+                </div>
+                <div className="st-row">
+                  <Button size="sm" variant="ghost" onClick={() => setSel(null)}>
+                    選ぶのをやめる（地図でピンを選ぶ）
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="st-place-pick">直すピンを、地図か下の一覧から選んでください。新しく置くときは、地図で場所を押すか［ピンを足す］を押します</p>
+            )}
+          </div>
+
+          <p className="st-saved" role="status" aria-live="polite">
+            {msg}
+          </p>
+          <div className="st-row" role="group" aria-label={`ピンの一覧（${areaLabel(area)}）`}>
+            {inArea.map((p) => {
+              const k = kindOf(p);
+              return (
+                <Button key={p.key} size="sm" variant={p.key === sel ? "primary" : "secondary"} aria-pressed={p.key === sel} onClick={() => choose(p.key)}>
+                  {k.mark && (
+                    <span className="st-pin-mark" aria-hidden="true">
+                      {k.mark}
+                    </span>
+                  )}
+                  {k.value !== "spot" && <span className="sr-only">{k.label}：</span>}
+                  {p.name || "（名前なし）"}
+                  {dirtyOf(p) && <span className="st-pin-unsaved">未保存</span>}
+                </Button>
+              );
+            })}
+            <Button size="sm" icon="足す" onClick={() => add()}>
+              {area === OUTSIDE ? "ピンを足す" : "部屋・ピンを足す"}
+            </Button>
+          </div>
+        </div>
+
+        {cur && (
+          <Card title={cur.isNew ? "新しいピン" : "選んでいるピン"} className="pe-side">
+            <form
+              className="st-form-grid"
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                save();
+              }}
+            >
+              <TextField label="場所の名前" value={cur.name} maxLength={30} onChange={(e) => update({ name: e.target.value })} placeholder="例：201 小講義室、中庭のテント" />
+              <Select
+                label="ピンの種類"
+                value={placeKindOf(cur)}
+                onChange={(e) => update({ kind: e.target.value as PlaceKind })}
+                options={PLACE_KINDS.map((k) => ({ value: k.value, label: k.mark ? `${k.label}（${k.mark}）` : k.label }))}
+                hint="お店・出し物のほかに、トイレ・受付・救護、外の地図の建物（中のフロアへ）も置けます"
+              />
+              {linkedFac && (
+                <p className="st-err st-span2" role="note">
+                  このピンには {counts[cur.id]} 店がつながっています。お店・出し物の場所は、種類を「お店・出し物の場所」にしておいてください（ほかの種類だと、「お店の場所を決める」の選ぶ欄に出ません）。
+                </p>
+              )}
+              <Select
+                label="どこに置くか"
+                value={areaOf(cur)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  update({ area: next === OUTSIDE ? undefined : next });
+                  setArea(next);
+                }}
+                options={[{ value: OUTSIDE, label: "外" }, ...areas.map((a) => ({ value: a.id, label: areaName(a) }))]}
+                hint="ほかのフロアへ移すときは、ここを変えてから位置を直します"
+              />
+              <TextField label="ひとこと（地図で押したときに出る）" value={cur.note} maxLength={60} onChange={(e) => update({ note: e.target.value })} />
+              {curKind === "building" &&
+                (badBuilding ? (
+                  <p className="st-err st-span2" role="note">
+                    「{cur.name.trim()}」という建物のフロアがありません。押したときに中のフロアへ移れるよう、名前をフロアの建物の名前（{bldNames.join("・") || "まだありません"}）と同じにしてください。
+                  </p>
+                ) : (
+                  <p className="st-muted st-span2">
+                    建物のピンを押すと、名前が同じ建物のフロア（{areas.filter((a) => a.building === cur.name.trim()).map((a) => a.floor).join("・") || "まだありません"}）へ移れます。フロアの「建物の名前」を変えたときは、このピンの名前も同じに直してください。
+                  </p>
+                ))}
+              <div className="st-span2">
+                <Checkbox
+                  label="四角で描く（部屋）"
+                  hint="フロアの部屋・ホールなどは四角にすると、お客さんが部屋ごと押せます"
+                  checked={isBox(cur)}
+                  onChange={(e) => update(e.target.checked ? { w: cur.w || 12, h: cur.h || 18 } : { w: undefined, h: undefined })}
+                />
+              </div>
+              <fieldset className="st-span2 st-place-pos">
+                <legend>位置（地図の左上から。真ん中の位置です。数を直すか、地図の下の矢印で少しずつ動かせます）</legend>
+                <TextField label="左から（%）" type="number" inputMode="decimal" min={0} max={100} step={0.5} value={cur.x} onChange={(e) => update({ x: clamp(Number(e.target.value) || 0) })} />
+                <TextField label="上から（%）" type="number" inputMode="decimal" min={0} max={100} step={0.5} value={cur.y} onChange={(e) => update({ y: clamp(Number(e.target.value) || 0) })} />
+                {isBox(cur) && (
+                  <>
+                    <TextField label="幅（%）" type="number" inputMode="decimal" min={1} max={100} step={0.5} value={cur.w} onChange={(e) => update({ w: Math.max(1, clamp(Number(e.target.value) || 1)) })} />
+                    <TextField label="高さ（%）" type="number" inputMode="decimal" min={1} max={100} step={0.5} value={cur.h} onChange={(e) => update({ h: Math.max(1, clamp(Number(e.target.value) || 1)) })} />
+                  </>
+                )}
+              </fieldset>
+              <details className="st-span2 st-more-opt">
+                <summary>英字の名前（空でよい・自動で付けます）</summary>
+                {cur.isNew ? (
+                  <TextField
+                    label="英字の名前"
+                    value={cur.id}
+                    maxLength={40}
+                    placeholder="空なら place-mhd2k3x1 のように自動"
+                    hint="a〜z・数字・- だけ。あとで変えられません"
+                    onChange={(e) => update({ id: e.target.value })}
+                  />
+                ) : (
+                  <p className="st-muted">{cur.id}（あとから変えられません）</p>
+                )}
+              </details>
+              <div className="st-row st-span2">
+                <Button type="submit" variant="primary" pending={pending}>
+                  保存
+                </Button>
+                <ConfirmDialog
+                  title={cur.isNew ? `「${delName}」を消しますか？` : `「${delName}」のピンを消しますか？`}
+                  confirmLabel="消す"
+                  triggerLabel="このピンを消す"
+                  triggerIcon="消す"
+                  onConfirm={remove}
+                >
+                  {cur.isNew ? "まだ保存していないピンです。" : "元に戻せません。"}
+                  {counts[cur.id] ? `このピンには ${counts[cur.id]} 店がつながっています。消すと、そのお店の場所は「未定」になります。` : ""}
+                </ConfirmDialog>
+              </div>
+              {error && (
+                <p className="st-err st-span2" role="alert">
+                  {error}
+                </p>
+              )}
+            </form>
+          </Card>
         )}
       </div>
-
-      <p className="st-saved" role="status" aria-live="polite">
-        {msg}
-      </p>
-      <div className="st-row" role="group" aria-label={`ピンの一覧（${areaLabel(area)}）`}>
-        {inArea.map((p) => {
-          const k = kindOf(p);
-          return (
-            <Button key={p.key} size="sm" variant={p.key === sel ? "primary" : "secondary"} aria-pressed={p.key === sel} onClick={() => choose(p.key)}>
-              {k.mark && (
-                <span className="st-pin-mark" aria-hidden="true">
-                  {k.mark}
-                </span>
-              )}
-              {k.value !== "spot" && <span className="sr-only">{k.label}：</span>}
-              {p.name || "（名前なし）"}
-              {dirtyOf(p) && <span className="st-pin-unsaved">未保存</span>}
-            </Button>
-          );
-        })}
-        <Button size="sm" icon="足す" onClick={() => add()}>
-          {area === OUTSIDE ? "ピンを足す" : "部屋・ピンを足す"}
-        </Button>
-      </div>
-
-      {cur && (
-        <Card title={cur.isNew ? "新しいピン" : "選んでいるピン"}>
-          <form
-            className="st-form-grid"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              save();
-            }}
-          >
-            <TextField label="場所の名前" value={cur.name} maxLength={30} onChange={(e) => update({ name: e.target.value })} placeholder="例：201 小講義室、中庭のテント" />
-            <Select
-              label="ピンの種類"
-              value={placeKindOf(cur)}
-              onChange={(e) => update({ kind: e.target.value as PlaceKind })}
-              options={PLACE_KINDS.map((k) => ({ value: k.value, label: k.mark ? `${k.label}（${k.mark}）` : k.label }))}
-              hint="お店・出し物のほかに、トイレ・受付・救護、外の地図の建物（中のフロアへ）も置けます"
-            />
-            <Select
-              label="どこに置くか"
-              value={areaOf(cur)}
-              onChange={(e) => {
-                const next = e.target.value;
-                update({ area: next === OUTSIDE ? undefined : next });
-                setArea(next);
-              }}
-              options={[{ value: OUTSIDE, label: "外" }, ...areas.map((a) => ({ value: a.id, label: areaName(a) }))]}
-              hint="ほかのフロアへ移すときは、ここを変えてから位置を直します"
-            />
-            <TextField label="ひとこと（地図で押したときに出る）" value={cur.note} maxLength={60} onChange={(e) => update({ note: e.target.value })} />
-            {placeKindOf(cur) === "building" && (
-              <p className="st-muted st-span2">
-                建物のピンを押すと、名前が同じ建物のフロア（{areas.filter((a) => a.building === cur.name).map((a) => a.floor).join("・") || "まだありません"}）へ移れます。フロアの「建物の名前」と同じ名前にしてください。
-              </p>
-            )}
-            <div className="st-span2">
-              <Checkbox
-                label="四角で描く（部屋）"
-                hint="フロアの部屋・ホールなどは四角にすると、お客さんが部屋ごと押せます"
-                checked={isBox(cur)}
-                onChange={(e) => update(e.target.checked ? { w: cur.w || 12, h: cur.h || 18 } : { w: undefined, h: undefined })}
-              />
-            </div>
-            <fieldset className="st-span2 st-place-pos">
-              <legend>位置（地図の左上から。真ん中の位置です。数を直すか、矢印で少しずつ動かせます）</legend>
-              <TextField label="左から（%）" type="number" inputMode="decimal" min={0} max={100} step={0.5} value={cur.x} onChange={(e) => update({ x: clamp(Number(e.target.value) || 0) })} />
-              <TextField label="上から（%）" type="number" inputMode="decimal" min={0} max={100} step={0.5} value={cur.y} onChange={(e) => update({ y: clamp(Number(e.target.value) || 0) })} />
-              {isBox(cur) && (
-                <>
-                  <TextField label="幅（%）" type="number" inputMode="decimal" min={1} max={100} step={0.5} value={cur.w} onChange={(e) => update({ w: Math.max(1, clamp(Number(e.target.value) || 1)) })} />
-                  <TextField label="高さ（%）" type="number" inputMode="decimal" min={1} max={100} step={0.5} value={cur.h} onChange={(e) => update({ h: Math.max(1, clamp(Number(e.target.value) || 1)) })} />
-                </>
-              )}
-              <div className="st-place-nudge" role="group" aria-label="ピンを少しずつ動かす">
-                <Button size="sm" onClick={() => nudge(-1, 0)} aria-label="左へ少し動かす">
-                  ← 左
-                </Button>
-                <Button size="sm" onClick={() => nudge(0, -1)} aria-label="上へ少し動かす">
-                  ↑ 上
-                </Button>
-                <Button size="sm" onClick={() => nudge(0, 1)} aria-label="下へ少し動かす">
-                  ↓ 下
-                </Button>
-                <Button size="sm" onClick={() => nudge(1, 0)} aria-label="右へ少し動かす">
-                  → 右
-                </Button>
-              </div>
-            </fieldset>
-            <details className="st-span2 st-more-opt">
-              <summary>英字の名前（空でよい・自動で付けます）</summary>
-              {cur.isNew ? (
-                <TextField
-                  label="英字の名前"
-                  value={cur.id}
-                  maxLength={40}
-                  placeholder="空なら place-5 のように自動"
-                  hint="a〜z・数字・- だけ。あとで変えられません"
-                  onChange={(e) => update({ id: e.target.value })}
-                />
-              ) : (
-                <p className="st-muted">{cur.id}（あとから変えられません）</p>
-              )}
-            </details>
-            <div className="st-row st-span2">
-              <Button type="submit" variant="primary" pending={pending}>
-                保存
-              </Button>
-              <ConfirmDialog
-                title={cur.isNew ? `「${delName}」を消しますか？` : `「${delName}」のピンを消しますか？`}
-                confirmLabel="消す"
-                triggerLabel="このピンを消す"
-                triggerIcon="消す"
-                onConfirm={remove}
-              >
-                {cur.isNew ? "まだ保存していないピンです。" : "元に戻せません。"}
-                {counts[cur.id] ? `このピンには ${counts[cur.id]} 店がつながっています。消すと、そのお店の場所は「未定」になります。` : ""}
-              </ConfirmDialog>
-            </div>
-            {error && (
-              <p className="st-err st-span2" role="alert">
-                {error}
-              </p>
-            )}
-          </form>
-        </Card>
-      )}
 
       <FloorsCard
         areas={areas}
@@ -451,17 +507,33 @@ function FloorsCard({
           save();
         }}
       >
-        <TextField label="建物の名前" value={building} maxLength={20} onChange={(e) => setBuilding(e.target.value)} placeholder="例：知育館" />
+        <TextField
+          label="建物の名前"
+          value={building}
+          maxLength={20}
+          onChange={(e) => setBuilding(e.target.value)}
+          placeholder="例：知育館"
+          hint="外の地図の建物のピンと同じ名前にします（ピンを押すと、このフロアへ移れます）。変えたときは、建物のピンの名前も直してください"
+        />
         <TextField label="階" value={floor} maxLength={12} onChange={(e) => setFloor(e.target.value)} placeholder="例：2階" />
         <TextField label="並び順（小さいほど前）" type="number" inputMode="numeric" min={0} max={9999} value={order} onChange={(e) => setOrder(Number(e.target.value) || 0)} />
         <div className="st-row st-span2">
           <Button type="submit" variant="primary" pending={pending}>
             {current ? "フロアを保存" : "フロアを足す"}
           </Button>
-          {current && (
-            <ConfirmDialog title={`「${areaName(current)}」を消しますか？`} confirmLabel="消す" triggerLabel="このフロアを消す" triggerIcon="消す" onConfirm={remove}>
-              {n ? `このフロアにはピンが ${n} 個あります。先にピンを消すか、ほかのフロアへ移してください（このままでは消せません）。` : "元に戻せません。"}
-            </ConfirmDialog>
+          {current &&
+            (n ? (
+              // ピンのあるフロアは消せない（API も断る）。確認の小窓は出さず、押せないボタンと理由だけ
+              <Button variant="danger" icon="消す" disabled title={`ピンが ${n} 個あるので消せません`}>
+                このフロアを消す
+              </Button>
+            ) : (
+              <ConfirmDialog title={`「${areaName(current)}」を消しますか？`} confirmLabel="消す" triggerLabel="このフロアを消す" triggerIcon="消す" onConfirm={remove}>
+                元に戻せません。
+              </ConfirmDialog>
+            ))}
+          {current && n > 0 && (
+            <p className="st-muted st-span2">このフロアにはピンが {n} 個あるので、消せません。消すときは、先にピンを消すか、ほかのフロアへ移してください。</p>
           )}
         </div>
         <p className="st-saved st-span2" role="status" aria-live="polite">

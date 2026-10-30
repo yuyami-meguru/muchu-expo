@@ -6,8 +6,12 @@ import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { send } from "../_lib/client";
 
-/** 実行委員・先生の合言葉の欄。［見る］で入れた文字を確かめられる（大文字・小文字、全角・半角のまちがいに気づけるように） */
-export function LoginForm() {
+/**
+ * 実行委員・先生の合言葉の欄。［見る］で入れた文字を確かめられる（大文字・小文字、全角・半角のまちがいに気づけるように）。
+ *  - 入口（/staff/login）：入れたら next（なければ /staff）へ
+ *  - 画面の上の帯（ログインが切れたとき）：onDone を渡す。ページは移らない（書きかけを消さないため）
+ */
+export function LoginForm({ next = "/staff", onDone, compact = false }: { next?: string; onDone?: () => void; compact?: boolean }) {
   const router = useRouter();
   const inputId = `pass${useId()}`;
   const [error, setError] = useState("");
@@ -15,20 +19,27 @@ export function LoginForm() {
   const [show, setShow] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const pass = String(new FormData(e.currentTarget).get("pass") ?? "");
+    const form = e.currentTarget;
+    const pass = String(new FormData(form).get("pass") ?? "");
     if (!pass.trim()) return setError("合言葉を入れてください");
     setPending(true);
     setError("");
     const r = await send("/api/staff/login", "POST", { pass });
     if (!r.ok) {
       setPending(false);
-      return setError(r.error);
+      return setError(r.unsure ? "返事が来ませんでした。電波のよい所で、もう一度ためしてください" : r.error);
     }
-    router.replace("/staff");
+    if (onDone) {
+      setPending(false);
+      form.reset();
+      setShow(false);
+      return onDone();
+    }
+    router.replace(next);
     router.refresh();
   }
   return (
-    <form className="lg-form" onSubmit={submit} noValidate>
+    <form className={compact ? "lg-form lg-form--compact" : "lg-form"} onSubmit={submit} noValidate>
       <div className="ui-field">
         <label className="ui-label" htmlFor={inputId}>
           合言葉
@@ -61,8 +72,8 @@ export function LoginForm() {
           </p>
         )}
       </div>
-      <Button type="submit" variant="primary" size="lg" block pending={pending}>
-        ログイン
+      <Button type="submit" variant="primary" size={compact ? "md" : "lg"} block={!compact} pending={pending}>
+        {compact ? "入り直す" : "ログイン"}
       </Button>
     </form>
   );

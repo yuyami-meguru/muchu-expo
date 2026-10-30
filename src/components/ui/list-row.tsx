@@ -30,6 +30,7 @@ export function ListRow({
   trailing,
   chevron,
   action,
+  newTab,
   className,
 }: {
   title: ReactNode;
@@ -49,6 +50,8 @@ export function ListRow({
   action?: ReactNode;
   /** 右端に「>」を出す */
   chevron?: boolean;
+  /** href を新しいタブで開く（お客さんの画面など。いまの画面は閉じない） */
+  newTab?: boolean;
   className?: string;
 }) {
   const lead = icon ? (
@@ -87,5 +90,15 @@ export function ListRow({
   );
 
   const cls = cx("ui-row", unread && "ui-row--unread", action ? "ui-row--action" : undefined, className);
+  if (href && newTab) {
+    return (
+      <li>
+        <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+          {content}
+          <span className="sr-only">（新しいタブで開きます）</span>
+        </a>
+      </li>
+    );
+  }
   return <li>{href ? <Link href={href} className={cls}>{content}</Link> : <div className={cls}>{content}</div>}</li>;
 }

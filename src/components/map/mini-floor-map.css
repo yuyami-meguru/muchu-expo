@@ -1,0 +1,23 @@
+/* お店のページ用の小さな見取り図（mini-floor-map.tsx）。字は出さず、その場所だけ部門の色で塗る */
+.mx-mini {
+  --mm-line: #2f5287;
+  --mm-room: #ffffff;
+  --mm-hall: #f6f8fc;
+  --mm-fixed: #e7ebf2;
+  margin: 10px 0 0; max-width: 420px;
+}
+@media screen and (prefers-color-scheme: dark) {
+  .mx-mini { --mm-line: #93b4e6; --mm-room: #182747; --mm-hall: #1c2a4a; --mm-fixed: #26314a; }
+}
+.mx-mini .mm-svg { display: block; width: 100%; height: auto; border-radius: var(--r-md); background: var(--surface); border: 2px solid var(--line); }
+.mx-mini .mm-hall { fill: var(--mm-hall); stroke: var(--mm-line); stroke-width: 12; stroke-linejoin: round; }
+.mx-mini .mm-room { fill: var(--mm-room); stroke: var(--mm-line); stroke-width: 12; }
+.mx-mini .mm-fixed { fill: var(--mm-fixed); stroke: color-mix(in srgb, var(--mm-line) 55%, transparent); stroke-width: 8; }
+/* その場所：部門の色（無ければ紫）で塗り、濃い線でふちどる */
+.mx-mini .mm-here { fill: var(--c, var(--accent)); stroke: var(--ink); stroke-width: 28; stroke-linejoin: round; }
+.mx-mini .mm-here--pin { stroke: var(--surface); stroke-width: 36; }
+.mx-mini-link { display: block; border-radius: var(--r-md); }
+.mx-mini-link:hover .mm-svg { border-color: var(--ink-3); }
+@media print {
+  .mx-mini .mm-svg, .mx-mini .mm-here { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

@@ -24,6 +24,8 @@ export function BottomTabs({ items, overflow, active, label = "メニュー" }: 
                 {(i.dot || !!i.count) && <span className="ui-dot shell-tab-dot" aria-hidden="true" />}
               </span>
               <span className="shell-tab-label">{i.short ?? i.label}</span>
+              {/* 短い名前のときは、読み上げでページの名前も伝える（例：「予定（タイムテーブル）」） */}
+              {i.short && i.short !== i.label && <span className="sr-only">（{i.label}）</span>}
               {!!i.count && <span className="sr-only">（{i.count} 件）</span>}
               {i.dot && !i.count && <span className="sr-only">（新しいものがあります）</span>}
             </>

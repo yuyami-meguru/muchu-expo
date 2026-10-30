@@ -1,14 +1,18 @@
 /* アンケートの集計（sr-）。棒の色は 1 色：明るい画面 #23784a・暗い画面 #4aa86c（dataviz の validate_palette で確認ずみ） */
 .sr { --bar: #23784a; }
-@media (prefers-color-scheme: dark) { .sr { --bar: #4aa86c; } }
+@media screen and (prefers-color-scheme: dark) { .sr { --bar: #4aa86c; } }
 .sr-top { display: grid; gap: 12px; }
 @media (min-width: 860px) { .sr-top { grid-template-columns: auto 1fr; align-items: stretch; } }
-.sr-stat { display: flex; align-items: baseline; gap: 8px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 22px; }
+.sr-stat { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 22px; }
+/* 「同じ端末の回答を 1 つに数えると N 件」（数の下に） */
+.sr-stat-alt { flex-basis: 100%; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+.sr-stat-alt strong { font-variant-numeric: tabular-nums; }
 .sr-stat-l { font-weight: 700; color: var(--ink-2); }
 .sr-stat-v { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
 .sr-stat-u { font-weight: 700; color: var(--ink-2); }
 .sr-tools { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 14px 18px; }
 .sr-state { margin: 0 0 8px; }
+.sr-before { display: block; font-size: 0.82rem; font-weight: 700; color: var(--ink-2); }
 .sr-on { color: var(--ok-ink); }
 .sr-off { color: var(--ng-ink); }
 .sr-tool-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -30,6 +34,8 @@
 .sr-bars tr:hover .sr-bar { filter: brightness(1.15); }
 .sr-n { padding-left: 10px !important; white-space: nowrap; text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--ink); }
 .sr-n small { display: inline-block; min-width: 3.2em; margin-left: 6px; font-weight: 500; color: var(--ink-3); }
+/* 「端末で 3」（同じ端末の回答を 1 つに数えた数。ちがうときだけ） */
+.sr-n small.sr-alt { display: block; min-width: 0; margin: 0; font-size: 0.72rem; font-weight: 700; color: var(--ink-2); }
 /* 狭い画面：名前を棒の上に（切らずに全部出す） */
 @media (max-width: 560px) {
   .sr-bars, .sr-bars tbody { display: block; }
