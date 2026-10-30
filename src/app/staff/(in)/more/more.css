@@ -1,0 +1,5 @@
+/* 「その他」（/staff/more）。狭い画面（320px）でも画面の名前と説明を途中で切らず、折り返して全部見せる */
+.st-more-rows .ui-row-title { white-space: normal; overflow: visible; text-overflow: clip; line-break: strict; }
+.st-more-rows .ui-row-sub { display: block; overflow: visible; -webkit-line-clamp: none; line-clamp: none; line-break: strict; }
+/* ひとまとまりの言葉（「ポスター」など）は、その中で折り返さない */
+.st-phrase { display: inline-block; }

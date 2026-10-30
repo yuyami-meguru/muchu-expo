@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { usePhase } from "@/components/live/live-provider";
 import { EVENT } from "@/lib/venue";
 
 function daysLeft() {
@@ -10,19 +11,22 @@ function daysLeft() {
 }
 const noop = () => () => {};
 
-/** 開催日までの日数（日本時間の日付で数える）。サーバーと画面で日付がずれないよう、画面で数える */
+/**
+ * 表紙の札。開催前は開催日までの日数、当日の朝は「まもなく開場」、10:00〜14:00 は「開催中」、14:00 からは「ありがとうございました」。
+ * いつかは表示の時期（usePhase）で決める。日数だけは、サーバーと画面で日付がずれないよう画面で数える
+ */
 export function Countdown() {
+  const phase = usePhase();
   const days = useSyncExternalStore(noop, daysLeft, () => null);
-  if (days === null) return <span className="cd-n">…</span>;
-  if (days > 0)
+  if (phase === "after")
     return (
       <>
-        <span className="cd-l">開催まで あと</span>
-        <span className="cd-n">{days}</span>
-        <span className="cd-u">日</span>
+        <span className="cd-l">ご来場</span>
+        <span className="cd-n cd-today">感謝！</span>
+        <span className="cd-u">ありがとうございました</span>
       </>
     );
-  if (days === 0)
+  if (phase === "during")
     return (
       <>
         <span className="cd-l">本日</span>
@@ -30,11 +34,19 @@ export function Countdown() {
         <span className="cd-u">{EVENT.hours}</span>
       </>
     );
+  if (phase === "morning" || (days !== null && days <= 0))
+    return (
+      <>
+        <span className="cd-n cd-today">まもなく開場</span>
+        <span className="cd-u">（10:00〜）</span>
+      </>
+    );
+  if (days === null) return <span className="cd-n">…</span>;
   return (
     <>
-      <span className="cd-l">ご来場</span>
-      <span className="cd-n cd-today">感謝！</span>
-      <span className="cd-u">ありがとうございました</span>
+      <span className="cd-l">開催まで あと</span>
+      <span className="cd-n">{days}</span>
+      <span className="cd-u">日</span>
     </>
   );
 }

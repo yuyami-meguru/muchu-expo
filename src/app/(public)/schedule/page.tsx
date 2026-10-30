@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LiveShopBadges } from "@/components/live/live-parts";
+import { allSchedule } from "@/lib/schedule";
 import { loadAll } from "@/lib/store";
-import { deptLookup } from "@/lib/types";
-import { minutesOf } from "@/lib/schedule";
 import { EVENT } from "@/lib/venue";
-import { NowMark } from "./now-mark";
+import { ScheduleList } from "./schedule-list";
 import "./schedule.css";
 
 export const metadata: Metadata = { title: "タイムテーブル" };
 
-/** 全部のお店の「当日の流れ」を時刻の順に 1 本にまとめる */
+/** 全部のお店の「当日の流れ」を時刻の順に 1 本にまとめる（お店の状態の札は出さない。時刻の表に集中する） */
 export default async function SchedulePage() {
   const { shops, depts } = await loadAll();
-  const dept = deptLookup(depts);
-  const rows = shops
-    .filter((s) => !s.hidden)
-    .flatMap((s) => s.schedule.map((x) => ({ shop: s, time: x.time, text: x.text, min: minutesOf(x.time) })));
-  const timed = rows.filter((r) => r.min !== null).sort((a, b) => a.min! - b.min! || a.shop.order - b.shop.order);
-  const other = rows.filter((r) => r.min === null);
+  const { timed, other } = allSchedule(shops, depts);
 
   return (
     <div className="sc-wrap">
@@ -30,37 +23,21 @@ export default async function SchedulePage() {
         </p>
       </header>
 
-      {timed.length === 0 && other.length === 0 && <p className="sc-empty">時間の決まった出し物は、まだありません。決まり次第ここに出ます。</p>}
+      {timed.length === 0 && other.length === 0 && <p className="sc-empty">時刻の決まった出し物は、まだありません。決まりしだいお知らせします。</p>}
 
-      {timed.length > 0 && (
-        <ol className="sc-list">
-          {timed.map((r, i) => (
-            <li key={i} className={`tone-${dept(r.shop.dept).color}`} data-min={r.min!}>
-              <NowMark min={r.min!} next={timed[i + 1]?.min ?? null} />
-              <span className="sc-time">{r.time}</span>
-              <Link href={`/shops/${r.shop.id}`} className="sc-body">
-                <span className="sc-text">{r.text}</span>
-                <span className="sc-shop">
-                  {dept(r.shop.dept).short} ・ {r.shop.name}
-                </span>
-                <LiveShopBadges shopId={r.shop.id} />
-              </Link>
-            </li>
-          ))}
-        </ol>
-      )}
+      {timed.length > 0 && <ScheduleList rows={timed} />}
 
       {other.length > 0 && (
         <section className="sc-other" aria-labelledby="sc-other-h">
-          <h2 id="sc-other-h">時刻がまだのもの・一日中</h2>
+          <h2 id="sc-other-h">時刻が決まっていないもの・一日じゅう開いているもの</h2>
           <ul className="sc-list">
             {other.map((r, i) => (
-              <li key={i} className={`tone-${dept(r.shop.dept).color}`}>
+              <li key={i} className={`tone-${r.color}`}>
                 <span className="sc-time">{r.time || "—"}</span>
-                <Link href={`/shops/${r.shop.id}`} className="sc-body">
+                <Link href={`/shops/${r.shopId}`} className="sc-body">
                   <span className="sc-text">{r.text}</span>
                   <span className="sc-shop">
-                    {dept(r.shop.dept).short} ・ {r.shop.name}
+                    {r.deptShort} ・ {r.shopName}
                   </span>
                 </Link>
               </li>

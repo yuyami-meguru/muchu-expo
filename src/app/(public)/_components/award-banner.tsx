@@ -1,24 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { useLive } from "@/components/live/live-provider";
 import { Sprite } from "@/components/pixel/sprites";
 
 /**
- * ホームに置く「夢中アワード 発表！」の帯。発表がオンのときだけ出す（オフなら何も出さない）。
- * データは呼ぶ側で getSetting("award") → parseAward して渡す
+ * ホームに置く「夢中アワード 発表！」の帯。発表したとき（受賞のお店があって発表がオン＝live.awardOn）だけ出す。
+ * 15 秒ごとの「いまの様子」で変わるので、ホームを開いたままの人にも出る。名前（title）は呼ぶ側で設定から渡す
  */
-export function AwardBanner({ published, title }: { published: boolean; title: string }) {
-  if (!published) return null;
+export function AwardBanner({ title }: { title: string }) {
+  if (!useLive().awardOn) return null;
   return (
-    <section className="aw-banner-wrap" aria-label={`${title}の発表`}>
-      <Link href="/award" className="aw-banner">
-        <Sprite name="trophy" size={44} />
-        <span>
-          <strong>{title} 発表！</strong>
-          <small>選ばれた「夢中」を見る</small>
-        </span>
-        <span className="aw-banner-go" aria-hidden="true">
-          ▶
-        </span>
-      </Link>
-    </section>
+    <Link href="/award" className="aw-banner">
+      <Sprite name="trophy" size={44} />
+      <span>
+        <strong>{title} 発表！</strong>
+        <small>選ばれた「夢中」を見る</small>
+      </span>
+      <span className="aw-banner-go" aria-hidden="true">
+        ▶
+      </span>
+    </Link>
   );
 }

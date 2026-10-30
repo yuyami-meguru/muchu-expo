@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch, TextArea, TextField } from "@/components/ui/field";
 import type { AwardSetting } from "@/app/(public)/award/award-data";
 import { savedAt, send } from "../../_lib/client";
+import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
 
 type ShopChoice = { id: string; name: string; dept: string; color: string };
 
@@ -29,8 +31,13 @@ export function AwardEditor({
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [asking, setAsking] = useState(false);
   const shopOf = useMemo(() => new Map(shops.map((s) => [s.id, s])), [shops]);
   const ranking = useMemo(() => [...shops].sort((x, y) => (counts[y.id] ?? 0) - (counts[x.id] ?? 0)), [shops, counts]);
+  // 受賞のお店が 1 つもないうちは、発表できない（お客さんの画面が空になるため）
+  const winners = a.awards.reduce((n, x) => n + x.winners.length, 0);
+  const cannotPublish = !a.published && winners === 0;
+  useUnsavedGuard(dirty);
 
   const change = (next: AwardSetting) => {
     setA(next);
@@ -68,10 +75,11 @@ export function AwardEditor({
     router.refresh();
   }
 
-  async function togglePublish() {
-    const next = { ...a, published: !a.published };
-    if (next.published && !window.confirm("お客さんのページに受賞を出します。発表しますか？")) return;
-    await save(next);
+  /** スイッチ：オンにするときは確かめてから（いまの内容もいっしょに保存する）。オフはすぐ */
+  function togglePublish() {
+    if (a.published) return save({ ...a, published: false });
+    if (cannotPublish) return;
+    setAsking(true);
   }
 
   return (
@@ -81,11 +89,22 @@ export function AwardEditor({
           <h2>発表</h2>
           <Switch
             label={a.published ? "発表しています（お客さんに見えています）" : "まだ発表していません"}
-            hint="オンにすると、お客さんの「アワード」のページとホームに受賞が出ます"
+            hint={cannotPublish ? "受賞のお店を 1 つ以上入れると発表できます" : "オンにすると、お客さんの「アワード」のページとホームに受賞が出ます"}
             checked={a.published}
             onChange={togglePublish}
-            disabled={!ready || pending}
+            disabled={!ready || pending || cannotPublish}
           />
+          <ConfirmDialog
+            title="受賞を発表しますか？"
+            tone="primary"
+            icon="星"
+            confirmLabel="発表する"
+            open={asking}
+            onOpenChange={setAsking}
+            onConfirm={() => save({ ...a, published: true })}
+          >
+            いまの内容を保存して、お客さんの「アワード」のページとホームに受賞を出します。あとからオフに戻せます。
+          </ConfirmDialog>
           <div className="aw-ed-grid">
             <TextField label="アワードの名前" value={a.title} maxLength={20} onChange={(e) => change({ ...a, title: e.target.value })} />
             <TextField
@@ -152,21 +171,21 @@ export function AwardEditor({
                     .filter((s) => !chosen.has(s.id))
                     .map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.dept} ・ {s.name}（印象に残った {counts[s.id] ?? 0}）
+                        {s.dept} ・ {s.name}（アンケート {counts[s.id] ?? 0} 票）
                       </option>
                     ))}
                 </select>
               </label>
               <div className="aw-ed-foot">
-                <Button
-                  variant="danger"
-                  icon="消す"
-                  onClick={() => {
-                    if (window.confirm(`「${aw.name || `賞 ${i + 1}`}」を消しますか？（保存するまで残ります）`)) change({ ...a, awards: a.awards.filter((_, x) => x !== i) });
-                  }}
+                <ConfirmDialog
+                  title={`「${aw.name || `賞 ${i + 1}`}」を消しますか？`}
+                  confirmLabel="消す"
+                  triggerLabel="この賞を消す"
+                  triggerIcon="消す"
+                  onConfirm={() => change({ ...a, awards: a.awards.filter((_, x) => x !== i) })}
                 >
-                  この賞を消す
-                </Button>
+                  受賞のお店と講評もいっしょに消えます。下の「保存する」を押すまでは、お客さんの画面に残ります。
+                </ConfirmDialog>
               </div>
             </section>
           );

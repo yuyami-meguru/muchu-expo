@@ -14,14 +14,17 @@
   --ink-2: #434a74;
   --ink-3: #565d86;
   --line: #9fcdee;
-  --primary: #23784a;
+  /* 入力欄・スイッチの「オフ」の枠（白の上で 4.5:1。--line は飾りの線用で、入力欄には薄すぎる） */
+  --field-line: #4f7aa6;
+  /* 主の緑と日付の紫は、水色の地の上でも 4.5:1 を超える濃さ（2026-10-30 の見直しで少し濃くした） */
+  --primary: #1d6b41;
   --primary-soft: #dcf2e4;
   --on-primary: #ffffff;
   --accent: #5d4fdc;
   /* 題字（パンフの緑のドット文字）と日付（紫） */
   --title: #5fbe85;
   --title-edge: #276b45;
-  --date: #5d4fdc;
+  --date: #4c3ec9;
   --pixel-shadow: #8fc3e8;
   --ok: #2f7a22;
   --ok-soft: #e3f2dc;
@@ -34,18 +37,18 @@
   --line-green: #06c755;
   --on-line: #ffffff;
   --navy: #1f2547;
-  /* 部門の色見本（文字にも使える濃さ） */
+  /* 部門の色見本（文字にも使える濃さ。水色の地・自分の淡い色の上で 4.5:1 以上） */
   --blue: #1f4fb0;
   --blue-soft: #e3ebfb;
-  --orange: #c64d0c;
+  --orange: #a8420a;
   --orange-soft: #fde3cf;
-  --red: #b8321f;
+  --red: #ab2e1c;
   --red-soft: #fbe3de;
   --purple: #6a43a8;
   --purple-soft: #eee6fa;
-  --green: #2f7a22;
+  --green: #276b1b;
   --green-soft: #e3f2dc;
-  --teal: #0b7068;
+  --teal: #096760;
   --teal-soft: #dcf2ef;
   --pink: #b02a68;
   --pink-soft: #fbe2ee;
@@ -114,6 +117,7 @@
     --ink-2: #bfcbe6;
     --ink-3: #a3b0cf;
     --line: #2f4370;
+    --field-line: #7b93c4;
     --primary: #7fd6a2;
     --primary-soft: #193a2c;
     --on-primary: #0f1a33;
@@ -159,6 +163,11 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* キーボードで選んだ所が、上の帯・下のタブの裏に隠れないように */
+html {
+  scroll-padding-top: 72px;
+  scroll-padding-bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+}
 /* 「文字を大きく」を押した人（お年寄り向け） */
 html.big { font-size: 118%; }
 body {

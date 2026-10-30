@@ -1,11 +1,13 @@
 import { fail, guarded, ok } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { loadCalls, loadMemo, loadMemoAcks } from "@/lib/ops-server";
-import { loadAll } from "@/lib/store";
+import { loadCalls, loadMemoAck, loadMemoAcks, loadStaffOps } from "@/lib/ops-server";
+import { getShop, loadAll } from "@/lib/store";
 import type { AdminLive, ShopLive, StaffLiveShop } from "@/lib/ops";
+import type { Shop } from "@/lib/types";
 
 /*
- * 従業員側の画面が 10 秒ごとに読む「いまの様子」（キャッシュしない・いつも最新）。
+ * 従業員側の画面が 15 秒ごとに読む「いまの様子」（CDN にはためない）。
+ * 当日は 20 台ほどが読み続けるので、読む量を小さくする（お店の人は自分のお店だけ。実行委員は 2 秒の使い回しを使う）。
  *  - 実行委員：全部のお店（非表示のお店も）・呼び出し・お店の人への連絡と読んだ印
  *  - お店の人：自分のお店・自分の呼び出し・お店の人への連絡（読んだかどうか）
  * 別のスマホや実行委員が変えた売り切れも、これで画面に入る。
@@ -14,20 +16,15 @@ export async function GET() {
   return guarded(async () => {
     const s = await getSession();
     if (!s) return fail(401, "ログインが切れました。お店の人はお店の QR を、実行委員は合言葉で入り直してください");
-    const [data, memo] = await Promise.all([loadAll({ fresh: true }), loadMemo()]);
-    const pick = (id: string): StaffLiveShop | null => {
-      const x = data.shops.find((shop) => shop.id === id);
-      return x
-        ? { state: x.state, notice: x.notice, stock: Object.fromEntries(x.menu.map((m) => [m.id, m.stock])), hidden: x.hidden, updatedAt: x.updatedAt }
-        : null;
-    };
+    const pick = (x: Shop | null | undefined): StaffLiveShop | null =>
+      x ? { state: x.state, notice: x.notice, noticeAt: x.noticeAt, stock: Object.fromEntries(x.menu.map((m) => [m.id, m.stock])), hidden: x.hidden, updatedAt: x.updatedAt } : null;
     if (s.role === "admin") {
-      const [calls, acks] = await Promise.all([loadCalls(), loadMemoAcks()]);
-      const body: AdminLive = { at: Date.now(), shops: Object.fromEntries(data.shops.map((x) => [x.id, pick(x.id)!])), calls, memo, acks };
+      const [data, { memo }, calls, acks] = await Promise.all([loadAll(), loadStaffOps(), loadCalls(), loadMemoAcks()]);
+      const body: AdminLive = { at: Date.now(), shops: Object.fromEntries(data.shops.map((x) => [x.id, pick(x)!])), calls, memo, acks };
       return ok(body);
     }
-    const [calls, acks] = await Promise.all([loadCalls(s.shop), loadMemoAcks()]);
-    const body: ShopLive = { at: Date.now(), shop: pick(s.shop), calls, memo, acked: !!memo && acks[s.shop] === memo.id };
+    const [shop, { memo }, calls, ack] = await Promise.all([getShop(s.shop, { fresh: true }), loadStaffOps(), loadCalls(s.shop), loadMemoAck(s.shop)]);
+    const body: ShopLive = { at: Date.now(), shop: pick(shop), calls, memo, acked: !!memo && ack === memo.id };
     return ok(body);
   });
 }

@@ -3,48 +3,56 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TextField } from "@/components/ui/field";
 import { TONES, type Dept, type Tone } from "@/lib/types";
 import { savedAt, send } from "../../_lib/client";
+import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
 
 type Draft = Dept & { isNew?: boolean; dirty?: boolean };
 
-/** 部門の一覧。1 つずつカードで直して「保存」。並び順は ↑↓ で（押すとすぐ保存） */
+const bodyOf = (d: Dept) => ({ name: d.name.trim(), short: d.short.trim(), tagline: d.tagline.trim(), color: d.color, order: d.order });
+
+/** 部門の一覧。1 つずつカードで直して「保存」。並び順は ↑↓ で（押すとすぐ保存。並び順だけが変わり、書きかけの名前・色は送らない） */
 export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsIn: Record<string, string[]> }) {
   const router = useRouter();
   const [list, setList] = useState<Draft[]>(initial);
+  // 保存してある値（↑↓ では、これに並び順だけを変えて送る）
+  const [saved, setSaved] = useState<Record<string, Dept>>(() => Object.fromEntries(initial.map((d) => [d.id, d])));
   const [msg, setMsg] = useState("");
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  useUnsavedGuard(list.some((d) => d.dirty));
 
   const update = (id: string, patch: Partial<Draft>) => setList((l) => l.map((d) => (d.id === id ? { ...d, ...patch, dirty: true } : d)));
-  const body = (d: Draft) => ({ name: d.name.trim(), short: d.short.trim(), tagline: d.tagline.trim(), color: d.color, order: d.order });
 
   async function save(d: Draft) {
     if (!d.name.trim()) return setError({ id: d.id, text: "部門の名前を入れてください" });
     if (!d.short.trim()) return setError({ id: d.id, text: "短い名前（カードや地図に出る 8 文字まで）を入れてください" });
     setPending(d.id);
     setError(null);
-    const r = await send(`/api/staff/depts/${d.id}`, "PUT", body(d));
+    const body = bodyOf(d);
+    const r = await send(`/api/staff/depts/${d.id}`, "PUT", body);
     setPending(null);
     if (!r.ok) return setError({ id: d.id, text: r.error });
     setList((l) => l.map((x) => (x.id === d.id ? { ...x, isNew: false, dirty: false } : x)));
+    setSaved((s) => ({ ...s, [d.id]: { id: d.id, ...body } }));
     setMsg(`「${d.name}」を${savedAt()}`);
     router.refresh();
   }
 
   async function remove(d: Draft) {
     if (!d.isNew) {
-      if (!window.confirm(`「${d.name}」を消しますか？`)) return;
       const r = await send(`/api/staff/depts/${d.id}`, "DELETE");
       if (!r.ok) return setError({ id: d.id, text: r.error });
+      setSaved((s) => Object.fromEntries(Object.entries(s).filter(([id]) => id !== d.id)));
     }
     setList((l) => l.filter((x) => x.id !== d.id));
-    setMsg(`「${d.name || "新しい部門"}」を消しました`);
+    setMsg(`「${(d.isNew ? d.name : saved[d.id]?.name) || "新しい部門"}」を消しました`);
     router.refresh();
   }
 
-  /** ↑↓：並び順を 10・20・30… に付け直して、変わった部門だけ保存する */
+  /** ↑↓：並び順を 10・20・30… に付け直して、変わった部門の並び順だけを保存する（名前・色などは保存してある値のまま） */
   async function move(i: number, dir: -1 | 1) {
     const j = i + dir;
     if (j < 0 || j >= list.length) return;
@@ -53,11 +61,18 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
     const renum = next.map((d, k) => ({ ...d, order: (k + 1) * 10 }));
     setList(renum);
     setError(null);
-    const changed = renum.filter((d) => !d.isNew && d.order !== list.find((x) => x.id === d.id)?.order);
+    const changed = renum.filter((d) => !d.isNew && saved[d.id] && d.order !== saved[d.id].order);
+    setPending("move");
     for (const d of changed) {
-      const r = await send(`/api/staff/depts/${d.id}`, "PUT", body(d));
-      if (!r.ok) return setError({ id: d.id, text: r.error });
+      const s = { ...saved[d.id], order: d.order };
+      const r = await send(`/api/staff/depts/${d.id}`, "PUT", bodyOf(s));
+      if (!r.ok) {
+        setPending(null);
+        return setError({ id: d.id, text: r.error });
+      }
+      setSaved((all) => ({ ...all, [d.id]: s }));
     }
+    setPending(null);
     setMsg(`並び順を${savedAt()}`);
     router.refresh();
   }
@@ -80,6 +95,7 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
       <ol className="st-depts">
         {list.map((d, i) => {
           const shops = shopsIn[d.id] ?? [];
+          const name = (d.isNew ? d.name : saved[d.id]?.name) || "新しい部門";
           return (
             <li key={d.id} className={`st-dept-card tone-${d.color}`}>
               <div className="st-dept-top">
@@ -119,16 +135,23 @@ export function DeptsEditor({ depts: initial, shopsIn }: { depts: Dept[]; shopsI
                   <Button type="submit" variant={d.dirty ? "primary" : "secondary"} pending={pending === d.id}>
                     保存
                   </Button>
-                  <Button
-                    variant="danger"
-                    icon="消す"
-                    disabled={shops.length > 0}
-                    onClick={() => remove(d)}
-                    title={shops.length ? "お店が入っている部門は消せません。先に「お店の情報」で別の部門へ移してください" : undefined}
-                  >
-                    この部門を消す
-                  </Button>
+                  {shops.length > 0 ? (
+                    <Button variant="danger" icon="消す" disabled title="お店が入っている部門は消せません。先に「お店の情報」で別の部門へ移してください">
+                      この部門を消す
+                    </Button>
+                  ) : (
+                    <ConfirmDialog
+                      title={`「${name}」を消しますか？`}
+                      confirmLabel="消す"
+                      triggerLabel="この部門を消す"
+                      triggerIcon="消す"
+                      onConfirm={() => remove(d)}
+                    >
+                      {d.isNew ? "まだ保存していない部門です。" : "元に戻せません。"}
+                    </ConfirmDialog>
+                  )}
                   {shops.length > 0 && <span className="st-muted">お店を別の部門へ移すと消せます</span>}
+                  {d.dirty && !d.isNew && <span className="st-muted">まだ保存していない変更があります</span>}
                 </div>
                 {error?.id === d.id && (
                   <p className="st-err st-span2" role="alert">

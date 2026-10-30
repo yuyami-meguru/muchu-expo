@@ -10,57 +10,93 @@
 @media (max-width: 1023px) {
   .mx-pub .shell-pfoot { padding-bottom: calc(40px + var(--tabbar-h) + env(safe-area-inset-bottom)); }
 }
+/* 上の帯のロゴと「文字を大きく」は px で決める（大きくしても 320px に収まるように。縮むのはロゴの側） */
+.mx-pub .shell-ptop .mx-logo { font-size: clamp(16px, 5.4vw, 20px); min-height: var(--tap); flex: 0 1 auto; min-width: 0; }
+@media (max-width: 400px) { .mx-pub .shell-ptop-inner { gap: 8px; padding-left: 12px; padding-right: 12px; } }
 .mx-textsize {
-  font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--ink); cursor: pointer; white-space: nowrap;
-  background: var(--surface); border: 2px solid var(--ink); border-radius: var(--r-pill); padding: 0.3rem 0.9rem; min-height: var(--tap);
+  flex: none; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.2;
+  color: var(--ink); cursor: pointer; white-space: nowrap; background: var(--surface); border: 2px solid var(--ink); border-radius: var(--r-pill);
+  padding: 0 12px; min-height: var(--tap);
+}
+.mx-textsize-box {
+  display: inline-grid; place-items: center; width: 16px; height: 16px; border: 2px solid currentColor; border-radius: 4px;
+  font-size: 12px; line-height: 1; font-weight: 900;
 }
 .mx-textsize[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-@media (max-width: 360px) { .mx-textsize { font-size: 0.7rem; padding: 0.3rem 0.6rem; } }
+/* いちばん下の帯：押す所は 44px */
+.mx-pub .shell-pfoot-line a { display: inline-flex; align-items: center; min-height: var(--tap); }
+.mx-pub .shell-pfoot .mx-logo { min-height: var(--tap); }
+
+/* ドット文字の題字：32px より小さいときは、ふちを細く・影を短く（字がつぶれないように） */
+@media (max-width: 459px) {
+  .hm-h2.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1, .rd-h1.px-title {
+    text-shadow: 1px 0 var(--title-edge), -1px 0 var(--title-edge), 0 1px var(--title-edge), 0 -1px var(--title-edge), 2px 2px 0 var(--title-edge);
+  }
+}
+
+/* ───── 全体の帯（components/live/live-parts.tsx の SiteAlertBar）。上の帯のすぐ下、本文を押し下げる ───── */
+.mx-alert { border-bottom: 3px solid var(--al-line); background: var(--al-bg); color: var(--al-ink); }
+.mx-alert--info { --al-bg: var(--blue-soft); --al-ink: var(--ink); --al-line: var(--blue); --al-tag: var(--blue); }
+.mx-alert--rain { --al-bg: var(--warn-soft); --al-ink: var(--ink); --al-line: var(--warn); --al-tag: var(--warn); }
+.mx-alert--urgent { --al-bg: var(--ng-soft); --al-ink: var(--ng-ink); --al-line: var(--ng); --al-tag: var(--ng); }
+.mx-alert-in { max-width: var(--content-max); margin: 0 auto; padding: 10px 16px; display: flex; gap: 10px; align-items: flex-start; }
+.mx-alert-tag {
+  flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: var(--r-sm);
+  background: var(--al-tag); color: var(--on-primary); font-weight: 900; font-size: 0.9rem; line-height: 1.2; margin-top: 1px;
+}
+.mx-alert-text { margin: 0; font-weight: 900; line-height: 1.6; min-width: 0; }
+.mx-alert-text time { display: inline-block; margin-left: 8px; font-size: 0.8rem; font-weight: 700; opacity: 0.85; }
+.mx-alert--urgent .mx-alert-text { font-size: 1.05rem; }
+
+/* 電波が弱いときの帯（components/live/signal-banner.tsx）。1 行で、本文を押し下げる */
+.mx-signal { margin: 0; padding: 6px 16px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--warn-soft); color: var(--ink); border-bottom: 2px solid var(--warn); font-size: 0.9rem; font-weight: 900; line-height: 1.4; text-align: center; }
+/* 狭い画面でも 1 行に収める */
+@media (max-width: 374px) { .mx-signal { padding: 6px 8px; font-size: 0.82rem; } .mx-signal > span { display: none; } }
 
 /* ───── いまの様子（components/live/live-parts.tsx）。どのページでも使う ───── */
 .mx-board { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--shadow-card); padding: 16px; }
 .mx-news { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
-.mx-news li { display: flex; gap: 12px; align-items: baseline; background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
+.mx-news li { display: flex; flex-direction: column; gap: 2px; background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
 .mx-news li.mx-news--pin { background: var(--ink); color: var(--bg); }
-.mx-news time { font-size: 0.8rem; opacity: 0.8; flex: none; }
-.mx-soldout { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mx-news time { font-size: 0.8rem; opacity: 0.85; }
+.mx-board-wait { margin: 4px 0 0; padding: 12px 14px; border-radius: var(--r-md); border: 2px dashed var(--line); font-weight: 900; line-height: 1.6; }
+.mx-soldout { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 @media (min-width: 760px) { .mx-soldout { grid-template-columns: 1fr 1fr; } }
-.mx-soldout a { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; border-radius: var(--r-md); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.mx-soldout a {
+  display: flex; flex-direction: column; gap: 4px; min-height: 52px; height: 100%; padding: 10px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--line); color: var(--ink); text-decoration: none; word-break: auto-phrase;
+}
 .mx-soldout a:hover { border-color: var(--primary); }
-.mx-soldout-item { font-weight: 900; }
-.mx-soldout-shop { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); text-align: right; }
+.mx-soldout-shop { font-weight: 900; font-size: 1.05rem; line-height: 1.4; }
+.mx-soldout-shop::after { content: " ▶"; font-size: 0.75em; color: var(--ink-3); }
+.mx-soldout-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-weight: 700; line-height: 1.5; }
+.mx-soldout-line .ui-badge { flex: none; }
+.mx-soldout-line > span:last-child { min-width: 0; }
 .mx-board-empty { margin: 4px 0 8px; font-weight: 700; color: var(--ok-ink); }
-.mx-clock { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.75rem; color: var(--ink-3); }
+.mx-board-more { display: inline-flex; align-items: center; min-height: var(--tap); margin-top: 8px; font-weight: 900; }
+.mx-clock { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.75rem; color: var(--ink-3); }
 .mx-clock-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: hm-blink 2s ease-in-out infinite; }
 @keyframes hm-blink { 50% { opacity: 0.3; } }
 
+/* お客さん側の札は少し大きく・太く（12px の細字は読みにくい） */
 .mx-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.mx-pub .mx-badges .ui-badge, .mx-pub .sd-menu .ui-badge, .mx-pub .mx-soldout .ui-badge { font-size: 0.875rem; font-weight: 700; white-space: normal; }
 /* お店からのお知らせ（詳細・一覧でも使う） */
-.mx-notice { display: flex; gap: 10px; align-items: baseline; margin: 8px 0 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--taiken-soft); font-weight: 700; }
-.mx-notice-k { flex: none; font-size: 0.72rem; color: var(--taiken); }
+.mx-notice { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; margin: 8px 0 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--blue-soft); font-weight: 700; }
+.mx-notice-k { flex: none; font-size: 0.75rem; font-weight: 900; color: var(--blue); }
 
 /* 学校のロゴ（下の帯）。札にのせず、白一色の版を帯の中に */
-.mx-school { display: block; width: fit-content; max-width: calc(100% - 40px); margin: 28px auto 0; opacity: 0.92; }
+.mx-school { display: flex; align-items: center; min-height: var(--tap); width: fit-content; max-width: calc(100% - 40px); margin: 28px auto 0; opacity: 0.92; }
 .mx-school:hover { opacity: 1; }
 .mx-school img { display: block; width: min(380px, 100%); height: auto; }
 
-/* 電波が弱いときの帯（components/live/signal-banner.tsx）。上の帯のすぐ下に重ねる */
-.mx-signal {
-  position: fixed; z-index: 45; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 62px);
-  margin: 0; display: flex; align-items: center; gap: 6px; width: max-content; max-width: calc(100% - 24px);
-  padding: 6px 14px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn); border: 2px solid var(--warn);
-  font-size: 0.85rem; font-weight: 900; box-shadow: var(--shadow-pop);
-}
-@media (min-width: 1024px) { .mx-signal { top: calc(env(safe-area-inset-top) + 76px); } }
-
-/* 夢中アワードの発表の帯（_components/award-banner.tsx。発表オンのときだけ） */
-.aw-banner-wrap { max-width: var(--content-max); margin: 0 auto; padding: 16px 16px 0; }
+/* 夢中アワードの発表の帯（_components/award-banner.tsx。発表したときだけ） */
 .aw-banner {
   display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: var(--r-card); text-decoration: none;
   background: #f7d03a; color: #1f2547; border: 3px solid #1f2547; box-shadow: 0 5px 0 #1f2547;
 }
 .aw-banner svg { flex: none; }
-.aw-banner span:not(.aw-banner-go) { flex: 1; display: flex; flex-direction: column; }
+.aw-banner span:not(.aw-banner-go) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .aw-banner strong { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; line-height: 1.3; }
 .aw-banner small { font-weight: 700; }
 .aw-banner-go { font-size: 1.2rem; }
@@ -76,3 +112,9 @@
 .mx-onair-k { flex: none; font-family: var(--font-display); color: #ff6b5a; letter-spacing: 0.08em; }
 .mx-onair-t { flex: 1; min-width: 0; font-weight: 900; line-height: 1.4; overflow-wrap: anywhere; }
 .mx-onair-go { flex: none; color: #a3b0cf; }
+
+/* 不具合の画面（error.tsx） */
+.mx-error { min-height: 60vh; display: grid; place-items: center; padding: 40px 16px; text-align: center; }
+.mx-error h1 { font-size: clamp(1.6rem, 7vw, 2.4rem); margin: 16px 0 8px; }
+.mx-error p { color: var(--ink-2); }
+.mx-error-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }

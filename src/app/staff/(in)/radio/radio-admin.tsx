@@ -1,82 +1,183 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MSG_KINDS, type ProgramRow, type RadioMsg, type RadioState } from "@/lib/radio";
-import { savedAt, send } from "../../_lib/client";
+import { clock, send } from "../../_lib/client";
+import { clockNow } from "../ops-live";
+import { ResultLine, type Result } from "../ops-result";
 
-const fmt = (at: number) => new Date(at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" });
+type Where = "air" | "prog" | "msg";
 
-export function RadioAdmin({ state: initial, messages, readIds: initialRead, ready }: { state: RadioState; messages: RadioMsg[]; readIds: string[]; ready: boolean }) {
-  const router = useRouter();
-  const [state, setState] = useState(initial);
-  const [now, setNow] = useState(initial.now);
-  const [program, setProgram] = useState<ProgramRow[]>(initial.program);
-  const [read, setRead] = useState(new Set(initialRead));
+/**
+ * 校内ラジオ（実行委員だけ）。ON AIR・いまの内容・番組表・届いたメッセージ。
+ * 15 秒ごとに読み直す（ほかの実行委員が ON AIR にした・新しいメッセージが届いた、が入る）。
+ * 書きかけの「いまの内容」と番組表は、読み直しで上書きしない。押した結果は、押した箱の中に出す。
+ */
+export function RadioAdmin({ state: first, messages: firstMsgs, readIds, ready }: { state: RadioState; messages: RadioMsg[]; readIds: string[]; ready: boolean }) {
+  const [state, setState] = useState(first);
+  const [messages, setMessages] = useState(firstMsgs);
+  const [read, setRead] = useState(() => new Set(readIds));
+  /** ページを開いたときにあったメッセージ（これ以外は「新しい」） */
+  const [known] = useState(() => new Set(firstMsgs.map((m) => m.id)));
+  const [now, setNow] = useState(first.now);
+  const [nowDirty, setNowDirty] = useState(false);
+  const [program, setProgram] = useState<ProgramRow[]>(first.program);
+  const [progDirty, setProgDirty] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [hideRead, setHideRead] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<Where | null>(null);
+  const [result, setResult] = useState<Partial<Record<Where, Result>>>({});
+  const [markErr, setMarkErr] = useState<{ id: string; text: string } | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  /** 変えた回数。読み込みを始めたあとに変えていたら、その読み込みは古いので使わない */
+  const changes = useRef(0);
 
-  async function put(patch: Partial<RadioState>, label: string) {
-    setBusy(label);
-    setError("");
-    const r = await send<{ state: RadioState }>("/api/staff/radio", "PUT", patch);
-    setBusy(null);
-    if (!r.ok) return setError(r.error);
-    setState(r.state);
-    setMsg(`${label}を${savedAt()}`);
+  // 読み直した状態が届いたら、書きかけでない欄だけ入れかえる
+  const [seen, setSeen] = useState(first);
+  if (seen !== state) {
+    setSeen(state);
+    if (!nowDirty) setNow(state.now);
+    if (!progDirty) setProgram(state.program);
   }
 
-  async function mark(ids: string[], v: boolean) {
-    const r = await send<{ readIds: string[] }>("/api/staff/radio/read", "PUT", { ids, read: v });
-    if (!r.ok) return setError(r.error);
+  useEffect(() => {
+    let stop = false;
+    async function load() {
+      if (document.visibilityState !== "visible") return;
+      const v = changes.current;
+      try {
+        const r = await fetch("/api/staff/radio", { cache: "no-store", credentials: "same-origin" });
+        const j = (await r.json().catch(() => null)) as { ok?: boolean; state?: RadioState; messages?: RadioMsg[]; readIds?: string[] } | null;
+        if (stop || !r.ok || !j?.ok || v !== changes.current) return;
+        if (j.state) setState(j.state);
+        if (j.messages) setMessages(j.messages);
+        if (j.readIds) setRead(new Set(j.readIds));
+      } catch {
+        // 電波が弱いときは、次の読み込みで
+      }
+    }
+    const t = setInterval(load, 15_000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop = true;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  const say = (where: Where, r: Result) => setResult((p) => ({ ...p, [where]: r }));
+
+  /** 状態を変える（送った欄だけ）。done は「放送を始めました」など */
+  async function put(patch: Partial<RadioState>, where: Where, done: string) {
+    setBusy(where);
+    say(where, null);
+    changes.current++;
+    const r = await send<{ state: RadioState }>("/api/staff/radio", "PUT", patch);
+    setBusy(null);
+    if (!r.ok) {
+      say(where, { text: r.error, error: true });
+      return false;
+    }
+    changes.current++;
+    setState(r.state);
+    say(where, { text: `${done}（${clockNow()}）` });
+    return true;
+  }
+
+  async function mark(id: string, v: boolean) {
+    setMarkErr(null);
+    changes.current++;
+    setRead((p) => {
+      const next = new Set(p);
+      if (v) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+    const r = await send<{ readIds: string[] }>("/api/staff/radio/read", "PUT", { ids: [id], read: v });
+    changes.current++;
+    if (!r.ok) {
+      setRead((p) => {
+        const next = new Set(p);
+        if (v) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return setMarkErr({ id, text: r.error });
+    }
     setRead(new Set(r.readIds));
   }
 
   async function clearAll() {
-    if (!window.confirm(`届いたメッセージ ${messages.length} 通を全部消します。元に戻せません。消しますか？`)) return;
+    changes.current++;
     const r = await send("/api/staff/radio", "DELETE", { confirm: "消す" });
-    if (!r.ok) return setError(r.error);
-    setMsg("メッセージを全部消しました");
-    router.refresh();
+    changes.current++;
+    if (!r.ok) return say("msg", { text: r.error, error: true });
+    setMessages([]);
+    setRead(new Set());
+    say("msg", { text: `メッセージを全部消しました（${clockNow()}）` });
   }
 
-  const shown = useMemo(
-    () => messages.filter((m) => (filter === "all" || m.kind === filter) && (!hideRead || !read.has(m.id))),
-    [messages, filter, hideRead, read],
-  );
+  const byKind = messages.filter((m) => filter === "all" || m.kind === filter);
+  const shown = byKind.filter((m) => !hideRead || !read.has(m.id));
   const unread = messages.filter((m) => !read.has(m.id)).length;
+  const fresh = messages.filter((m) => !known.has(m.id) && !read.has(m.id)).length;
+  const empty =
+    messages.length === 0 ? "メッセージはまだありません。" : byKind.length === 0 ? "この種類のメッセージはありません。" : "読んでいないメッセージはありません。";
 
   return (
     <div className="st-stack rda">
       {!ready && <p className="st-err">保存先（Upstash）がつながっていないので、変えられません。</p>}
 
-      <section className={state.onAir ? "rda-air rda-air--on" : "rda-air"} aria-label="放送">
-        <p className="rda-air-state">
+      <section className={state.onAir ? "rda-air rda-air--on" : "rda-air"} aria-labelledby="rda-air-h">
+        <h2 id="rda-air-h" className="rda-air-state">
           <span className="rda-lamp" aria-hidden="true" />
           {state.onAir ? "ON AIR（放送中）" : "放送していません"}
-        </p>
-        <button type="button" className="rda-air-btn" disabled={!ready || !!busy} aria-pressed={state.onAir} onClick={() => put({ onAir: !state.onAir }, state.onAir ? "放送の終わり" : "放送の始まり")}>
-          {state.onAir ? "■ 放送を終える" : "● 放送を始める（ON AIR）"}
-        </button>
+        </h2>
+        {state.onAir ? (
+          <button type="button" className="rda-air-btn" disabled={!ready || !!busy} onClick={() => put({ onAir: false }, "air", "放送を終えました")}>
+            ■ 放送を終える
+          </button>
+        ) : (
+          <button type="button" className="rda-air-btn" disabled={!ready || !!busy} onClick={() => put({ onAir: true }, "air", "放送を始めました")}>
+            ● 放送を始める（ON AIR）
+          </button>
+        )}
         <form
           className="rda-now"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            put({ now: now.trim() }, "いまの内容");
+            const ok = await put({ now: now.trim() }, "air", state.onAir ? "いまの内容を画面に出しました" : "いまの内容を保存しました。放送を始めると画面に出ます");
+            if (ok) setNowDirty(false);
           }}
         >
           <label>
             <span>いま放送している内容（お客さんの画面に出る・60 字まで）</span>
-            <input type="text" value={now} maxLength={60} onChange={(e) => setNow(e.target.value)} placeholder="例：クイズ大会！ 会場の答えはメッセージで" />
+            <input
+              type="text"
+              value={now}
+              maxLength={60}
+              onChange={(e) => {
+                setNow(e.target.value);
+                setNowDirty(true);
+              }}
+              placeholder="例：クイズ大会！ 会場の答えはメッセージで"
+            />
           </label>
-          <Button type="submit" variant="secondary" pending={busy === "いまの内容"} disabled={!ready}>
-            出す
+          <Button type="submit" variant="secondary" pending={busy === "air"} disabled={!ready}>
+            画面に出す
           </Button>
         </form>
+        {fresh > 0 && (
+          <a href="#rda-msg-h" className="rda-fresh">
+            新しいメッセージが {fresh} 通届いています
+          </a>
+        )}
+        <ResultLine r={result.air ?? null} />
       </section>
 
       <section className="st-card rda-card" aria-labelledby="rda-prog-h">
@@ -85,43 +186,92 @@ export function RadioAdmin({ state: initial, messages, readIds: initialRead, rea
         <ol className="rda-prog">
           {program.map((p, i) => (
             <li key={i}>
-              <input aria-label={`${i + 1} 行目の時刻`} type="text" value={p.time} maxLength={20} placeholder="10:30" onChange={(e) => setProgram((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} />
-              <input aria-label={`${i + 1} 行目の内容`} type="text" value={p.text} maxLength={80} placeholder="オープニング・お店の紹介" onChange={(e) => setProgram((l) => l.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} />
-              <Button size="sm" variant="ghost" icon="消す" onClick={() => setProgram((l) => l.filter((_, j) => j !== i))} aria-label={`${i + 1} 行目を消す`}>
+              <input
+                aria-label={`${i + 1} 行目の時刻`}
+                type="text"
+                value={p.time}
+                maxLength={20}
+                placeholder="10:30"
+                onChange={(e) => {
+                  setProgram((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)));
+                  setProgDirty(true);
+                }}
+              />
+              <input
+                aria-label={`${i + 1} 行目の内容`}
+                type="text"
+                value={p.text}
+                maxLength={80}
+                placeholder="オープニング・お店の紹介"
+                onChange={(e) => {
+                  setProgram((l) => l.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)));
+                  setProgDirty(true);
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="消す"
+                onClick={() => {
+                  setProgram((l) => l.filter((_, j) => j !== i));
+                  setProgDirty(true);
+                }}
+                aria-label={`${i + 1} 行目を消す`}
+              >
                 消す
               </Button>
             </li>
           ))}
         </ol>
         <div className="st-row">
-          <Button size="sm" icon="足す" disabled={program.length >= 20} onClick={() => setProgram((l) => [...l, { time: "", text: "" }])}>
+          <Button
+            size="sm"
+            icon="足す"
+            disabled={program.length >= 20}
+            onClick={() => {
+              setProgram((l) => [...l, { time: "", text: "" }]);
+              setProgDirty(true);
+            }}
+          >
             行を足す
           </Button>
           <Button
             variant="primary"
-            pending={busy === "番組表"}
+            pending={busy === "prog"}
             disabled={!ready}
-            onClick={() => {
+            onClick={async () => {
               const rows = program.map((p) => ({ time: p.time.trim(), text: p.text.trim() })).filter((p) => p.text);
               setProgram(rows);
-              put({ program: rows }, "番組表");
+              if (await put({ program: rows }, "prog", "番組表を保存しました")) setProgDirty(false);
             }}
           >
             番組表を保存
           </Button>
+          {progDirty && <span className="st-muted">まだ保存していません</span>}
         </div>
+        <ResultLine r={result.prog ?? null} />
       </section>
 
       <section className="st-card rda-card" aria-labelledby="rda-msg-h">
         <div className="rda-msg-head">
           <h2 id="rda-msg-h">
             届いたメッセージ（{messages.length} 通・まだ読んでいない {unread} 通）
+            {fresh > 0 && <span className="rda-new">新しい {fresh} 通</span>}
           </h2>
-          <Button size="sm" variant={state.msgOpen ? "secondary" : "primary"} disabled={!ready || !!busy} onClick={() => put({ msgOpen: !state.msgOpen }, state.msgOpen ? "募集の停止" : "募集の開始")}>
-            {state.msgOpen ? "募集を止める" : "募集を始める"}
-          </Button>
+          {state.msgOpen ? (
+            <Button size="sm" variant="secondary" disabled={!ready || !!busy} onClick={() => put({ msgOpen: false }, "msg", "募集を止めました")}>
+              募集を止める
+            </Button>
+          ) : (
+            <Button size="sm" variant="primary" disabled={!ready || !!busy} onClick={() => put({ msgOpen: true }, "msg", "募集を始めました")}>
+              募集を始める
+            </Button>
+          )}
         </div>
-        <p className="st-muted">募集：{state.msgOpen ? "受け付けています" : "止めています"}。新しい順。読み上げたら「読んだ」を押すと、灰色になります。</p>
+        <p className="st-muted">
+          募集：{state.msgOpen ? "受け付けています" : "止めています"}。新しい順（15 秒ごとに読み直します）。読み上げたら「読んだ」を押すと、灰色になります。
+        </p>
+        <ResultLine r={result.msg ?? null} />
         <div className="rda-filter" role="group" aria-label="種類でしぼる">
           {["all", ...MSG_KINDS].map((k) => (
             <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>
@@ -140,36 +290,37 @@ export function RadioAdmin({ state: initial, messages, readIds: initialRead, rea
               return (
                 <li key={m.id} className={isRead ? "rda-msg rda-msg--read" : "rda-msg"}>
                   <p className="rda-msg-meta">
+                    {!known.has(m.id) && !isRead && <span className="rda-new">新しい</span>}
                     <span className="rda-kind">{m.kind}</span>
-                    {fmt(m.at)}
+                    {clock(m.at)}
                     {m.name ? ` ・ ${m.name}` : " ・ （ラジオネームなし）"}
                   </p>
                   <p className="rda-msg-text">{m.text}</p>
-                  <Button size="sm" variant={isRead ? "ghost" : "secondary"} onClick={() => mark([m.id], !isRead)}>
-                    {isRead ? "読んでいないに戻す" : "✓ 読んだ"}
+                  <Button size="sm" variant={isRead ? "ghost" : "secondary"} disabled={!ready} onClick={() => mark(m.id, !isRead)}>
+                    {isRead ? "「読んだ」を取り消す" : "✓ 読んだ"}
                   </Button>
+                  {markErr?.id === m.id && (
+                    <p className="ops-result ops-result--ng" role="alert">
+                      {markErr.text}
+                    </p>
+                  )}
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="st-muted">メッセージはまだありません。</p>
+          <p className="st-muted">{empty}</p>
         )}
         <div className="st-row rda-danger">
-          <Button variant="danger" icon="消す" disabled={!ready || messages.length === 0} onClick={clearAll}>
+          <Button variant="danger" icon="消す" disabled={!ready || messages.length === 0} onClick={() => setClearOpen(true)} aria-haspopup="dialog">
             メッセージを全部消す
           </Button>
         </div>
       </section>
 
-      <p className="st-saved" role="status" aria-live="polite">
-        {msg}
-      </p>
-      {error && (
-        <p className="st-err" role="alert">
-          {error}
-        </p>
-      )}
+      <ConfirmDialog title={`届いたメッセージ ${messages.length} 通を全部消しますか？`} confirmLabel="全部消す" open={clearOpen} onOpenChange={setClearOpen} onConfirm={clearAll}>
+        元に戻せません。前日の練習のあとや、試しのメッセージを消すときに使います。
+      </ConfirmDialog>
     </div>
   );
 }

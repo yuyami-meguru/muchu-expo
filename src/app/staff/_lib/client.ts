@@ -3,6 +3,9 @@
 // 従業員側の画面から API を呼ぶ。失敗したら、サーバーが返した日本語（error）をそのまま返す。
 export type SendResult<T = Record<string, unknown>> = ({ ok: true } & T) | { ok: false; error: string };
 
+/** 電波で送れなかったときの文（画面の側で「電波のせいか」を見分けるのにも使う） */
+export const NO_SIGNAL_ERROR = "電波が届かず、送れませんでした（まだ保存されていません）。電波のよい所で、もう一度押してください";
+
 /** 電波が弱いとき、いつまでも「送信中」にならないよう、この時間で打ち切る */
 const TIMEOUT_MS = 10_000;
 
@@ -21,7 +24,7 @@ export async function send<T = Record<string, unknown>>(url: string, method: "PO
     if (!res.ok || !json?.ok) return { ok: false, error: json?.error ?? `うまくいきませんでした（${res.status}）。もう一度ためすか、実行委員に知らせてください` };
     return json as { ok: true } & T;
   } catch {
-    return { ok: false, error: "電波が届かず、送れませんでした（まだ保存されていません）。電波のよい所で、もう一度押してください" };
+    return { ok: false, error: NO_SIGNAL_ERROR };
   } finally {
     clearTimeout(timer);
   }

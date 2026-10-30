@@ -21,7 +21,8 @@ export default async function StaffShopEditPage({ params }: PageProps<"/staff/sh
         title={shop.name}
         sub="変えたら、いちばん下の「保存」を押してください"
         actions={
-          <Button href={`/shops/${shop.id}`} variant="secondary" size="sm" icon="外へ">
+          // 新しいタブで開く（書きかけの入力を消さないため）
+          <Button href={`/shops/${shop.id}`} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm" icon="外へ">
             お客さんの画面
           </Button>
         }

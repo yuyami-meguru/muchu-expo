@@ -1,13 +1,33 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import { Icon } from "@/components/icons";
 import { PageHeader } from "@/components/ui/card";
 import { ListRow, RowList } from "@/components/ui/list-row";
 import { ADMIN_GROUPS } from "@/components/shell";
+import { AppVersion } from "@/components/shell/app-version";
 import { adminOnly } from "../_components/admin-only";
+import "./more.css";
 
 export const metadata: Metadata = { title: "その他" };
 
-/** スマホの下のメニューに入りきらない画面（AVERIX の「その他」と同じ形） */
+/**
+ * 名前だけでは分かりにくい画面に、ここでだけ分かりやすい名前と説明を付ける（メニューの定義は nav-items.ts）。
+ * 狭い画面で「ポスタ／ー」のように言葉の途中で折り返さないよう、ひとまとまりごとに分けておく
+ */
+const PLAIN: Record<string, { title: string[]; sub: string[] }> = {
+  qr: { title: ["お店の人に配る", " QR"], sub: ["売り切れを変える用・", "会場に貼らない"] },
+  posters: { title: ["会場に貼る", "ポスター"], sub: ["お客さんが読む", " QR コード"] },
+};
+/** 「 QR」のように先頭が空白のまとまりは、空白をまとまりの外に出す（中の先頭の空白は消えてしまうため） */
+const phrases = (parts: string[]) =>
+  parts.map((p) => (
+    <Fragment key={p}>
+      {p.startsWith(" ") && " "}
+      <span className="st-phrase">{p.trimStart()}</span>
+    </Fragment>
+  ));
+
+/** スマホの下のメニューに入りきらない画面（AVERIX の「その他」と同じ形）。名前は途中で切らずに折り返す */
 export default async function StaffMorePage() {
   await adminOnly();
   return (
@@ -18,9 +38,16 @@ export default async function StaffMorePage() {
           <h2 className="st-muted" style={{ fontSize: "0.85rem" }}>
             {g.label}
           </h2>
-          <RowList>
+          <RowList className="st-more-rows">
             {g.items.map((i) => (
-              <ListRow key={i.key} title={i.label} href={i.href} icon={i.icon} chevron />
+              <ListRow
+                key={i.key}
+                title={PLAIN[i.key] ? phrases(PLAIN[i.key].title) : i.label}
+                sub={PLAIN[i.key] && phrases(PLAIN[i.key].sub)}
+                href={i.href}
+                icon={i.icon}
+                chevron
+              />
             ))}
           </RowList>
         </section>
@@ -28,6 +55,7 @@ export default async function StaffMorePage() {
       <p className="st-muted">
         <Icon name="情報" size={16} /> ログアウトは、各画面のいちばん下にあります
       </p>
+      <AppVersion className="shell-version--menu" />
     </div>
   );
 }

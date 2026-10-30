@@ -12,6 +12,8 @@
  *  - /api/status：通信を先に。3 秒待っても返事がない・5xx なら、最後に保存したもの
  *  - 従業員側（/staff・/join）のページ：保存しない。通信できないときだけ /offline-staff.html（何をすればよいかの案内）
  *  - /api/staff、/api/survey、/api/radio、POST などの書き込み：さわらない（そのまま通す）
+ *  - 入れたとき：下のタブの 5 ページを先に保存（開いたことがなくても、電波のない所で見られるように）
+ *  - 画面の中で移ったページ（RSC）はページそのものが保存されないので、画面（sw-register.tsx）から URL を受け取って保存する
  */
 const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
 const PAGES = `muchu-pages-${VERSION}`;
@@ -27,15 +29,49 @@ const ASSET = /^\/(_next\/static\/|brand\/|img\/|icon\.svg|apple-icon|favicon|op
 const STAFF_PAGE = /^\/(staff|join)(\/|$)/;
 // 絶対にさわらないもの
 const NEVER = /^\/(api\/staff|api\/survey|api\/radio)(\/|$|\?)/;
+// 下のタブのページ（入れたときに先に保存する）
+const TAB_PAGES = ["/", "/shops", "/schedule", "/map", "/info"];
+// 画面から頼まれたページは、保存がこれより新しければ取りに行かない（人が多い日に、同じページを何度もサーバーへ取りに行かないように）
+const KEEP_FRESH_MS = 10 * 60 * 1000;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(PAGES)
-      .then((c) => c.addAll([new Request(OFFLINE_URL, { cache: "reload" }), new Request(OFFLINE_STAFF_URL, { cache: "reload" })]))
+      .then((c) =>
+        c
+          .addAll([new Request(OFFLINE_URL, { cache: "reload" }), new Request(OFFLINE_STAFF_URL, { cache: "reload" })])
+          // 1 つ取れなくても止めない（入れかわりは続ける）
+          .then(() => Promise.allSettled(TAB_PAGES.map((p) => keepPage(c, p)))),
+      )
       .then(() => self.skipWaiting()),
   );
 });
+
+// 画面から「いまのページを保存して」と頼まれたとき（sw-register.tsx）
+self.addEventListener("message", (event) => {
+  const d = event.data;
+  if (!d || d.type !== "keep-page" || typeof d.url !== "string") return;
+  const url = new URL(d.url, self.location.origin);
+  if (url.origin !== self.location.origin || !PUBLIC_PAGE.test(url.pathname)) return;
+  event.waitUntil(keepFresh(url.pathname).catch(() => {}));
+});
+
+/** ページを取りに行って保存する（保存の名前は ? を付けない URL。通信を先に、の保存と同じ） */
+async function keepPage(cache, path) {
+  const url = new URL(path, self.location.origin).toString();
+  const res = await fetch(new Request(url, { cache: "no-store", credentials: "same-origin" }));
+  if (res.ok && !res.redirected) await cache.put(new Request(url), res);
+}
+
+/** 保存が無いか古いときだけ取りに行く */
+async function keepFresh(path) {
+  const c = await caches.open(PAGES);
+  const hit = await c.match(new URL(path, self.location.origin).toString());
+  const age = hit ? Date.now() - Date.parse(hit.headers.get("date") || "") : Infinity;
+  if (age < KEEP_FRESH_MS) return;
+  await keepPage(c, path);
+}
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(

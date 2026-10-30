@@ -8,11 +8,23 @@ import { z } from "zod";
 
 export const WHO_GROUPS = [
   { label: "エンカレ関係者", options: ["卒業生", "保護者", "兄弟姉妹", "親戚", "関係者（その他）"] },
-  { label: "関係者以外", options: ["小学生", "中学生", "高校生", "大学生", "社会人"] },
+  { label: "関係者以外", options: ["小学生", "中学生", "高校生", "大学生", "社会人", "地域の方", "その他"] },
 ] as const;
 export const WHO = WHO_GROUPS.flatMap((g) => g.options) as readonly string[];
 
 export const HOW = ["在校生", "卒業生", "保護者", "知人", "このサイト", "チラシ", "パンフレット", "Instagram", "学校見学"] as const;
+/** 画面に出す言い方（保存する値は HOW のまま。人の名前だけだと「自分のこと」を選ぶ問いと読みまちがえるため） */
+export const HOW_LABEL: Record<(typeof HOW)[number], string> = {
+  在校生: "在校生から聞いた",
+  卒業生: "卒業生から聞いた",
+  保護者: "保護者から聞いた",
+  知人: "知り合いから聞いた",
+  このサイト: "このサイト",
+  チラシ: "チラシ",
+  パンフレット: "パンフレット",
+  Instagram: "Instagram",
+  学校見学: "学校見学・説明会",
+};
 export const TRANSPORT = ["無料送迎バス", "路線バス", "車", "自転車", "徒歩"] as const;
 
 const t = (max: number) => z.string().trim().max(max);

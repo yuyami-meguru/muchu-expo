@@ -6,46 +6,46 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Select, TextArea, TextField } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  KIND_LABEL,
-  STATE_LABEL,
-  STOCK_LABEL,
-  type Dept,
-  type Kind,
-  type MenuItem,
-  type Place,
-  type ScheduleItem,
-  type Shop,
-  type ShopState,
-  type Stock,
-} from "@/lib/types";
-import { savedAt, send, slug } from "../../../_lib/client";
+import { KIND_LABEL, STATE_LABEL, type Dept, type Kind, type MenuItem, type Place, type ScheduleItem, type Shop, type ShopState } from "@/lib/types";
+import { savedAt, send } from "../../../_lib/client";
+import { useUnsavedGuard } from "./use-unsaved-guard";
 
-const ID_RE = /^[a-z0-9-]{1,40}$/;
+/** 保存で送る欄（品物の残りは送らない。残りは「いまの様子」「お店の情報」の一覧で変える） */
+const KEYS = ["name", "dept", "kind", "catch", "description", "message", "placeId", "placeNote", "hidden", "order", "state", "notice", "menu", "schedule"] as const;
+type Key = (typeof KEYS)[number];
 
-/** 品物の英字の名前（空なら m1, m2 … のうち使われていないもの） */
-function menuIds(menu: MenuItem[]): MenuItem[] {
-  const used = new Set<string>();
-  return menu.map((m) => {
-    let id = slug(m.id);
-    if (!ID_RE.test(id) || used.has(id)) {
-      let n = 1;
-      while (used.has(`m${n}`) || menu.some((x) => x.id === `m${n}` && x !== m)) n++;
-      id = `m${n}`;
-    }
-    used.add(id);
-    return { ...m, id };
-  });
+/** 品物は名前・値段・ひとこと説明と並びだけを比べる（残りは比べない） */
+const menuSig = (menu: MenuItem[]) => JSON.stringify(menu.map((m) => [m.id, m.name, m.price, m.note]));
+const scheduleSig = (list: ScheduleItem[]) => JSON.stringify(list.map((s) => [s.time, s.text]));
+function same(k: Key, a: Shop, b: Shop) {
+  if (k === "menu") return menuSig(a.menu) === menuSig(b.menu);
+  if (k === "schedule") return scheduleSig(a.schedule) === scheduleSig(b.schedule);
+  return a[k] === b[k];
 }
 
-/** 実行委員の、お店をまるごと編集する画面 */
+let seq = 0;
+/** 新しい品物の英字の名前。消した品物や、お店の人が同じころ足した品物と重ならないよう、時刻から作る（例 m-mhd2k3x81） */
+function newItemId() {
+  seq += 1;
+  return `m-${Date.now().toString(36)}${seq}`;
+}
+
+/** 実行委員の、お店をまるごと編集する画面。保存では、開いた時から変えた欄だけを送る（お店の人があとで変えた売り切れ・お知らせなどを戻さない） */
 export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[]; depts: Dept[] }) {
   const router = useRouter();
+  // base：開いた時（保存したあとは保存した時）の値。f：いま画面で直している値
+  const [base, setBase] = useState(shop);
   const [f, setF] = useState(shop);
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
-  const set = <K extends keyof Shop>(k: K, v: Shop[K]) => setF((x) => ({ ...x, [k]: v }));
+  const changed = KEYS.filter((k) => !same(k, base, f));
+  useUnsavedGuard(changed.length > 0);
+
+  const set = <K extends keyof Shop>(k: K, v: Shop[K]) => {
+    setF((x) => ({ ...x, [k]: v }));
+    setMsg("");
+  };
   const setItem = (i: number, patch: Partial<MenuItem>) => set("menu", f.menu.map((m, j) => (j === i ? { ...m, ...patch } : m)));
   const setStep = (i: number, patch: Partial<ScheduleItem>) => set("schedule", f.schedule.map((m, j) => (j === i ? { ...m, ...patch } : m)));
 
@@ -53,28 +53,27 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
     if (!f.name.trim()) return setError("お店の名前を入れてください");
     if (f.menu.some((m) => !m.name.trim())) return setError("名前が空の品物があります。入れるか、消してください");
     if (f.schedule.some((s) => !s.text.trim())) return setError("中身が空の「当日の流れ」があります。入れるか、消してください");
-    const menu = menuIds(f.menu);
+    if (!changed.length) {
+      setError("");
+      return setMsg("変えたところはありません");
+    }
+    const body: Record<string, unknown> = {};
+    for (const k of changed) {
+      body[k] = k === "menu" ? f.menu.map(({ id, name, price, note }) => ({ id, name, price, note })) : f[k];
+    }
+    const sent = f;
     setPending(true);
     setError("");
-    const r = await send<{ shop: Shop }>(`/api/staff/shops/${shop.id}`, "PATCH", {
-      name: f.name,
-      dept: f.dept,
-      kind: f.kind,
-      catch: f.catch,
-      description: f.description,
-      message: f.message,
-      placeId: f.placeId,
-      placeNote: f.placeNote,
-      hidden: f.hidden,
-      order: f.order,
-      state: f.state,
-      notice: f.notice,
-      menu,
-      schedule: f.schedule,
-    });
+    const r = await send<{ shop: Shop }>(`/api/staff/shops/${shop.id}`, "PATCH", body);
     setPending(false);
     if (!r.ok) return setError(r.error);
-    setF(r.shop);
+    // 答えのお店（いちばん新しい値。ほかの人の変更も入っている）に合わせる。送っている間に打った文字は残す
+    setBase(r.shop);
+    setF((cur) => {
+      const next: Shop = { ...r.shop };
+      for (const k of KEYS) if (!same(k, cur, sent)) Object.assign(next, { [k]: cur[k] });
+      return next;
+    });
     setMsg(savedAt());
     router.refresh();
   }
@@ -111,11 +110,12 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
             value={f.state}
             onChange={(e) => set("state", e.target.value as ShopState)}
             options={(Object.keys(STATE_LABEL) as ShopState[]).map((k) => ({ value: k, label: STATE_LABEL[k] }))}
+            hint="変えたときだけ保存されます（お店の人も自分で変えられます）"
           />
           <TextField label="並べる順（小さいほど前）" type="number" inputMode="numeric" min={0} max={9999} value={f.order} onChange={(e) => set("order", Math.max(0, Math.min(9999, Number(e.target.value) || 0)))} />
-          <TextArea className="st-span2" label="くわしい説明" value={f.description} maxLength={600} rows={4} onChange={(e) => set("description", e.target.value)} hint={`${f.description.length}/600 字`} />
+          <TextArea className="st-span2" label="どんなお店？" value={f.description} maxLength={600} rows={4} onChange={(e) => set("description", e.target.value)} hint={`${f.description.length}/600 字`} />
           <TextArea className="st-span2" label="お店の思い" value={f.message} maxLength={600} rows={4} onChange={(e) => set("message", e.target.value)} hint={`お店の人の言葉をそのまま。名前は書かない（${f.message.length}/600 字）`} />
-          <TextField className="st-span2" label="お客さんへのお知らせ" value={f.notice} maxLength={120} onChange={(e) => set("notice", e.target.value)} hint="お店の人も自分で変えられます" />
+          <TextField className="st-span2" label="お客さんへのお知らせ" value={f.notice} maxLength={120} onChange={(e) => set("notice", e.target.value)} hint="変えたときだけ保存されます（お店の人も自分で変えられます）" />
           <div className="st-span2">
             <Checkbox label="お客さんの画面に出さない（非表示）" hint="中身ができるまで隠しておくとき" checked={f.hidden} onChange={(e) => set("hidden", e.target.checked)} />
           </div>
@@ -136,21 +136,16 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
       </Card>
 
       <Card title={`メニューと値段（${f.menu.length}）`}>
+        <p className="st-muted">売り切れ・残りわずかは「いまの様子」か「お店の情報」の一覧で変えます（ここで保存しても変わりません）。</p>
         <div className="st-rows">
           {f.menu.map((m, i) => (
-            <div key={i} className="st-rowbox">
+            <div key={m.id} className="st-rowbox">
               <div className="st-rowbox-grid">
                 <TextField label="品物の名前" value={m.name} maxLength={40} onChange={(e) => setItem(i, { name: e.target.value })} />
                 <TextField label="値段" value={m.price} maxLength={30} placeholder="例：300円" onChange={(e) => setItem(i, { price: e.target.value })} />
-                <TextField label="ひとこと" value={m.note} maxLength={60} onChange={(e) => setItem(i, { note: e.target.value })} />
+                <TextField label="ひとこと説明（お客さんに見えます）" value={m.note} maxLength={60} onChange={(e) => setItem(i, { note: e.target.value })} />
               </div>
               <div className="st-row">
-                <Select
-                  label="いまの残り"
-                  value={m.stock}
-                  onChange={(e) => setItem(i, { stock: e.target.value as Stock })}
-                  options={(Object.keys(STOCK_LABEL) as Stock[]).map((k) => ({ value: k, label: STOCK_LABEL[k] }))}
-                />
                 <span className="st-grow" />
                 <Button variant="ghost" size="sm" icon="上げる" disabled={i === 0} onClick={() => set("menu", swap(f.menu, i, i - 1))}>
                   上へ
@@ -161,7 +156,7 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
               </div>
             </div>
           ))}
-          <Button icon="足す" onClick={() => set("menu", [...f.menu, { id: "", name: "", price: "", note: "", stock: "on" }])}>
+          <Button icon="足す" onClick={() => set("menu", [...f.menu, { id: newItemId(), name: "", price: "", note: "", stock: "on" }])}>
             品物を足す
           </Button>
         </div>
@@ -204,7 +199,7 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
           保存
         </Button>
         <span className="st-saved" role="status" aria-live="polite">
-          {msg}
+          {changed.length ? "まだ保存していない変更があります" : msg}
         </span>
         {error && (
           <p className="st-err st-grow" role="alert">

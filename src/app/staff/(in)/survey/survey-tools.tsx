@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useRef, useState, useTransition } from "react";
+import { Icon } from "@/components/icons";
 import { Button, buttonClass } from "@/components/ui/button";
+import { TextField } from "@/components/ui/field";
 import { send } from "../../_lib/client";
 
 /** 受付のオン・オフ、表（CSV）で保存、回答を全部消す */
@@ -20,7 +22,6 @@ export function SurveyTools({ open, total, ready }: { open: boolean; total: numb
   }
 
   async function clearAll() {
-    if (!window.confirm(`回答 ${total} 件を全部消します。元に戻せません。先に「表で保存」しておくと安心です。消しますか？`)) return;
     setBusy(true);
     const r = await send("/api/staff/survey", "DELETE", { confirm: "消す" });
     setBusy(false);
@@ -41,14 +42,91 @@ export function SurveyTools({ open, total, ready }: { open: boolean; total: numb
         <a href="/api/staff/survey" download className={buttonClass({ variant: "secondary" })}>
           表（CSV）で保存
         </a>
-        <Button onClick={clearAll} variant="danger" icon="消す" disabled={!ready || total === 0 || busy}>
-          回答を全部消す
-        </Button>
+        <ClearAllDialog total={total} disabled={!ready || total === 0 || busy} onConfirm={clearAll} />
       </div>
       {!ready && <p className="sr-sub">保存先（Upstash）がつながっていないので、変えられません</p>}
       <p className="sr-sub" role="status" aria-live="polite">
         {msg}
       </p>
     </div>
+  );
+}
+
+/**
+ * 回答を全部消す前の確認の小窓。「消す」と打つまで、消すボタンは押せない。
+ * 形と見た目は ConfirmDialog（components/ui/confirm-dialog.tsx）と同じ（ui-dialog）。Esc・うしろを押すと閉じる（何もしない）
+ */
+function ClearAllDialog({ total, disabled, onConfirm }: { total: number; disabled: boolean; onConfirm: () => Promise<void> }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [word, setWord] = useState("");
+  const [pending, startTransition] = useTransition();
+  const ok = word.trim() === "消す";
+  const close = () => ref.current?.close();
+  return (
+    <>
+      <Button
+        variant="danger"
+        icon="消す"
+        disabled={disabled}
+        aria-haspopup="dialog"
+        onClick={() => {
+          setWord("");
+          ref.current?.showModal();
+        }}
+      >
+        回答を全部消す
+      </Button>
+      <dialog
+        ref={ref}
+        className="ui-dialog"
+        aria-labelledby={titleId}
+        onClose={() => setWord("")}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) close();
+        }}
+      >
+        <div className="ui-dialog-inner">
+          <span className="ui-dialog-grip" aria-hidden="true" />
+          <div className="ui-dialog-head">
+            <span className="ui-dialog-mark" aria-hidden="true">
+              <Icon name="注意" size={20} />
+            </span>
+            <h2 className="ui-dialog-title" id={titleId}>
+              回答 {total} 件を全部消しますか？
+            </h2>
+          </div>
+          <div className="ui-dialog-body">
+            <p>消すと元に戻せません。先に［表（CSV）で保存］をしてください。</p>
+            <TextField
+              label="消すときは「消す」と打ってください"
+              value={word}
+              autoComplete="off"
+              enterKeyHint="done"
+              onChange={(e) => setWord(e.target.value)}
+              hint={ok ? "下の「全部消す」を押せます" : "打つまで「全部消す」は押せません"}
+            />
+          </div>
+          <div className="ui-dialog-actions">
+            <Button variant="secondary" onClick={close} autoFocus disabled={pending}>
+              やめる
+            </Button>
+            <Button
+              variant="danger"
+              disabled={!ok}
+              pending={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  await onConfirm();
+                  close();
+                })
+              }
+            >
+              全部消す
+            </Button>
+          </div>
+        </div>
+      </dialog>
+    </>
   );
 }

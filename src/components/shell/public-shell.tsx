@@ -15,16 +15,19 @@ import { MadeBy } from "./made-by";
  * パソコン（1024px 以上）：ロゴ・メニュー・文字を大きく。
  * それより狭いとき：上はロゴと「文字を大きく」だけ、メニューは画面の下に固定（アプリのように親指で押せる）。
  * いちばん下はこげ茶の帯（主催・版）。
+ * top は上の帯のすぐ下に出すもの（全体の帯・電波が弱いときの帯）。本文に重ねず、本文を下へ押す。
  */
 export function PublicShell({
   active,
   items,
   footer,
+  top,
   children,
 }: {
   active?: string;
   items: NavItem[];
   footer: FooterColumn[];
+  top?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -47,6 +50,7 @@ export function PublicShell({
           <TextSizeButton />
         </div>
       </header>
+      {top}
 
       <main id="main" className="shell-pub-main">
         {children}
@@ -63,7 +67,7 @@ export function PublicShell({
             <p className="shell-pfoot-line">{VENUE.name}</p>
             <p className="shell-pfoot-line">
               <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
-                準備の様子は Instagram（新しいタブ）
+                準備の様子は Instagram（別の画面で開きます）
               </a>
             </p>
           </div>
@@ -83,7 +87,7 @@ export function PublicShell({
         <a className="mx-school" href={EVENT.web} target="_blank" rel="noopener noreferrer">
           {/* 学校のロゴ（学校のサイトの画像を SVG に描き直したもの）。紺の帯用の版 school-logo-white.svg（マークの灰色・赤は元の色、黒だけ白） */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/school-logo-white.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ）" width={480} height={60} />
+          <img src="/brand/school-logo-white.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］（学校のサイトへ。別の画面で開きます）" width={480} height={60} />
         </a>
         <MadeBy tone="dark" />
         <p className="shell-pfoot-copy">

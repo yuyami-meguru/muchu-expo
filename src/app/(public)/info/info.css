@@ -2,22 +2,44 @@
 .if-head { padding: 32px 0 12px; }
 .if-eyebrow { margin: 0; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.22em; color: var(--primary); }
 .if-h1, .if-h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 8vw, 2.4rem); line-height: 1.25; margin: 2px 0 12px; }
+.if-access, .if-help, .if-before { scroll-margin-top: 80px; }
+.if-help, .if-before { margin-top: 40px; }
 .if-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .if-notes li { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border-radius: var(--r-lg); padding: 14px 16px; box-shadow: var(--shadow-card); }
-.if-notes h2 { margin: 0 0 2px; font-size: 1.05rem; }
+.if-notes h3 { margin: 0 0 2px; font-size: 1.05rem; }
 .if-notes p { margin: 0; }
-.if-kb { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 12px; display: grid; place-items: center; background: var(--c, var(--ink)); color: var(--bg); font-weight: 900; font-size: 1.15rem; }
-.if-access { margin-top: 40px; }
+.if-kb { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 12px; display: grid; place-items: center; background: var(--c, var(--ink)); color: var(--on-primary); font-weight: 900; font-size: 1.15rem; }
+.if-kb:not([class*="tone-"]) { color: var(--bg); }
 .if-addr { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0 0 16px; background: var(--surface); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow-card); }
 .if-addr dt { font-weight: 900; color: var(--ink-2); }
 .if-addr dd { margin: 0; font-weight: 700; }
 @media (max-width: 420px) { .if-addr { grid-template-columns: 1fr; gap: 0; } .if-addr dd { margin-bottom: 10px; } }
+/* 電話番号（押すと電話をかける。ボタンの形に） */
+.if-tel {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); margin-top: 6px; padding: 0 16px; border-radius: var(--r-pill);
+  border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; text-decoration: none; font-variant-numeric: tabular-nums;
+}
 .if-when { margin: 4px 0 20px; font-size: 1.05rem; }
 .if-card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 16px 18px; margin-bottom: 12px; }
 .if-card h3 { font-size: 1.1rem; margin-bottom: 6px; }
 .if-card p { margin: 0 0 6px; }
 .if-sub { font-weight: 900; color: var(--primary); margin-top: 10px !important; }
-.if-times { list-style: none; margin: 4px 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.if-times li { min-width: 4.2em; text-align: center; padding: 4px 10px; border-radius: var(--r-sm); background: var(--surface-2); font-weight: 900; font-variant-numeric: tabular-nums; }
+/* 送迎バスの時刻：押せる物に見えないよう、札にせず表のように並べる。当日は次の便を強く、出た便はうすく */
+.if-times { list-style: none; margin: 2px 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6em, 1fr)); gap: 2px 12px; font-size: 1.05rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.if-times li { padding: 2px 0; }
+.if-times li.is-gone { color: var(--ink-3); font-weight: 500; text-decoration: line-through; text-decoration-thickness: 1px; }
+.if-times li.is-next { color: var(--date); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; }
+.if-next { font-size: 1.05rem; font-weight: 700; margin: 4px 0 2px !important; }
+.if-next strong { font-size: 1.4rem; color: var(--date); }
 .if-note { font-size: 0.85rem; color: var(--ink-3); }
+/* 困ったときは：受付・救護・トイレのピンへ */
+.if-help-links { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.if-maplink {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-height: 52px; padding: 8px 14px; border-radius: var(--r-md);
+  border: 2px solid var(--line); color: var(--ink); text-decoration: none;
+}
+.if-maplink-k { font-size: 0.8rem; font-weight: 900; color: var(--ink-2); }
+.if-maplink-n { font-weight: 900; }
+.if-maplink-go { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; font-weight: 900; color: var(--primary); }
 .if-sns { margin-top: 16px; }
+.if-sns a { font-weight: 900; }

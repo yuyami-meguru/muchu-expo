@@ -22,7 +22,7 @@ export default async function StaffAwardPage() {
   const counts = Object.fromEntries(visible.map((s) => [s.id, (answers as SurveyAnswer[]).filter((a) => a.fav?.includes(s.id)).length]));
   return (
     <div className="st-page st-page--wide st-stack">
-      <PageHeader title="夢中アワード" sub="賞の名前・数・受賞するお店は、あとから自由に変えられます。「発表する」をオンにするまで、お客さんには見えません" />
+      <PageHeader title="夢中アワード" sub="賞の名前・数・受賞するお店は、あとから自由に変えられます。「発表」のスイッチをオンにするまで、お客さんには見えません" />
       <AwardEditor
         initial={parseAward(raw)}
         shops={visible.map((s) => ({ id: s.id, name: s.name, dept: dept(s.dept).short, color: dept(s.dept).color }))}

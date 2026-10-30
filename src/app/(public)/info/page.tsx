@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AccessMap } from "@/components/access/map-buttons";
+import { Icon } from "@/components/icons";
+import { loadAll } from "@/lib/store";
+import { PLACE_KINDS, placeKindOf, type Place, type PlaceKind } from "@/lib/types";
 import { EVENT, VENUE } from "@/lib/venue";
+import { IfSurveyOpen } from "../_components/survey-entry";
+import { BUS_FROM_SCHOOL, BUS_FROM_STATION } from "./bus";
+import { BusTimes } from "./bus-times";
 import "./info.css";
 
 export const metadata: Metadata = { title: "ご来場の方へ" };
@@ -14,10 +21,20 @@ const NOTES = [
   { k: "食", t: "食物アレルギーについて", d: "使っている材料は、お店の生徒におたずねください。", c: "tone-green" },
 ];
 
-const BUS_FROM_STATION = ["9:50", "10:20", "10:50", "11:20", "11:50", "12:20"];
-const BUS_FROM_SCHOOL = ["10:40", "11:10", "11:40", "12:10", "13:10", "13:40", "14:10"];
+/** 困ったときに案内する設備のピン（実行委員が「地図のピン」で置いたもの）の順 */
+const HELP_KINDS: PlaceKind[] = ["info", "aid", "toilet"];
+const KIND_LABEL = Object.fromEntries(PLACE_KINDS.map((k) => [k.value, k.label])) as Record<PlaceKind, string>;
 
-export default function InfoPage() {
+export default async function InfoPage() {
+  // 地図のピンが読めなくても、ご案内は出す（困ったときの「マップで見る」だけ出ない）
+  let help: Place[] = [];
+  try {
+    const { places } = await loadAll();
+    help = HELP_KINDS.flatMap((k) => places.filter((p) => placeKindOf(p) === k));
+  } catch (e) {
+    console.error("地図のピンを読めませんでした", e);
+  }
+
   return (
     <div className="if-wrap">
       <header className="if-head">
@@ -29,38 +46,19 @@ export default function InfoPage() {
           {VENUE.name}
         </p>
       </header>
-      <ul className="if-notes">
-        {NOTES.map((n) => (
-          <li key={n.k}>
-            <span className={`if-kb ${n.c}`}>{n.k}</span>
-            <div>
-              <h2>{n.t}</h2>
-              <p>{n.d}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
 
-      <section className="if-access" aria-labelledby="access-h">
+      <section className="if-access" id="access" aria-labelledby="access-h">
         <p className="if-eyebrow">ACCESS</p>
         <h2 id="access-h" className="if-h2">
-          アクセス
+          アクセス（行き方）
         </h2>
 
-        <div className="if-card">
+        <div className="if-card" id="bus">
           <h3>無料送迎バス</h3>
-          <p className="if-sub">大原駅前バス停留所（フレスタ側）発</p>
-          <ol className="if-times">
-            {BUS_FROM_STATION.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ol>
-          <p className="if-sub">{VENUE.name}発</p>
-          <ol className="if-times">
-            {BUS_FROM_SCHOOL.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ol>
+          <p className="if-sub">行き：大原駅前バス停留所（フレスタ側）発</p>
+          <BusTimes times={BUS_FROM_STATION} label="大原駅前バス停留所発の時刻" />
+          <p className="if-sub">帰り：{VENUE.name}発</p>
+          <BusTimes times={BUS_FROM_SCHOOL} label={`${VENUE.name}発の時刻`} showNext />
           <p className="if-note">天候や交通状況により、時間が前後する場合があります。</p>
         </div>
 
@@ -91,21 +89,73 @@ export default function InfoPage() {
           <dd>
             {EVENT.organizer}
             <br />
-            <a href={`tel:${EVENT.tel.replace(/-/g, "")}`}>{EVENT.tel}</a>
+            <a className="if-tel" href={`tel:${EVENT.tel.replace(/-/g, "")}`}>
+              <Icon name="電話" size={18} />
+              {EVENT.tel}
+            </a>
           </dd>
         </dl>
         <AccessMap />
-        <p className="if-sns">
-          お帰りの前に、<a href="/survey">アンケート</a>へのご協力をお願いします。
-        </p>
-        <p className="if-sns">
-          準備の様子や企画の詳細は、学校の{" "}
-          <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
-            Instagram
-          </a>{" "}
-          にも載っています。
-        </p>
       </section>
+
+      <section className="if-help" id="help" aria-labelledby="help-h">
+        <h2 id="help-h" className="if-h2">
+          困ったときは
+        </h2>
+        <div className="if-card">
+          <p>
+            迷子・落とし物・けが・体調が悪いときは、近くの生徒・先生（係）に声をかけてください。<strong>受付（本部）</strong>でもお受けします。
+          </p>
+          {help.length > 0 && (
+            <ul className="if-help-links">
+              {help.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/map?place=${p.id}`} className="if-maplink">
+                    <span className="if-maplink-k">{KIND_LABEL[placeKindOf(p)]}</span>
+                    <span className="if-maplink-n">{p.name}</span>
+                    <span className="if-maplink-go">
+                      <Icon name="地図" size={16} />
+                      マップで見る
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="if-before" aria-labelledby="notes-h">
+        <h2 id="notes-h" className="if-h2">
+          ご来場の前に
+        </h2>
+        <ul className="if-notes">
+          {NOTES.map((n) => (
+            <li key={n.k}>
+              <span className={`if-kb ${n.c}`} aria-hidden="true">
+                {n.k}
+              </span>
+              <div>
+                <h3>{n.t}</h3>
+                <p>{n.d}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <IfSurveyOpen>
+        <p className="if-sns">
+          お帰りの前に、<Link href="/survey">アンケート</Link>へのご協力をお願いします。
+        </p>
+      </IfSurveyOpen>
+      <p className="if-sns">
+        準備の様子や出し物の詳細は、学校の{" "}
+        <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
+          Instagram（別の画面で開きます）
+        </a>{" "}
+        にも載っています。
+      </p>
     </div>
   );
 }

@@ -14,6 +14,8 @@ export type NavItem = {
   count?: number;
   /** 下のメニューで、数の代わりに出す赤い点 */
   dot?: boolean;
+  /** 新しいタブで開く（お店の人の「お客さんの画面」など。いまの画面を閉じないように） */
+  newTab?: boolean;
 };
 
 export type NavGroup = { label?: string; items: NavItem[] };
@@ -24,7 +26,7 @@ export type FooterColumn = { title: string; links: { label: string; href: string
 export const PUBLIC_NAV: NavItem[] = [
   { key: "home", label: "ホーム", href: "/", icon: "ホーム" },
   { key: "shops", label: "お店・出し物", short: "お店", href: "/shops", icon: "一覧" },
-  { key: "schedule", label: "タイムテーブル", short: "時間割", href: "/schedule", icon: "時間" },
+  { key: "schedule", label: "タイムテーブル", short: "予定", href: "/schedule", icon: "時間" },
   { key: "map", label: "マップ", href: "/map", icon: "地図" },
   { key: "info", label: "ご案内", href: "/info", icon: "情報" },
 ];
@@ -43,7 +45,7 @@ export const PUBLIC_FOOTER: FooterColumn[] = [
     ],
   },
   {
-    title: "出す人へ",
+    title: "お店・実行委員の方へ",
     links: [{ label: "お店・実行委員の入口", href: "/staff" }],
   },
 ];
@@ -55,9 +57,9 @@ export const ADMIN_GROUPS: NavGroup[] = [
     label: "当日",
     items: [
       { key: "home", label: "いまの様子", href: "/staff", icon: "ホーム" },
-      { key: "news", label: "お知らせ", href: "/staff/news", icon: "お知らせ" },
+      { key: "news", label: "全体のお知らせ", short: "お知らせ", href: "/staff/news", icon: "お知らせ" },
       { key: "tools", label: "当日の道具", href: "/staff/tools", icon: "設定" },
-      { key: "radio", label: "校内ラジオ", href: "/staff/radio", icon: "お知らせ" },
+      { key: "radio", label: "校内ラジオ", short: "ラジオ", href: "/staff/radio", icon: "マイク" },
       { key: "survey", label: "アンケートの集計", href: "/staff/survey", icon: "成績" },
       { key: "award", label: "夢中アワード", href: "/staff/award", icon: "星" },
     ],
@@ -68,8 +70,8 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { key: "shops", label: "お店の情報", href: "/staff/shops", icon: "一覧" },
       { key: "depts", label: "部門", href: "/staff/depts", icon: "しぼる" },
       { key: "places", label: "地図のピン", href: "/staff/places", icon: "地図" },
-      { key: "qr", label: "お店の QR（編集用）", href: "/staff/qr", icon: "鍵" },
-      { key: "posters", label: "お客さん用ポスター", href: "/staff/posters", icon: "QR" },
+      { key: "qr", label: "お店の人に配る QR", href: "/staff/qr", icon: "鍵" },
+      { key: "posters", label: "会場に貼るポスター", href: "/staff/posters", icon: "QR" },
       { key: "log", label: "変更の記録", href: "/staff/log", icon: "直す" },
     ],
   },
@@ -79,11 +81,12 @@ export const ADMIN_GROUPS: NavGroup[] = [
   },
 ];
 
+/** スマホの下のメニュー（当日よく使う順）。地図のピンなど準備の画面は「その他」から */
 export const ADMIN_TABS: NavItem[] = [
   { key: "home", label: "いまの様子", href: "/staff", icon: "ホーム" },
-  { key: "news", label: "お知らせ", href: "/staff/news", icon: "お知らせ" },
   { key: "shops", label: "お店", href: "/staff/shops", icon: "一覧" },
-  { key: "places", label: "地図", href: "/staff/places", icon: "地図" },
+  { key: "news", label: "全体のお知らせ", short: "お知らせ", href: "/staff/news", icon: "お知らせ" },
+  { key: "radio", label: "校内ラジオ", short: "ラジオ", href: "/staff/radio", icon: "マイク" },
   { key: "more", label: "その他", href: "/staff/more", icon: "その他" },
 ];
 
@@ -91,7 +94,7 @@ export const ADMIN_TABS: NavItem[] = [
 export function shopTabs(shopId: string): NavItem[] {
   return [
     { key: "home", label: "売り切れ", href: "/staff", icon: "値札" },
-    { key: "view", label: "お客さんの画面", href: `/shops/${shopId}`, icon: "外へ" },
+    { key: "view", label: "お客さんの画面", href: `/shops/${shopId}`, icon: "外へ", newTab: true },
     { key: "help", label: "使い方", href: "/staff/help", icon: "質問" },
   ];
 }

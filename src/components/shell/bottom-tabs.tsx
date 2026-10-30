@@ -17,17 +17,30 @@ export function BottomTabs({ items, overflow, active, label = "メニュー" }: 
     <nav className="shell-tabs" aria-label={label}>
       <ul style={{ ["--tab-count" as string]: items.length }}>
         {items.map((i) => {
+          const inner = (
+            <>
+              <span className="shell-tab-icon">
+                <Icon name={i.icon} size={22} />
+                {(i.dot || !!i.count) && <span className="ui-dot shell-tab-dot" aria-hidden="true" />}
+              </span>
+              <span className="shell-tab-label">{i.short ?? i.label}</span>
+              {!!i.count && <span className="sr-only">（{i.count} 件）</span>}
+              {i.dot && !i.count && <span className="sr-only">（新しいものがあります）</span>}
+            </>
+          );
           return (
             <li key={i.key}>
-              <NavLink item={i} siblings={items} overflow={overflow} active={active} className="shell-tab">
-                <span className="shell-tab-icon">
-                  <Icon name={i.icon} size={22} />
-                  {(i.dot || !!i.count) && <span className="ui-dot shell-tab-dot" aria-hidden="true" />}
-                </span>
-                <span className="shell-tab-label">{i.short ?? i.label}</span>
-                {!!i.count && <span className="sr-only">（{i.count} 件）</span>}
-                {i.dot && !i.count && <span className="sr-only">（新しいものがあります）</span>}
-              </NavLink>
+              {i.newTab ? (
+                // お客さんの画面などは新しいタブで（いまの画面はそのまま残す）
+                <a href={i.href} target="_blank" rel="noopener noreferrer" className="shell-tab">
+                  {inner}
+                  <span className="sr-only">（新しいタブで開きます）</span>
+                </a>
+              ) : (
+                <NavLink item={i} siblings={items} overflow={overflow} active={active} className="shell-tab">
+                  {inner}
+                </NavLink>
+              )}
             </li>
           );
         })}

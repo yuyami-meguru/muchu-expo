@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { STATE_LABEL, STOCK_LABEL, shopStock, type Shop, type ShopState, type Tone } from "@/lib/types";
-import { savedAt, send } from "../../_lib/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { AdminLive, StaffLiveShop } from "@/lib/ops";
+import { STATE_LABEL, type Shop, type ShopState, type Stock, type Tone } from "@/lib/types";
+import { send } from "../../_lib/client";
+import { useStaffLive } from "../../_lib/use-staff-live";
+import { clockNow, latest, shapeOf, useShapeRefresh } from "../ops-live";
+import "../ops.css";
 
 const STATES: ShopState[] = ["prep", "open", "break", "closed"];
 
@@ -12,48 +17,87 @@ export type QuickRow = { shop: Shop; deptName: string; color: Tone; placeName: s
 
 /**
  * 実行委員の「お店の情報」の一覧。行を押すと編集の画面へ。
- * 当日よく使う 3 つ（営業の状態・売り切れ・非表示）は、一覧のまま押してすぐ保存する（失敗したら元に戻す）。
+ * 当日よく使う 3 つ（営業の状態・品物の売り切れ・お客さんの画面に出すか）は、一覧のまま押してすぐ保存する。
+ * 15 秒ごとに「いまの様子」を読み直すので、お店の人が押した売り切れなども入る。
  */
 export function ShopQuickList({ rows }: { rows: QuickRow[] }) {
+  const { live, refresh } = useStaffLive<AdminLive>();
+  useShapeRefresh(live, shapeOf(rows.map((r) => r.shop)));
   return (
     <ul className="st-list">
-      {rows.map((r) => (
-        <QuickItem key={r.shop.id} row={r} />
-      ))}
+      {rows
+        .filter((r) => !live || live.shops[r.shop.id]) // 消されたお店は出さない
+        .map((r) => (
+          <QuickItem key={r.shop.id} row={r} live={live?.shops[r.shop.id]} onSaved={refresh} />
+        ))}
     </ul>
   );
 }
 
-function QuickItem({ row }: { row: QuickRow }) {
-  const [shop, setShop] = useState(row.shop);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
+/** 品物の残りのいま（「販売中」「一部売り切れ（5 つ中 2 つ）」など） */
+function stockNow(menu: Shop["menu"]) {
+  const out = menu.filter((m) => m.stock === "out").length;
+  const few = menu.filter((m) => m.stock === "few").length;
+  if (out === menu.length) return "全部売り切れ";
+  if (out) return `一部売り切れ（${menu.length} つ中 ${out} つ）`;
+  if (few) return `残りわずか（${menu.length} つ中 ${few} つ）`;
+  return "販売中";
+}
 
-  async function patch(body: object, apply: (s: Shop) => Shop, done: string) {
-    const before = shop;
-    setShop(apply(shop));
-    setBusy(true);
-    setError("");
-    const r = await send(`/api/staff/shops/${shop.id}`, "PATCH", body);
-    setBusy(false);
+function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop | undefined; onSaved: () => void }) {
+  const [mine, setMine] = useState<Shop | null>(null);
+  /** 送っている間に先に出しておく値。答えが来るまで、このお店のボタンは押せない */
+  const [pending, setPending] = useState<Partial<Shop> | null>(null);
+  const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [hideOpen, setHideOpen] = useState(false);
+  const [outOpen, setOutOpen] = useState(false);
+  /** 「全部売り切れにする」を押す前の、品物ごとの残り（「販売を再開する」で元に戻す。この画面を開いているあいだだけ） */
+  const [before, setBefore] = useState<Record<string, Stock> | null>(null);
+
+  const base = latest(row.shop, mine, live);
+  const shop: Shop = pending ? { ...base, ...pending } : base;
+  const busy = !!pending;
+  const id = `q-${shop.id}`;
+
+  async function patch(body: object, optimistic: Partial<Shop>, done: string) {
+    setPending(optimistic);
+    setMsg(null);
+    const r = await send<{ shop: Shop | null }>(`/api/staff/shops/${shop.id}`, "PATCH", body);
+    setPending(null);
     if (!r.ok) {
-      setShop(before);
-      setMsg("");
-      setError(r.error);
-    } else setMsg(`${done} ・ ${savedAt()}`);
+      setMsg({ text: r.error, error: true });
+      return false;
+    }
+    if (r.shop) setMine(r.shop);
+    setMsg({ text: `${done}・${clockNow()}`, error: false });
+    onSaved();
+    return true;
   }
 
-  const stock = shopStock(shop);
-  const allOut = stock === "out";
-  // 売り切れのボタン：全部売り切れなら全部「販売中」に戻す。それ以外は全部「売り切れ」に
-  function toggleOut() {
-    const v = allOut ? "on" : "out";
-    patch(
-      { stock: shop.menu.map((m) => ({ id: m.id, stock: v })) },
-      (s) => ({ ...s, menu: s.menu.map((m) => ({ ...m, stock: v })) }),
-      allOut ? "全部を販売中に" : "全部を売り切れに",
+  const allOut = shop.menu.length > 0 && shop.menu.every((m) => m.stock === "out");
+  const mixed = new Set(shop.menu.map((m) => m.stock)).size > 1;
+  const count = (v: Stock) => shop.menu.filter((m) => m.stock === v).length;
+
+  async function soldOut() {
+    const keep = Object.fromEntries(shop.menu.map((m) => [m.id, m.stock]));
+    const ok = await patch(
+      { stock: shop.menu.map((m) => ({ id: m.id, stock: "out" })) },
+      { menu: shop.menu.map((m) => ({ ...m, stock: "out" as const })) },
+      "全部の品物を売り切れにしました",
     );
+    if (ok) setBefore(keep);
+  }
+
+  async function reopen() {
+    // この画面で覚えていれば、売り切れにする前の残りに戻す（覚えていなければ全部「販売中」）
+    const back = (m: Shop["menu"][number]): Stock => before?.[m.id] ?? "on";
+    const restored = !!before && shop.menu.some((m) => before[m.id] !== undefined && before[m.id] !== "on");
+    const ok = await patch(
+      { stock: shop.menu.map((m) => ({ id: m.id, stock: back(m) })) },
+      { menu: shop.menu.map((m) => ({ ...m, stock: back(m) })) },
+      restored ? "販売を再開しました（売り切れにする前の残りに戻しました）" : "販売を再開しました（全部を販売中に）",
+    );
+    if (ok) setBefore(null);
   }
 
   return (
@@ -70,49 +114,91 @@ function QuickItem({ row }: { row: QuickRow }) {
         </span>
         <Icon name="右へ" size={20} />
       </Link>
-      <div className="st-quick">
-        <div className="st-states st-states--sm" role="group" aria-label={`${shop.name}の状態`}>
-          {STATES.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="st-state"
-              data-v={v}
-              aria-pressed={shop.state === v}
-              disabled={busy}
-              onClick={() => shop.state !== v && patch({ state: v }, (s) => ({ ...s, state: v }), STATE_LABEL[v])}
-            >
-              {STATE_LABEL[v]}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="st-qbtn st-qbtn--out"
-          aria-pressed={allOut}
-          disabled={busy || !shop.menu.length}
-          onClick={toggleOut}
-          title={shop.menu.length ? undefined : "品物がまだありません"}
-        >
-          売り切れ
-          <span className="st-qbtn-sub">{stock ? (stock === "few" ? "一部あり" : STOCK_LABEL[stock]) : "品物なし"}</span>
-        </button>
-        <button
-          type="button"
-          className="st-qbtn st-qbtn--hide"
-          aria-pressed={shop.hidden}
-          disabled={busy}
-          onClick={() => patch({ hidden: !shop.hidden }, (s) => ({ ...s, hidden: !s.hidden }), shop.hidden ? "表示に" : "非表示に")}
-        >
-          非表示
-          <span className="st-qbtn-sub">{shop.hidden ? "隠しています" : "見えています"}</span>
-        </button>
-        {(msg || error) && (
-          <p className={error ? "st-quick-msg st-quick-msg--err" : "st-quick-msg"} role={error ? "alert" : "status"}>
-            {error || msg}
+      <div className="st-quick" aria-busy={busy || undefined}>
+        <div className="st-qgroup st-qgroup--state" role="group" aria-labelledby={`${id}-state`}>
+          <p className="st-qgroup-h" id={`${id}-state`}>
+            営業
           </p>
-        )}
+          <div className="st-states st-states--sm">
+            {STATES.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className="st-state"
+                data-v={v}
+                aria-pressed={shop.state === v}
+                disabled={busy}
+                onClick={() => shop.state !== v && patch({ state: v }, { state: v }, `「${STATE_LABEL[v]}」にしました`)}
+              >
+                {STATE_LABEL[v]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="st-qgroup" role="group" aria-labelledby={`${id}-stock`}>
+          <p className="st-qgroup-h" id={`${id}-stock`}>
+            品物
+          </p>
+          <div className="st-qline">
+            {!shop.menu.length ? null : allOut ? (
+              <button type="button" className="st-qbtn" disabled={busy} onClick={reopen}>
+                販売を再開する
+              </button>
+            ) : (
+              <button type="button" className="st-qbtn st-qbtn--out" disabled={busy} onClick={() => (mixed ? setOutOpen(true) : soldOut())}>
+                全部売り切れにする
+              </button>
+            )}
+            <span className="st-qnow">{shop.menu.length ? `いま：${stockNow(shop.menu)}` : "品物がまだありません（名前を押してメニューに足せます）"}</span>
+          </div>
+        </div>
+
+        <div className="st-qgroup" role="group" aria-labelledby={`${id}-view`}>
+          <p className="st-qgroup-h" id={`${id}-view`}>
+            お客さんの画面
+          </p>
+          <div className="st-qline">
+            {shop.hidden ? (
+              <button type="button" className="st-qbtn" disabled={busy} onClick={() => patch({ hidden: false }, { hidden: false }, "お客さんの画面に出しました")}>
+                見せる
+              </button>
+            ) : (
+              <button type="button" className="st-qbtn st-qbtn--hide" disabled={busy} onClick={() => setHideOpen(true)} aria-haspopup="dialog">
+                隠す
+              </button>
+            )}
+            <span className="st-qnow">いま：{shop.hidden ? "非表示" : "表示中"}</span>
+          </div>
+        </div>
+
+        <p className={msg?.error ? "st-quick-msg st-quick-msg--err" : "st-quick-msg"} role={msg?.error ? "alert" : "status"}>
+          {msg?.text}
+        </p>
       </div>
+
+      <ConfirmDialog
+        title={`『${shop.name}』をお客さんの画面から隠しますか？`}
+        confirmLabel="隠す"
+        open={hideOpen}
+        onOpenChange={setHideOpen}
+        onConfirm={async () => {
+          await patch({ hidden: true }, { hidden: true }, "お客さんの画面から隠しました");
+        }}
+      >
+        一覧・地図から消え、貼ってあるポスターの QR も「見つかりません」になります。
+      </ConfirmDialog>
+      <ConfirmDialog
+        title={`全部の品物（${shop.menu.length} つ）を売り切れにしますか？`}
+        confirmLabel="全部売り切れにする"
+        open={outOpen}
+        onOpenChange={setOutOpen}
+        onConfirm={soldOut}
+      >
+        いまの残り：販売中 {count("on")}・残りわずか {count("few")}・売り切れ {count("out")}。
+        <br />
+        このあと「販売を再開する」を押すと、この画面を開いているあいだは、いまの残りに戻せます。
+      </ConfirmDialog>
     </li>
   );
 }

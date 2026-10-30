@@ -1,0 +1,67 @@
+/* お店の人の画面（_components/shop-*.tsx と、ページのいちばん下の版・ログアウト）。クラスは sh- で始める。色は globals.css の変数だけ */
+
+/* いまの様子を読めているか（見出しの下の小さな行） */
+.sh-live { margin: 0; font-size: 0.8rem; color: var(--ink-3); }
+.sh-live--ng { color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 6px 10px; font-weight: 700; }
+
+/* 押した結果の行（押した所のすぐ下）。2 行ぶんの場所を先に空けておき、結果が出ても下のボタンがずれないように */
+.sh-result { min-height: 2.9em; margin-top: 8px; display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; line-height: 1.45; font-weight: 700; }
+.sh-result p { margin: 0; }
+.sh-result-ok { color: var(--ok-ink); }
+.sh-result-ng { flex: 1 1 auto; min-width: 0; color: var(--ng-ink); }
+.sh-result > .ui-btn { flex: none; }
+/* ボタンの横に出すとき（お知らせ） */
+.sh-result--side { flex: 1 1 220px; min-height: 44px; margin-top: 0; align-items: center; }
+/* 押したボタンの中の「送信中…」と、送れなかったボタンの「もう一度」（赤い点線の枠） */
+.sh-sending, .sh-again { display: block; font-size: 0.7rem; font-weight: 700; }
+.sh-again { color: var(--ng-ink); font-weight: 900; }
+.st-state[data-again], .st-stock-btn[data-again] { border-color: var(--ng); border-style: dashed; }
+@media (max-width: 380px) { .sh-result { font-size: 0.75rem; } }
+/* 状態のボタンのまとまり。まちがいのときだけ赤い枠（線で囲むだけなので、大きさは変わらない） */
+.sh-box[data-ng] { outline: 2px solid var(--ng); outline-offset: 4px; border-radius: var(--r-md); }
+
+/* 実行委員からの連絡（黄色いカード）。まだ見ていなければ太い枠 */
+.sh-memo { background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); border-radius: var(--r-card); padding: 12px 14px; }
+.sh-memo--new { border-width: 4px; box-shadow: var(--shadow-card); }
+.sh-memo-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; font-size: 0.9rem; }
+.sh-memo-head strong { font-size: 1rem; }
+.sh-memo-head time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sh-memo-badge { margin-left: auto; font-size: 0.75rem; font-weight: 900; background: var(--warn); color: var(--warn-soft); border-radius: var(--r-pill); padding: 2px 10px; }
+.sh-memo-text { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.7; white-space: pre-wrap; }
+.sh-memo-done { margin: 0; font-weight: 900; color: var(--ok-ink); }
+.sh-memo .st-err { margin-top: 8px; }
+
+/* 実行委員を呼ぶ */
+.sh-call-box { margin-top: 10px; background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 14px; }
+.sh-call-q { margin: 0 0 8px; font-weight: 900; }
+.sh-reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+@media (min-width: 640px) { .sh-reasons { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.sh-reason {
+  min-height: 52px; border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+  font-weight: 900; font-size: 0.95rem; line-height: 1.35; padding: 4px 8px; word-break: keep-all;
+}
+.sh-reason[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.sh-call-actions { margin-top: 14px; }
+.sh-calls { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.sh-callitem { background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); border-radius: var(--r-lg); padding: 10px 12px; }
+.sh-callitem[data-status="going"] { background: var(--ok-soft); border-color: var(--ok); }
+.sh-callitem p { margin: 0; }
+.sh-callitem-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.sh-callitem-head span { font-size: 0.8rem; color: var(--ink-2); }
+.sh-callitem-text { font-size: 0.9rem; white-space: pre-wrap; }
+.sh-callitem .sh-callitem-status { margin: 4px 0 8px; font-weight: 900; }
+
+/* お店からのお知らせ */
+.sh-notice-now { margin: 0 0 10px; font-size: 0.9rem; color: var(--ink-2); }
+.sh-notice-now strong { color: var(--ink); }
+.sh-notice-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+
+/* 紹介の書きかけ */
+.sh-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; background: var(--warn-soft); color: var(--ink); border-radius: var(--r-md); padding: 8px 12px; }
+.sh-draft p { margin: 0; font-size: 0.9rem; font-weight: 700; }
+.sh-unsaved { font-size: 0.8rem; font-weight: 900; color: var(--warn); }
+
+/* ページのいちばん下：版の番号とログアウト */
+.sh-foot { align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.sh-foot .sh-version { margin: 0; opacity: 1; color: var(--ink-3); }
+.sh-foot .st-err { flex-basis: 100%; margin: 0; }

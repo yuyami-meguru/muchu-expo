@@ -4,8 +4,15 @@
 .ac-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
 .ac-btns { display: flex; flex-wrap: wrap; gap: 10px; }
 .ac-btn {
-  flex: 1 1 220px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 20px;
+  flex: 1 1 220px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 58px; padding: 6px 20px;
   border-radius: var(--r-pill); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; text-decoration: none;
+}
+.ac-btn > span { display: flex; flex-direction: column; line-height: 1.35; }
+.ac-btn small { font-size: 0.75rem; font-weight: 700; opacity: 0.9; }
+/* 地図を表示（押してから読み込む） */
+.ac-show {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 18px; width: fit-content; max-width: 100%;
+  border-radius: var(--r-md); border: 2px dashed var(--ink-3); background: var(--surface-2); color: var(--ink); font-weight: 900; cursor: pointer;
 }
 .ac-btn--apple { background: var(--ink); color: var(--bg); box-shadow: 4px 4px 0 var(--primary); }
 .ac-note { margin: -4px 0 0; font-size: 0.78rem; color: var(--ink-3); }

@@ -14,7 +14,7 @@ export default async function StaffRadioPage() {
   const [state, { messages, readIds }] = await Promise.all([loadRadio(), loadRadioMsgs()]);
   return (
     <div className="st-page st-stack">
-      <PageHeader title="校内ラジオ" sub="ON AIR にすると、お客さんの画面に「放送中」が出ます（15 秒ほどで届きます）" />
+      <PageHeader title="校内ラジオ" sub="［放送を始める］を押すと、お客さんの画面に「放送中」が出ます（15 秒ほどで届きます）。メッセージは 15 秒ごとに読み直します" />
       <RadioAdmin state={state} messages={messages} readIds={readIds} ready={storeReady()} />
     </div>
   );

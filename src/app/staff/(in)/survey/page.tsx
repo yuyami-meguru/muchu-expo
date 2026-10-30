@@ -87,7 +87,7 @@ export default async function SurveyResultsPage() {
               <span className="sr-no">1</span>あなたについて
             </h2>
             <p className="sr-sub">
-              答えた人 {answeredWho} 件・答えなかった人 {s.whoBlank} 件（割合は答えた人の中で）
+              答えた人 {answeredWho} 人・答えなかった人 {s.whoBlank} 人（割合は答えた人の中で）
             </p>
             <Bars rows={s.who} total={answeredWho} label="あなたについて" />
           </section>

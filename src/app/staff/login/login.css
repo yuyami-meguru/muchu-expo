@@ -1,0 +1,19 @@
+/* お店・実行委員の入口（/staff/login）と、お店の QR を読んだ画面（/join）。クラスは lg- で始める。色は globals.css の変数だけ */
+.st-login-card .ui-banner { margin: 16px 0 0; }
+/* いちばん上の知らせ（ログインが切れた・ログアウトした） */
+.st-login-card > .ui-banner:first-child { margin: 0 0 16px; }
+.lg-sec { margin-top: 20px; }
+.lg-sec h2 { font-size: 1.05rem; margin: 0 0 4px; }
+.lg-sec p { margin: 0 0 8px; font-size: 0.9rem; }
+.lg-sec--admin { padding-top: 16px; border-top: 1px dashed var(--line); }
+
+/* 合言葉の欄：［見る］ボタンを横に。欄とログインのボタンのあいだはあける */
+.lg-form { display: grid; gap: 20px; margin-top: 12px; }
+.lg-pass { display: flex; gap: 8px; }
+.lg-pass .ui-input { flex: 1 1 auto; min-width: 0; }
+.lg-pass .ui-btn { flex: none; min-height: 48px; }
+
+/* お店の QR を読んだ画面（/join） */
+.lg-actions { display: grid; gap: 10px; margin-top: 16px; }
+.lg-actions .ui-hint { margin: -4px 0 0; }
+.lg-join-text { font-size: 0.95rem; margin: 8px 0 0; }

@@ -20,7 +20,12 @@ export async function GET() {
     version: process.env.NEXT_PUBLIC_APP_VERSION ?? "",
     exportedAt: new Date().toISOString(),
     depts,
-    shops,
+    // お知らせを出した時刻（noticeAt）は当日の目安で、控えから戻すと付け直すので入れない
+    shops: shops.map((shop) => {
+      const c = { ...shop };
+      delete c.noticeAt;
+      return c;
+    }),
     places,
     news,
   };

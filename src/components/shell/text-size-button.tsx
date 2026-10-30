@@ -10,7 +10,10 @@ const subscribe = (fn: () => void) => {
 };
 const isBig = () => document.documentElement.classList.contains("big");
 
-/** 「文字を大きく」（お年寄り向け）。この端末だけに覚える */
+/**
+ * 「文字を大きく」（お年寄り向け）。この端末だけに覚える。
+ * 押した後も字は変えない（長くなると狭い画面ではみ出す）。押しているかは、四角の ✓ と aria-pressed で示す
+ */
 export function TextSizeButton() {
   const big = useSyncExternalStore(subscribe, isBig, () => false);
   function toggle() {
@@ -25,7 +28,10 @@ export function TextSizeButton() {
   }
   return (
     <button type="button" className="mx-textsize" aria-pressed={big} onClick={toggle}>
-      {big ? "文字をもとに戻す" : "文字を大きく"}
+      <span className="mx-textsize-box" aria-hidden="true">
+        {big ? "✓" : ""}
+      </span>
+      文字を大きく
     </button>
   );
 }

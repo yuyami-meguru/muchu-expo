@@ -34,9 +34,7 @@ export default async function RadioPage() {
             ))}
           </ol>
         ) : (
-          <p className="rd-empty">
-            <span className="tbd">番組表は準備中</span>
-          </p>
+          <p className="rd-empty">放送の時間は、決まったらここでお知らせします。</p>
         )}
         <p className="rd-small">時間は変わることがあります。</p>
       </section>
@@ -45,7 +43,7 @@ export default async function RadioPage() {
         <h2 id="rd-msg-h">ラジオへのメッセージ</h2>
         {radio.msgOpen ? (
           <>
-            <p className="rd-small">質問・メッセージ・リクエスト・クイズの答えを送れます。放送で読ませてもらうことがあります。</p>
+            <p className="rd-small">質問・メッセージ・リクエスト・クイズの答えを送れます。放送で読ませていただくことがあります。</p>
             <MessageForm />
           </>
         ) : (

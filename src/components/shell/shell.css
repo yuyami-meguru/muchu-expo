@@ -36,6 +36,8 @@
   min-height: 55px; padding: 6px 4px 6px 16px; padding-top: calc(6px + env(safe-area-inset-top));
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
+/* ロゴ（ホームへのリンク）の押せる所は 44px */
+.shell-phonebar > .ui-logo, .shell-phonebar > .mx-logo { min-height: 44px; display: inline-flex; align-items: center; }
 @media (min-width: 1024px) {
   .shell-phonebar { display: none; }
 }

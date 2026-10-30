@@ -4,3 +4,12 @@
 .hp-card ol, .hp-card ul { margin: 0; padding-left: 1.4em; }
 .hp-card li { margin: 4px 0; line-height: 1.7; }
 .hp-warn { margin: 14px 0 0; padding: 10px 14px; border-radius: var(--r-md); background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+.hp-card b { font-weight: 900; }
+/* 実行委員：見出しへの近道 */
+.hp-toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.hp-toc a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: var(--r-pill);
+  border: 2px solid var(--line); background: var(--surface); color: var(--ink); font-size: 0.875rem; font-weight: 700; text-decoration: none;
+}
+.hp-toc a:hover { background: var(--surface-2); }
+.hp [id] { scroll-margin-top: 72px; }

@@ -68,6 +68,8 @@ export type Shop = {
   state: ShopState;
   /** お店からのお知らせ（「13時から焼き直し中」など） */
   notice: string;
+  /** お知らせを出した時刻（v0.10.0 から。それより前に出したお知らせには無い） */
+  noticeAt?: number;
   /** 一覧に出さない（準備ができるまで隠す） */
   hidden: boolean;
   /** 並べる順 */

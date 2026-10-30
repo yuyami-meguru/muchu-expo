@@ -68,7 +68,7 @@ export function SideShell({
       {/* パソコンの左のメニュー */}
       <aside className="shell-sidebar" aria-label={`${area}のメニュー`}>
         <div className="shell-sidebar-logo">
-          <Logo href={homeHref} label={`AVERIX ${area}のホームへ`} />
+          <Logo href={homeHref} label={`エンカレ夢中万博 ${area}のホームへ`} />
         </div>
         {search && (
           <form action={search.action} method="get" role="search" className="shell-search">
@@ -88,11 +88,22 @@ export function SideShell({
               <ul>
                 {g.items.map((i) => (
                   <li key={i.key}>
-                    <NavLink item={i} siblings={groups.flatMap((x) => x.items)} active={active} className="shell-sideitem">
-                      <Icon name={i.icon} size={20} />
-                      <span className="shell-sideitem-label">{i.label}</span>
-                      {!!i.count && <Count value={i.count} label={`${i.count} 件`} />}
-                    </NavLink>
+                    {i.newTab ? (
+                      // お客さんの画面などは新しいタブで（いまの画面はそのまま残す）
+                      <a href={i.href} target="_blank" rel="noopener noreferrer" className="shell-sideitem">
+                        <Icon name={i.icon} size={20} />
+                        <span className="shell-sideitem-label">
+                          {i.label}
+                          <span className="sr-only">（新しいタブで開きます）</span>
+                        </span>
+                      </a>
+                    ) : (
+                      <NavLink item={i} siblings={groups.flatMap((x) => x.items)} active={active} className="shell-sideitem">
+                        <Icon name={i.icon} size={20} />
+                        <span className="shell-sideitem-label">{i.label}</span>
+                        {!!i.count && <Count value={i.count} label={`${i.count} 件`} />}
+                      </NavLink>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -114,7 +125,7 @@ export function SideShell({
 
       {/* スマホ・タブレットの上の帯 */}
       <header className="shell-phonebar">
-        <Logo size="sm" href={homeHref} label={`AVERIX ${area}のホームへ`} />
+        <Logo size="sm" href={homeHref} label={`エンカレ夢中万博 ${area}のホームへ`} />
         <span className="shell-grow" />
         {search && <IconButton icon="さがす" label="さがす" href={search.action} />}
         {notificationsHref && <IconButton icon="お知らせ" label={unread ? "お知らせ（新しいものがあります）" : "お知らせ"} href={notificationsHref} dot={unread} />}

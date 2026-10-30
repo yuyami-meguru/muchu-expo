@@ -7,7 +7,7 @@ import "./survey.css";
 
 export const metadata: Metadata = { title: "アンケート" };
 
-/** 来てくれた人のアンケート（2023 年のエンカレ祭アンケートの 5 問をもとに） */
+/** 来てくれた人のアンケート（2023 年のエンカレ祭アンケートの 5 問をもとに）。はじめのあいさつは、送れたら隠すので SurveyForm の中 */
 export default async function SurveyPage() {
   const [{ shops, depts }, open] = await Promise.all([loadAll(), surveyOpen()]);
   const dept = deptLookup(depts);
@@ -20,17 +20,9 @@ export default async function SurveyPage() {
         <Sprite name="note" size={40} className="sv-sp" />
         <p className="sv-eyebrow">QUESTIONNAIRE</p>
         <h1 className="sv-h1">アンケート</h1>
-        <p className="sv-lead">
-          本日はエンカレ夢中万博にお越しいただき、ありがとうございます。よりよい行事にするために、アンケートへのご協力をお願いします。
-          <br />
-          <strong>どの問いも、答えられるものだけで大丈夫です。</strong>お名前や連絡先はうかがいません。
-        </p>
+        {!open && <p className="sv-lead">アンケートの受付は終わりました。たくさんのご回答、ありがとうございました。</p>}
       </header>
-      {open ? (
-        <SurveyForm shops={choices} />
-      ) : (
-        <p className="sv-closed">アンケートの受付は終わりました。ご協力ありがとうございました。</p>
-      )}
+      {open ? <SurveyForm shops={choices} /> : <p className="sv-closed">いまはアンケートを受け付けていません。</p>}
     </div>
   );
 }

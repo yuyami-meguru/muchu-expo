@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/staff/depts/
     const s = await getSession();
     if (s?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
     const { id } = await ctx.params;
-    if (!zId.safeParse(id).success) return fail(400, "部門の英字の名前は、小文字の英字・数字・- だけにしてください");
+    if (!zId.safeParse(id).success) return fail(400, "部門を保存できませんでした。画面を読み込み直して、もう一度ためしてください");
     const b = await readBody(req, deptBody);
     if ("error" in b) return b.error;
     const dept = { id, ...b.data };

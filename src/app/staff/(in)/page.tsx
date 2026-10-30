@@ -3,18 +3,24 @@ import { redirect } from "next/navigation";
 import { Banner } from "@/components/ui/banner";
 import { PageHeader } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
-import { getShop, loadAll, storeReady } from "@/lib/store";
+import { loadCalls, loadMemo, loadMemoAcks } from "@/lib/ops-server";
+import { getShop, listLiveLog, loadAll, storeReady } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
 import { AdminOverview } from "./_components/admin-overview";
-import { ShopEditor } from "./_components/shop-editor";
-import { ShopIntroEditor } from "./_components/shop-intro";
+import { ShopHome } from "./_components/shop-home";
 
-export const metadata: Metadata = { title: "いまの様子" };
 export const dynamic = "force-dynamic";
+
+/** タブの名前：お店の人は自分のお店の名前（画面の見出しと同じ）、実行委員は「いまの様子」 */
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSession();
+  const shop = s?.role === "shop" ? await getShop(s.shop) : null;
+  return { title: shop?.name ?? "いまの様子" };
+}
 
 export default async function StaffHome() {
   const s = await getSession();
-  if (!s) redirect("/staff/login");
+  if (!s) redirect("/staff/login?from=expired");
   const ready = storeReady();
   const notReady = !ready && (
     <Banner tone="error" title="保存先（Upstash）がまだつながっていません">
@@ -23,17 +29,27 @@ export default async function StaffHome() {
   );
 
   if (s.role === "shop") {
-    const shop = await getShop(s.shop, { fresh: true });
-    if (!shop) redirect("/staff/login");
-    const dept = deptLookup((await loadAll()).depts)(shop.dept);
+    // 呼び出し・実行委員からの連絡も、はじめから出しておく（あとから出てきて、ボタンがずれないように）
+    const [shop, { depts }, calls, memo, acks, moves] = await Promise.all([
+      getShop(s.shop, { fresh: true }),
+      loadAll(),
+      loadCalls(s.shop),
+      loadMemo(),
+      loadMemoAcks(),
+      listLiveLog(200).catch(() => []),
+    ]);
+    if (!shop) redirect("/staff/login?from=expired");
+    // いま出ているお知らせを出した時刻（当日の動きの記録で、いちばん新しいお知らせの切り替え。文がちがえば分からないので出さない）
+    const last = moves.find((m) => m.shop === shop.id && m.kind === "notice");
+    const noticeAt = shop.noticeAt ?? (shop.notice && last?.value === shop.notice ? last.at : null);
     return (
-      <div className="st-page st-stack">
-        <PageHeader title={shop.name} sub={`${dept.name} ・ 押すとすぐお客さんの画面に出ます`} />
-        {notReady}
-        {/* 紹介を保存したら売り切れボタンの欄を作り直す（品物の名前・数が変わるため）。紹介の欄は「保存しました」を残すため作り直さない */}
-        <ShopEditor key={`e-${shop.updatedAt}`} shop={shop} />
-        <ShopIntroEditor shop={shop} />
-      </div>
+      <ShopHome
+        shop={shop}
+        deptName={deptLookup(depts)(shop.dept).name}
+        noticeAt={noticeAt}
+        ops={{ calls, memo, acked: !!memo && acks[shop.id] === memo.id }}
+        notReady={notReady}
+      />
     );
   }
 

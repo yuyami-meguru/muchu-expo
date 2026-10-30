@@ -33,7 +33,7 @@ export function StaffShell({
 }) {
   return (
     <SideShell
-      area="従業員"
+      area="お店・実行委員"
       active={active}
       groups={groups}
       tabs={tabs}

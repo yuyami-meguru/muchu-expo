@@ -2,21 +2,41 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges } from "@/components/live/live-parts";
-import { loadAll } from "@/lib/store";
-import { KIND_LABEL, NO_DEPT, type Kind } from "@/lib/types";
+import { parsePhaseMode, phaseOf } from "@/lib/ops";
+import { getSetting, loadAll } from "@/lib/store";
+import { KIND_LABEL, NO_DEPT, type Kind, type Shop } from "@/lib/types";
+import { ShopCardLink } from "./shop-card";
 import "./shops.css";
 
 export const metadata: Metadata = { title: "お店・出し物" };
 
-const KINDS: (Kind | "all")[] = ["all", "eat", "play", "see"];
+/** 「何したい？」の選び方。open＝いま開いている（営業中・休憩中） */
+type Filter = Kind | "all" | "open";
+const FILTERS: Filter[] = ["all", "open", "eat", "play", "see"];
+const FILTER_LABEL: Record<Filter, string> = { all: "ぜんぶ", open: "いま開いている", ...KIND_LABEL };
+
+/** いまの表示の時期（サーバーの時刻と、実行委員の切り替え） */
+async function phaseNow() {
+  return phaseOf(Date.now(), parsePhaseMode(await getSetting("phase")));
+}
 
 /** お店・出し物の一覧（AVERIX の「サービスと料金」のカードの形）。「何したい？」で絞り込める */
 export default async function ShopsPage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   const { kind: k } = await searchParams;
-  const kind = (KINDS as string[]).includes(k ?? "") ? (k as Kind | "all") : "all";
-  const { shops, places, depts } = await loadAll();
+  const filter = (FILTERS as string[]).includes(k ?? "") ? (k as Filter) : "all";
+  const [{ shops, places, depts }, phase] = await Promise.all([loadAll(), phaseNow()]);
   const placeName = Object.fromEntries(places.map((p) => [p.id, p.name]));
-  const list = shops.filter((s) => !s.hidden && (kind === "all" || s.kind === kind));
+  // 「いま開いている」は、当日（朝・開催中）だけ。開催前の試しの「営業中」は数えない
+  const isOpen = (s: Shop) => (phase === "morning" || phase === "during") && (s.state === "open" || s.state === "break");
+  const list = shops.filter((s) => !s.hidden && (filter === "all" || (filter === "open" ? isOpen(s) : s.kind === filter)));
+  const empty =
+    filter !== "open"
+      ? "この条件のお店・出し物はまだありません。"
+      : phase === "before"
+        ? "当日（11/28）10:00 から、開いているお店・出し物がここに出ます。"
+        : phase === "after"
+          ? "本日は終了しました。ご来場ありがとうございました。"
+          : "いま開いているお店・出し物はありません。";
 
   return (
     <div className="sp-wrap">
@@ -28,9 +48,9 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
 
       <nav className="sp-filter" aria-label="何をしたいかで絞り込む">
         <span className="sp-filter-q">何したい？</span>
-        {KINDS.map((x) => (
-          <Link key={x} href={x === "all" ? "/shops" : `/shops?kind=${x}`} aria-current={x === kind ? "page" : undefined} scroll={false}>
-            {x === "all" ? "ぜんぶ" : KIND_LABEL[x]}
+        {FILTERS.map((x) => (
+          <Link key={x} href={x === "all" ? "/shops" : `/shops?kind=${x}`} aria-current={x === filter ? "page" : undefined} scroll={false}>
+            {FILTER_LABEL[x]}
           </Link>
         ))}
       </nav>
@@ -51,7 +71,7 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
                 const prices = s.menu.filter((m) => m.price).map((m) => `${m.name} ${m.price}`);
                 return (
                   <li key={s.id}>
-                    <Link href={`/shops/${s.id}`} className="sp-card">
+                    <ShopCardLink shopId={s.id} className="sp-card">
                       <span className="sp-card-top">
                         <span className="sp-card-kicker">{d.short}</span>
                         <LiveShopBadges shopId={s.id} />
@@ -61,14 +81,14 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
                       {prices.length > 0 && <span className="sp-card-price">{prices.slice(0, 2).join(" ／ ")}</span>}
                       <span className="sp-card-place">
                         <Icon name="場所" size={16} />
-                        {s.placeNote || placeName[s.placeId] || <span className="tbd">場所は準備中</span>}
+                        {s.placeNote || placeName[s.placeId] || "場所は決まりしだいお知らせします"}
                       </span>
                       <LiveNotice shopId={s.id} />
                       <span className="sp-card-more">
                         くわしく見る
                         <Icon name="右へ" size={16} />
                       </span>
-                    </Link>
+                    </ShopCardLink>
                   </li>
                 );
               })}
@@ -76,7 +96,7 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
           </section>
         );
       })}
-      {!list.length && <p className="sp-empty">この条件のお店はまだありません。</p>}
+      {!list.length && <p className="sp-empty">{empty}</p>}
     </div>
   );
 }

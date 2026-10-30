@@ -102,8 +102,8 @@ export function parseMemo(raw: string | null | undefined): Memo | null {
 
 /* ───── 当日のチェックリスト ───── */
 export const CHECK_ITEMS: { id: string; when: "前日まで" | "当日の朝" | "終わったら"; text: string }[] = [
-  { id: "qr", when: "前日まで", text: "お店の QR（編集用）を各お店に渡した" },
-  { id: "poster", when: "前日まで", text: "お客さん用ポスターを印刷して貼った" },
+  { id: "qr", when: "前日まで", text: "お店の人に配る QR を各お店に渡した" },
+  { id: "poster", when: "前日まで", text: "会場に貼るポスターを印刷して貼った" },
   { id: "content", when: "前日まで", text: "全部のお店の紹介・メニュー・値段・場所が入っている（非表示のお店がない）" },
   { id: "pins", when: "前日まで", text: "地図のピン（お店の場所・トイレ・受付）を本物の場所に置いた" },
   { id: "radio", when: "前日まで", text: "校内ラジオの番組表を入れた" },
@@ -120,8 +120,8 @@ export const CHECK_ITEMS: { id: string; when: "前日まで" | "当日の朝" | 
 ];
 export const checkBody = z.object({ id: z.string().max(40), done: z.boolean() });
 
-/* ───── 従業員側の画面が 10 秒ごとに読む「いまの様子」（GET /api/staff/live） ───── */
-export type StaffLiveShop = { state: ShopState; notice: string; stock: Record<string, Stock>; hidden: boolean; updatedAt: number };
+/* ───── 従業員側の画面が 15 秒ごとに読む「いまの様子」（GET /api/staff/live） ───── */
+export type StaffLiveShop = { state: ShopState; notice: string; noticeAt?: number; stock: Record<string, Stock>; hidden: boolean; updatedAt: number };
 /** 実行委員：全部のお店（非表示も）・呼び出し・お店の人への連絡と、読んだ印（お店 id → 読んだ連絡の id） */
 export type AdminLive = { at: number; shops: Record<string, StaffLiveShop>; calls: Call[]; memo: Memo | null; acks: Record<string, string> };
 /** お店の人：自分のお店・自分の呼び出し・お店の人への連絡（読んだかどうか） */

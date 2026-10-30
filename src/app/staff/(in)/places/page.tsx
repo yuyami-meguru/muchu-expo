@@ -13,7 +13,10 @@ export default async function StaffPlacesPage() {
   const counts = Object.fromEntries(places.map((p) => [p.id, shops.filter((s) => s.placeId === p.id).length]));
   return (
     <div className="st-page st-stack">
-      <PageHeader title="地図のピン" sub="ピンを選んでから地図を押すと、その場所へ動きます。お店とピンのつなぎ方は「お店の情報」で" />
+      <PageHeader
+        title="地図のピン"
+        sub="ピンを選んで、地図で場所を押してから［ここに動かす］を押すと動きます。トイレ・受付・救護などのピンも置けます。お店とピンのつなぎ方は「お店の情報」で"
+      />
       <PlacesEditor places={places} counts={counts} />
     </div>
   );

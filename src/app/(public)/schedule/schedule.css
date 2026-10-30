@@ -14,7 +14,19 @@
 .sc-text { font-weight: 900; font-size: 1.05rem; line-height: 1.5; }
 .sc-shop { font-size: 0.85rem; color: var(--ink-2); font-weight: 700; }
 .sc-now, .sc-done { position: absolute; left: 0; top: -10px; z-index: 1; font-size: 0.72rem; font-weight: 900; padding: 1px 8px; border-radius: var(--r-pill); }
-.sc-now { background: var(--ng); color: #fff; }
+.sc-now { background: var(--ng); color: var(--on-primary); }
 .sc-done { background: var(--surface-2); color: var(--ink-3); }
 .sc-other { margin-top: 32px; }
-.sc-other h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; }
+.sc-other h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; line-height: 1.5; }
+/* おわったもの（字は読める濃さのまま、線と影を落とす） */
+.sc-row--done .sc-body { border-color: var(--line); box-shadow: none; }
+.sc-row--done .sc-time { color: var(--ink-3); }
+/* 「これからの予定だけ」 */
+.sc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0 16px; }
+.sc-toggle {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 16px; border-radius: var(--r-pill);
+  border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 900; cursor: pointer;
+}
+.sc-toggle[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.sc-toggle-box { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 2px solid currentColor; border-radius: 4px; font-size: 13px; line-height: 1; }
+.sc-hidden-n { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }

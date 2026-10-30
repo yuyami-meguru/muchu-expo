@@ -17,7 +17,7 @@ import type { Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./type
  *   muchu:place  ハッシュ（場所の id → Place の JSON）
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
- *   muchu:live   ハッシュ（当日よく変わる物を 1 つずつ。「お店id:state」「お店id:notice」「お店id:s:品物id」「お店id:at」）
+ *   muchu:live   ハッシュ（当日よく変わる物を 1 つずつ。「お店id:state」「お店id:notice」「お店id:nat」（お知らせを出した時刻）「お店id:s:品物id」「お店id:at」）
  *                → 同時に押しても、ほかの人の変更を上書きしない（お店の JSON の state・notice・stock より優先）
  *   muchu:call   ハッシュ（お店から実行委員への呼び出し。id → Call の JSON）
  *   muchu:check  ハッシュ（当日のチェックリスト。項目 id → 印を付けた時刻）
@@ -51,6 +51,10 @@ interface Backend {
   hset(table: string, values: Record<string, string>): Promise<void>;
   hdel(table: string, ids: string[]): Promise<void>;
   hgetall(table: string): Promise<Record<string, string>>;
+  /** ハッシュの 1 件だけ読む（全部読むより安い） */
+  hget(table: string, id: string): Promise<string | null>;
+  /** 文字の設定をまとめて 1 回で読む（Upstash の回数を 1 回に数える） */
+  getMany(keys: string[]): Promise<(string | null)[]>;
   /** はじめのデータを入れる（flag がまだなら）。入れたら true */
   seedOnce(flag: string, raw: Partial<Raw>): Promise<boolean>;
   incr(key: string, ttlSec: number): Promise<number>;
@@ -96,10 +100,12 @@ class RedisBackend implements Backend {
     this.r = new Redis({ url, token, automaticDeserialization: false });
   }
   async readAll(): Promise<Raw> {
+    // 編集用のかぎ（key）はここでは読まない（お客さんの画面には要らない。照合は hget で 1 件だけ）
+    const tables = TABLES.filter((t) => t !== "key");
     const p = this.r.pipeline();
-    for (const t of TABLES) p.hgetall(`muchu:${t}`);
+    for (const t of tables) p.hgetall(`muchu:${t}`);
     const res = (await p.exec()) as unknown[];
-    return Object.fromEntries(TABLES.map((t, i) => [t, toTable(res[i])])) as Raw;
+    return { ...(Object.fromEntries(tables.map((t, i) => [t, toTable(res[i])])) as Omit<Raw, "key">), key: {} };
   }
   async hset(table: string, values: Record<string, string>) {
     if (!Object.keys(values).length) return;
@@ -111,6 +117,15 @@ class RedisBackend implements Backend {
   }
   async hgetall(table: string) {
     return toTable(await this.r.hgetall(`muchu:${table}`));
+  }
+  async hget(table: string, id: string) {
+    const v = await this.r.hget(`muchu:${table}`, id);
+    return v == null ? null : typeof v === "string" ? v : JSON.stringify(v);
+  }
+  async getMany(keys: string[]) {
+    if (!keys.length) return [];
+    const res = (await this.r.mget(...keys.map((k) => `muchu:set:${k}`))) as unknown[];
+    return res.map((v) => (v == null ? null : typeof v === "string" ? v : JSON.stringify(v)));
   }
   async seedOnce(flag: string, raw: Partial<Raw>) {
     const first = await this.r.set(`muchu:${flag}`, String(Date.now()), { nx: true });
@@ -211,6 +226,13 @@ class FileBackend implements Backend {
   async hgetall(table: string) {
     return { ...this.table(table) };
   }
+  async hget(table: string, id: string) {
+    return this.table(table)[id] ?? null;
+  }
+  async getMany(keys: string[]) {
+    const set = this.load().settings ?? {};
+    return keys.map((k) => set[k] ?? null);
+  }
   async seedOnce(flag: string, raw: Partial<Raw>) {
     const d = this.load();
     if (d.flags![flag]) return false;
@@ -258,13 +280,13 @@ class FileBackend implements Backend {
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-const g = globalThis as unknown as { __muchuBackendV8?: Backend };
+const g = globalThis as unknown as { __muchuBackendV9?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV8) {
+  if (!g.__muchuBackendV9) {
     const env = redisEnv();
-    g.__muchuBackendV8 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV9 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV8;
+  return g.__muchuBackendV9;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -340,7 +362,7 @@ async function raw(fresh = false): Promise<Raw> {
 /* ───── 当日よく変わる物（営業の状態・お知らせ・品物の残り）は muchu:live に 1 つずつ ───── */
 const STATES: readonly ShopState[] = ["prep", "open", "break", "closed"];
 const STOCKS: readonly Stock[] = ["on", "few", "out"];
-type LiveRec = { state?: ShopState; notice?: string; at?: number; stock: Record<string, Stock> };
+type LiveRec = { state?: ShopState; notice?: string; noticeAt?: number; at?: number; stock: Record<string, Stock> };
 
 function liveIndex(live: Record<string, string>) {
   const m = new Map<string, LiveRec>();
@@ -351,6 +373,7 @@ function liveIndex(live: Record<string, string>) {
     if (!rec) m.set(shop, (rec = { stock: {} }));
     if (field === "state" && STATES.includes(v as ShopState)) rec.state = v as ShopState;
     else if (field === "notice") rec.notice = v;
+    else if (field === "nat") rec.noticeAt = Number(v) || 0;
     else if (field === "at") rec.at = Number(v) || 0;
     else if (field === "s" && item && STOCKS.includes(v as Stock)) rec.stock[item] = v as Stock;
   }
@@ -364,6 +387,7 @@ function withLive(shop: Shop, l: LiveRec | undefined): Shop {
     ...shop,
     state: l.state ?? shop.state,
     notice: l.notice ?? shop.notice,
+    ...(l.noticeAt ? { noticeAt: l.noticeAt } : {}),
     menu: shop.menu.map((m) => (l.stock[m.id] ? { ...m, stock: l.stock[m.id] } : m)),
     updatedAt: Math.max(shop.updatedAt || 0, l.at ?? 0),
   };
@@ -391,8 +415,14 @@ export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData>
   };
 }
 
+/** お店を 1 つ読む。fresh なら、そのお店の JSON と当日の値だけを読む（全部の表を読むより安い） */
 export async function getShop(id: string, opts: { fresh?: boolean } = {}) {
-  const r = await raw(opts.fresh);
+  if (opts.fresh) {
+    const [v, live] = await Promise.all([backend().hget("shop", id), backend().hgetall("live")]);
+    const shop = parseShop(v ?? undefined);
+    return shop ? withLive(shop, liveIndex(live).get(id)) : null;
+  }
+  const r = await raw();
   const shop = parseShop(r.shop[id]);
   return shop ? withLive(shop, liveIndex(r.live).get(id)) : null;
 }
@@ -408,9 +438,9 @@ function guard() {
 export async function saveShop(shop: Shop) {
   guard();
   await backend().hset("shop", { [shop.id]: JSON.stringify({ ...shop, updatedAt: Date.now() }) });
-  const r = await raw(true);
+  const live = await backend().hgetall("live");
   const keep = new Set(shop.menu.map((m) => `${shop.id}:s:${m.id}`));
-  const stale = Object.keys(r.live).filter((k) => k.startsWith(`${shop.id}:s:`) && !keep.has(k));
+  const stale = Object.keys(live).filter((k) => k.startsWith(`${shop.id}:s:`) && !keep.has(k));
   if (stale.length) await backend().hdel("live", stale);
   dropCache();
 }
@@ -424,7 +454,10 @@ export async function saveLive(changes: Record<string, LivePatch>) {
   const values: Record<string, string> = {};
   for (const [id, c] of Object.entries(changes)) {
     if (c.state !== undefined) values[`${id}:state`] = c.state;
-    if (c.notice !== undefined) values[`${id}:notice`] = c.notice;
+    if (c.notice !== undefined) {
+      values[`${id}:notice`] = c.notice;
+      values[`${id}:nat`] = at;
+    }
     for (const [item, st] of Object.entries(c.stock ?? {})) values[`${id}:s:${item}`] = st;
     if (c.state !== undefined || c.notice !== undefined || Object.keys(c.stock ?? {}).length) values[`${id}:at`] = at;
   }
@@ -434,10 +467,10 @@ export async function saveLive(changes: Record<string, LivePatch>) {
 
 export async function deleteShop(id: string) {
   guard();
-  const r = await raw(true);
+  const live = await backend().hgetall("live");
   await backend().hdel("shop", [id]);
   await backend().hdel("key", [id]);
-  await backend().hdel("live", Object.keys(r.live).filter((k) => k.startsWith(`${id}:`)));
+  await backend().hdel("live", Object.keys(live).filter((k) => k.startsWith(`${id}:`)));
   dropCache();
 }
 export async function saveDept(d: Dept) {
@@ -473,9 +506,9 @@ export async function deleteNews(id: string) {
 
 /** お店の編集用のかぎ（なければ作る） */
 export async function shopKey(id: string): Promise<string | null> {
-  const r = await raw(true);
-  if (!r.shop[id]) return null;
-  if (r.key[id]) return r.key[id];
+  if (!(await backend().hget("shop", id))) return null;
+  const cur = await backend().hget("key", id);
+  if (cur) return cur;
   guard();
   const k = newKey();
   await backend().hset("key", { [id]: k });
@@ -489,10 +522,9 @@ export async function rotateShopKey(id: string) {
   dropCache();
   return k;
 }
-/** かぎの照合用（いつも最新を読む） */
+/** かぎの照合用（いつも最新を読む。お店の人の画面は何度も呼ぶので、そのお店の 1 件だけ読む） */
 export async function storedShopKey(id: string): Promise<string | null> {
-  const r = await raw(true);
-  return r.key[id] ?? null;
+  return backend().hget("key", id);
 }
 
 /* ───── 変更の記録（だれが・いつ・どのお店の・何を変えたか） ───── */
@@ -579,6 +611,10 @@ export async function setSurveyOpen(open: boolean) {
 export async function getSetting(key: string) {
   return backend().getStr(key);
 }
+/** 文字の設定をまとめて読む（1 回で読む。並びは keys と同じ） */
+export async function getSettings(keys: string[]) {
+  return backend().getMany(keys);
+}
 /** 文字の設定を書く（JSON を入れてもよい） */
 export async function setSetting(key: string, value: string) {
   guard();
@@ -602,6 +638,9 @@ export async function clearList(name: string) {
 /** ハッシュ（id → 文字）を読む・書く・消す。呼び出し・チェックリストなど、1 件ずつ別々に変わる物に使う */
 export async function readHash(name: string) {
   return backend().hgetall(name);
+}
+export async function readHashOne(name: string, id: string) {
+  return backend().hget(name, id);
 }
 export async function writeHash(name: string, values: Record<string, string>) {
   guard();

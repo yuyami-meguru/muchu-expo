@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { LiveBoard, LiveShopBadges, OnAirBadge } from "@/components/live/live-parts";
+import { LiveShopBadges } from "@/components/live/live-parts";
 import { Sprite } from "@/components/pixel/sprites";
 import { getSetting, loadAll } from "@/lib/store";
-import { AwardBanner } from "./_components/award-banner";
 import { AWARD_KEY, parseAward } from "./award/award-data";
 import { EVENT, VENUE } from "@/lib/venue";
 import { allSchedule } from "@/lib/schedule";
-import { ComingUp } from "./_components/coming-up";
 import { Countdown } from "./_components/countdown";
+import { HomeTop } from "./_components/home-top";
+import { NowSection } from "./_components/now-section";
+import { SurveyEntry } from "./_components/survey-entry";
+import { InPhase } from "./_components/in-phase";
 import "./home.css";
 
 const PAMPHLET = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
@@ -23,6 +25,9 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* 表紙より上：終了のごあいさつ・夢中アワードの発表・ラジオの放送中・（終了後）アンケートと帰りのバス */}
+      <HomeTop awardTitle={award.title} />
+
       {/* 表紙（学校のパンフレットの表紙と同じ並び） */}
       <section className="hm-hero">
         <div className="hm-sprites" aria-hidden="true">
@@ -45,7 +50,10 @@ export default async function HomePage() {
             <div>
               <dt>日時</dt>
               <dd className="hm-date">
-                2026.11.28<span className="hm-dow">土</span>
+                2026.11.28
+                <span className="hm-dow">
+                  土<span className="sr-only">曜日</span>
+                </span>
                 <span className="hm-hours">{EVENT.hours}</span>
               </dd>
             </div>
@@ -54,25 +62,21 @@ export default async function HomePage() {
               <dd className="hm-place">{VENUE.name}</dd>
             </div>
           </dl>
-          <p className="hm-count px-box" aria-live="polite">
+          <p className="hm-count px-box">
             <Countdown />
           </p>
           <p className="hm-cta">
             <Link href="/shops" className="hm-btn hm-btn--main">
               ▶ お店・出し物を見る
             </Link>
-            <Link href="/info" className="hm-btn">
+            <Link href="/info#access" className="hm-btn">
               行き方・送迎バス
             </Link>
           </p>
         </div>
       </section>
 
-      {/* 夢中アワードの発表（発表したときだけ出る） */}
-      <div className="hm-wrap">
-        <AwardBanner published={award.published} title={award.title} />
-      </div>
-
+      {/* 流れる帯（3 回で止まる。押すと止まる） */}
       <div className="hm-marquee" aria-hidden="true">
         <div className="hm-track">
           {[...marquee, ...marquee].map((t, i) => (
@@ -84,26 +88,16 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* いまの様子 */}
-      <section className="hm-sec" id="now" aria-labelledby="now-h">
-        <div className="hm-wrap">
-          <h2 id="now-h" className="hm-h2 px-title">
-            いまの様子
-          </h2>
-          <p className="hm-lead">売り切れ・残りわずかの品物と、実行委員からのお知らせです。</p>
-          <OnAirBadge />
-          <LiveBoard names={names} />
-          <ComingUp rows={timed} />
-        </div>
-      </section>
+      {/* いまの様子（開催前・当日・終了後で出し方が変わる） */}
+      <NowSection names={names} timed={timed} />
 
       {/* 入口のカード */}
-      <section className="hm-sec hm-sec--alt" aria-label="見たいものをえらぶ">
+      <section className="hm-sec hm-sec--alt" aria-label="見たいものを選ぶ">
         <div className="hm-wrap hm-doors">
           <Link href="/shops" className="hm-door tone-green">
             <Sprite name="cube" size={40} />
             <span className="hm-door-t">お店・出し物</span>
-            <span className="hm-door-s">メニュー・値段・スケジュール・お店の思い</span>
+            <span className="hm-door-s">メニュー・値段・当日の流れ・お店の思い</span>
           </Link>
           <Link href="/map" className="hm-door tone-blue">
             <Sprite name="controller" size={44} />
@@ -113,24 +107,24 @@ export default async function HomePage() {
           <Link href="/info" className="hm-door tone-purple">
             <Sprite name="sneaker" size={44} />
             <span className="hm-door-t">ご来場の方へ</span>
-            <span className="hm-door-s">無料送迎バス・駐車場・行き方</span>
+            <span className="hm-door-s">無料送迎バス・駐車場・行き方・困ったときは</span>
+          </Link>
+          <Link href="/radio" className="hm-door tone-orange">
+            <Sprite name="guitar" size={44} />
+            <span className="hm-door-t">校内ラジオ</span>
+            <span className="hm-door-s">番組表・メッセージやリクエストを送る</span>
           </Link>
         </div>
       </section>
 
-      {/* アンケートへの入口 */}
-      <section className="hm-survey-wrap" aria-label="アンケート">
-        <div className="hm-wrap">
-          <Link href="/survey" className="hm-survey">
-            <Sprite name="note" size={36} />
-            <span>
-              <strong>アンケートにご協力ください</strong>
-              <small>1〜2 分・答えられる問いだけで大丈夫です</small>
-            </span>
-            <Icon name="右へ" size={22} />
-          </Link>
-        </div>
-      </section>
+      {/* アンケートへの入口（当日・受け付けているとき。開催前は答えようがないので出さない。終了後は表紙より上に出す） */}
+      <InPhase only={["morning", "during"]}>
+        <section className="hm-survey-wrap" aria-label="アンケート">
+          <div className="hm-wrap">
+            <SurveyEntry />
+          </div>
+        </section>
+      </InPhase>
 
       {/* 部門 */}
       <section className="hm-sec" aria-labelledby="pav-h">
@@ -154,8 +148,10 @@ export default async function HomePage() {
                       {list.map((s) => (
                         <li key={s.id}>
                           <Link href={`/shops/${s.id}`}>
-                            <span className="hm-pav-name">{s.name}</span>
-                            <LiveShopBadges shopId={s.id} />
+                            <span className="hm-pav-main">
+                              <span className="hm-pav-name">{s.name}</span>
+                              <LiveShopBadges shopId={s.id} />
+                            </span>
                             <Icon name="右へ" size={18} />
                           </Link>
                         </li>
@@ -182,10 +178,10 @@ export default async function HomePage() {
             <p>エンカレ夢中万博を通して、生徒たちのさまざまな夢中をぜひご覧ください。</p>
             <p className="hm-links">
               <a href={PAMPHLET} target="_blank" rel="noopener noreferrer">
-                パンフレット（PDF）
+                パンフレット（PDF・別の画面で開きます）
               </a>
               <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
-                準備の様子（Instagram）
+                準備の様子（Instagram・別の画面で開きます）
               </a>
             </p>
             <Sprite name="paint" size={56} className="hm-about-sp" />

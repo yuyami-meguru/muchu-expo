@@ -19,7 +19,7 @@ export default async function StaffShopsPage() {
     <div className="st-page st-stack">
       <PageHeader
         title="お店の情報"
-        sub="営業の状態・売り切れ・非表示は、ここで押すとすぐ変わります。名前・メニュー・場所などは、お店の名前を押して編集"
+        sub="営業の状態・品物の売り切れ・お客さんの画面に出すかは、ここで押すとすぐ変わります（お店の人が押した分も 15 秒ごとに入ります）。名前・メニュー・場所などは、お店の名前を押して直します"
         actions={
           <Button href="/staff/depts" icon="直す">
             部門を編集

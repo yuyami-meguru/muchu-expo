@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/card";
 import { loadAll, shopKey } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
 import { adminOnly } from "../_components/admin-only";
-import { PrintButton, RotateKeyButton } from "./qr-tools";
+import { PrintButton, PrintOneButton, RotateKeyButton } from "./qr-tools";
 
 export const metadata: Metadata = { title: "お店の QR" };
 export const dynamic = "force-dynamic";
@@ -28,16 +28,21 @@ export default async function StaffQrPage() {
   );
   return (
     <div className="st-page st-page--wide st-stack">
-      <PageHeader title="お店の QR" sub="お店ごとに印刷して、そのお店の人だけに渡してください。読み取ると、そのお店の売り切れを変えられるようになります" actions={<PrintButton />} />
+      <PageHeader
+        title="お店の QR"
+        sub="お店ごとに印刷して、そのお店の人だけに渡してください。読み取ると、そのお店の売り切れを変えられるようになります。会場には貼らないでください"
+        actions={<PrintButton label="全部印刷する" />}
+      />
       <div className="st-qrs">
         {cards.map(({ shop, svg }) => (
-          <article key={shop.id} className={`st-qr tone-${dept(shop.dept).color}`}>
+          <article key={shop.id} id={`qr-${shop.id}`} data-print-unit className={`st-qr tone-${dept(shop.dept).color}`}>
             <p className="st-qr-dept">{dept(shop.dept).name}</p>
             <h2 className="st-qr-name">{shop.name}</h2>
             {svg ? <div className="st-qr-img" role="img" aria-label={`${shop.name}の編集用 QR`} dangerouslySetInnerHTML={{ __html: svg }} /> : <p className="st-err">QR を作れませんでした</p>}
-            <p className="st-qr-warn">お店の人だけが使う QR です。お客さんに見せないでください</p>
-            <p className="st-qr-how">スマホのカメラで読み取る → 売り切れ・お店の状態を押すだけ</p>
+            <p className="st-qr-warn">お店の人だけが使う QR です。会場に貼らないでください（だれでも売り切れを変えられてしまいます）</p>
+            <p className="st-qr-how">スマホのカメラで読み取ってください（LINE の読み取りではなく）。売り切れ・お店の状態を押すだけで変えられます</p>
             <div className="st-qr-tools st-noprint">
+              <PrintOneButton target={`qr-${shop.id}`} />
               <RotateKeyButton shopId={shop.id} shopName={shop.name} />
             </div>
           </article>
