@@ -123,3 +123,14 @@
 .hm-next li a { color: var(--ink); font-weight: 900; text-decoration: none; }
 .hm-next li small { display: block; font-weight: 700; color: var(--ink-2); }
 .hm-next-all { display: inline-flex; align-items: center; min-height: 44px; margin-top: 6px; font-weight: 900; }
+
+/* アンケートへの入口 */
+.hm-survey-wrap { padding: 0 0 8px; background: var(--surface-2); }
+.hm-survey {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: var(--r-card); text-decoration: none; color: #10331f;
+  background: var(--title); border: 3px solid var(--title-edge); box-shadow: 0 5px 0 var(--title-edge);
+}
+.hm-survey span { flex: 1; display: flex; flex-direction: column; }
+.hm-survey strong { font-family: var(--font-display); font-weight: 400; font-size: 1.25rem; }
+.hm-survey small { font-weight: 700; }
+.hm-survey:active { transform: translateY(4px); box-shadow: none; }

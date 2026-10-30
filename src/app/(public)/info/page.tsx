@@ -96,6 +96,9 @@ export default function InfoPage() {
         </dl>
         <AccessMap />
         <p className="if-sns">
+          お帰りの前に、<a href="/survey">アンケート</a>へのご協力をお願いします。
+        </p>
+        <p className="if-sns">
           準備の様子や企画の詳細は、学校の{" "}
           <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
             Instagram

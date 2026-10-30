@@ -1,0 +1,52 @@
+.sv-wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 56px; }
+.sv-head { position: relative; padding: 32px 0 8px; }
+.sv-sp { position: absolute; right: 4px; top: 30px; }
+.sv-eyebrow { margin: 0; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.22em; color: var(--primary); }
+.sv-h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 8vw, 2.6rem); line-height: 1.25; margin: 2px 0 8px; }
+.sv-lead { color: var(--ink-2); }
+.sv-closed, .sv-done { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 22px 20px; font-weight: 700; }
+.sv-done-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; color: var(--primary); }
+.sv-done-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.sv-done-links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 900; }
+.sv-note { background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
+.sv-form { display: grid; gap: 16px; }
+.sv-q { margin: 0; border: 3px solid var(--line); border-radius: var(--r-card); background: var(--surface); padding: 14px 16px 16px; box-shadow: var(--shadow-card); min-width: 0; }
+.sv-q legend { float: left; width: 100%; display: flex; gap: 10px; align-items: center; font-weight: 900; font-size: 1.05rem; line-height: 1.5; padding: 0; margin: 0 0 4px; }
+.sv-q legend + * { clear: both; }
+.sv-no { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; background: var(--title); color: #10331f; font-family: var(--font-display); font-size: 1.1rem; }
+.sv-group { margin-top: 10px; }
+.sv-group-l { margin: 0 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--ink-3); }
+.sv-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sv-chip { position: relative; }
+.sv-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.sv-chip span {
+  display: inline-flex; flex-direction: row; align-items: center; justify-content: center; min-height: 46px; padding: 6px 16px; border-radius: var(--r-pill);
+  border: 2px solid var(--line); background: var(--bg); font-weight: 900; line-height: 1.35;
+}
+.sv-chip input:checked + span { background: var(--title); border-color: var(--title-edge); color: #10331f; }
+.sv-chip input:checked + span::before { content: "✓"; margin-right: 4px; }
+.sv-chip input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sv-chips--shops { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .sv-chips--shops { grid-template-columns: 1fr 1fr; } }
+.sv-chip--shop span { flex-direction: column; border-radius: var(--r-md); border-left: 6px solid var(--c); align-items: flex-start; }
+.sv-chip--shop small { font-size: 0.72rem; color: var(--c); }
+.sv-chip--shop input:checked + span small { color: #10331f; }
+.sv-chip--shop input:checked + span::before { content: none; }
+.sv-chip--shop input:checked + span { border-left-color: var(--title-edge); }
+.sv-clear { margin-top: 8px; min-height: 40px; background: none; border: 0; color: var(--ink-3); text-decoration: underline; cursor: pointer; }
+.sv-text { display: grid; gap: 4px; margin-top: 12px; }
+.sv-text > span { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+.sv-text input, .sv-text textarea {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 2px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; min-height: 46px;
+}
+.sv-text textarea { resize: vertical; }
+.sv-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.sv-err { color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; margin: 0; }
+.sv-send {
+  min-height: 58px; border-radius: var(--r-md); border: 3px solid var(--title-edge); background: var(--title); color: #10331f; cursor: pointer;
+  font-family: var(--font-display); font-size: 1.3rem; box-shadow: 0 5px 0 var(--title-edge);
+}
+.sv-send:active { transform: translateY(4px); box-shadow: none; }
+.sv-send:disabled { opacity: 0.6; cursor: progress; }
+.sv-small { font-size: 0.8rem; color: var(--ink-3); margin: 0; }
+.sv-chips--shops .sv-chip span { display: flex; width: 100%; }

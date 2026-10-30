@@ -18,6 +18,8 @@ import type { Dept, News, Place, Shop, SiteData } from "./types";
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
  *   muchu:log    リスト（変更の記録。新しい順に 500 件まで。LogEntry の JSON）
+ *   muchu:survey リスト（アンケートの回答。新しい順に 20000 件まで。SurveyAnswer の JSON）
+ *   muchu:set:○○ 文字の設定（muchu:set:surveyOpen＝"1"/"0" など）
  *   muchu:seeded はじめのデータを入れたかどうか（部門は v0.4.0 から。muchu:seeded:dept）
  */
 
@@ -47,6 +49,11 @@ interface Backend {
   push(list: string, value: string, max: number): Promise<void>;
   /** リストの先頭から n 件 */
   list(list: string, n: number): Promise<string[]>;
+  /** リストを空にする */
+  clear(list: string): Promise<void>;
+  /** 文字の設定 */
+  getStr(key: string): Promise<string | null>;
+  setStr(key: string, value: string): Promise<void>;
 }
 
 function redisEnv() {
@@ -96,12 +103,21 @@ class RedisBackend implements Backend {
   async list(list: string, n: number) {
     return ((await this.r.lrange(`muchu:${list}`, 0, n - 1)) as string[]) ?? [];
   }
+  async clear(list: string) {
+    await this.r.del(`muchu:${list}`);
+  }
+  async getStr(key: string) {
+    return ((await this.r.get(`muchu:set:${key}`)) as string | null) ?? null;
+  }
+  async setStr(key: string, value: string) {
+    await this.r.set(`muchu:set:${key}`, value);
+  }
 }
 
 /** 手元用。プロセスの中に持ち、.data/dev.json にも書く（next dev を止めても残る） */
 class FileBackend implements Backend {
   private file = join(process.cwd(), ".data", "dev.json");
-  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean; lists?: Record<string, string[]> }) | null = null;
+  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean; lists?: Record<string, string[]>; settings?: Record<string, string> }) | null = null;
   private counters = new Map<string, { n: number; until: number }>();
   constructor(private readonly writable: boolean) {}
   private load() {
@@ -161,16 +177,31 @@ class FileBackend implements Backend {
   async list(list: string, n: number) {
     return (this.load().lists?.[list] ?? []).slice(0, n);
   }
+  async clear(list: string) {
+    if (!this.writable) throw new StoreNotReady();
+    const d = this.load();
+    if (d.lists) delete d.lists[list];
+    this.save();
+  }
+  async getStr(key: string) {
+    return this.load().settings?.[key] ?? null;
+  }
+  async setStr(key: string, value: string) {
+    if (!this.writable) throw new StoreNotReady();
+    const d = this.load();
+    d.settings = { ...(d.settings ?? {}), [key]: value };
+    this.save();
+  }
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-const g = globalThis as unknown as { __muchuBackendV5?: Backend };
+const g = globalThis as unknown as { __muchuBackendV6?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV5) {
+  if (!g.__muchuBackendV6) {
     const env = redisEnv();
-    g.__muchuBackendV5 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV6 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV5;
+  return g.__muchuBackendV6;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -359,4 +390,40 @@ export async function listLog(n = LOG_MAX): Promise<LogEntry[]> {
 export async function allow(bucket: string, limit: number, windowSec: number) {
   const n = await backend().incr(bucket, windowSec);
   return n <= limit;
+}
+
+/* ───── アンケート（お客さんの回答。名前などは聞かない） ───── */
+const SURVEY_MAX = 20000;
+
+export async function addSurvey(json: string) {
+  guard();
+  await backend().push("survey", json, SURVEY_MAX);
+}
+
+export async function listSurvey(): Promise<unknown[]> {
+  const raw = await backend().list("survey", SURVEY_MAX);
+  const out: unknown[] = [];
+  for (const v of raw) {
+    try {
+      out.push(typeof v === "string" ? JSON.parse(v) : v);
+    } catch {
+      // 壊れた 1 件は飛ばす
+    }
+  }
+  return out;
+}
+
+export async function clearSurvey() {
+  guard();
+  await backend().clear("survey");
+}
+
+/** アンケートを受け付けているか（はじめは受け付ける） */
+export async function surveyOpen() {
+  return (await backend().getStr("surveyOpen")) !== "0";
+}
+
+export async function setSurveyOpen(open: boolean) {
+  guard();
+  await backend().setStr("surveyOpen", open ? "1" : "0");
 }

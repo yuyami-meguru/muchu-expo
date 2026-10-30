@@ -58,6 +58,7 @@ export default async function StaffPostersPage() {
   const visible = shops.filter((s) => !s.hidden);
   const hiddenCount = shops.length - visible.length;
   const topQr = await qr(`${SITE_URL}/`);
+  const surveyQr = await qr(`${SITE_URL}/survey`);
   const sheets = await Promise.all(
     visible.map(async (s) => ({ shop: s, d: dept(s.dept), svg: await qr(`${SITE_URL}/shops/${encodeURIComponent(s.id)}`) })),
   );
@@ -115,6 +116,31 @@ export default async function StaffPostersPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/school-logo.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］" />
             <p className="pst-url">{host}</p>
+          </div>
+        </section>
+
+        {/* 2 枚目：アンケート（受付や出口に貼る） */}
+        <section className="pst-sheet pst-sheet--top pst-sheet--survey" aria-label="アンケートのポスター">
+          <Sprite name="note" size={120} className="pst-sp pst-sp--a" />
+          <Sprite name="paint" size={120} className="pst-sp pst-sp--c" />
+          <p className="pst-org">{EVENT.organizer}</p>
+          <div className="pst-main">
+            <h2 className="pst-title">
+              <span className="pst-title-1">エンカレ夢中万博</span>
+              <span className="pst-title-2 pst-title-survey">アンケート</span>
+            </h2>
+            <p className="pst-lead">
+              ご協力をお願いします
+              <br />
+              （1〜2 分）
+            </p>
+            <div className="pst-qr" dangerouslySetInnerHTML={{ __html: surveyQr }} role="img" aria-label="アンケートの QR" />
+            <p className="pst-sub">スマホのカメラで読み取ってください。お名前や連絡先はうかがいません</p>
+          </div>
+          <div className="pst-foot">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/school-logo.svg" alt="学校法人鶴学園 広島工業大学高等学校［通信制課程］" />
+            <p className="pst-url">{host}/survey</p>
           </div>
         </section>
 

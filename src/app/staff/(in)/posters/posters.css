@@ -64,3 +64,6 @@
 /* 会場全体のポスターのいちばん下：学校のロゴ（札なし）とアドレス */
 .pst-foot { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 1cqw; }
 .pst-foot img { display: block; width: 46cqw; height: auto; }
+/* アンケートのポスター */
+.pst-title-survey { font-size: 15cqw !important; }
+.pst-sheet--survey .pst-title-1 { font-size: 8cqw; }

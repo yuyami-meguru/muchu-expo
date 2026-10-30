@@ -109,6 +109,20 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* アンケートへの入口 */}
+      <section className="hm-survey-wrap" aria-label="アンケート">
+        <div className="hm-wrap">
+          <Link href="/survey" className="hm-survey">
+            <Sprite name="note" size={36} />
+            <span>
+              <strong>アンケートにご協力ください</strong>
+              <small>1〜2 分・答えられる問いだけで大丈夫です</small>
+            </span>
+            <Icon name="右へ" size={22} />
+          </Link>
+        </div>
+      </section>
+
       {/* 部門 */}
       <section className="hm-sec" aria-labelledby="pav-h">
         <div className="hm-wrap">

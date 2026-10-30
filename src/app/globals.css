@@ -225,7 +225,7 @@ strong { font-weight: 900; }
 .mx-logo--dark { color: #7fd6a2; }
 
 /* ドット文字の題字（パンフの「エンカレ夢中万博」：緑・こい緑のふち・右下に影）。各ページの大見出しも同じ */
-.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2 {
+.px-title, .sp-h1, .mp-h1, .if-h1, .if-h2, .sv-h1 {
   font-family: var(--font-display); font-weight: 400; color: var(--title); letter-spacing: 0.02em;
   text-shadow: 2px 0 var(--title-edge), -2px 0 var(--title-edge), 0 2px var(--title-edge), 0 -2px var(--title-edge),
     2px 2px var(--title-edge), -2px 2px var(--title-edge), 2px -2px var(--title-edge), -2px -2px var(--title-edge), 4px 5px 0 var(--title-edge);

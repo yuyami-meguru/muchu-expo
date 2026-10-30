@@ -1,0 +1,43 @@
+/* アンケートの集計（sr-）。棒の色は 1 色：明るい画面 #23784a・暗い画面 #4aa86c（dataviz の validate_palette で確認ずみ） */
+.sr { --bar: #23784a; }
+@media (prefers-color-scheme: dark) { .sr { --bar: #4aa86c; } }
+.sr-top { display: grid; gap: 12px; }
+@media (min-width: 860px) { .sr-top { grid-template-columns: auto 1fr; align-items: stretch; } }
+.sr-stat { display: flex; align-items: baseline; gap: 8px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 22px; }
+.sr-stat-l { font-weight: 700; color: var(--ink-2); }
+.sr-stat-v { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sr-stat-u { font-weight: 700; color: var(--ink-2); }
+.sr-tools { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 14px 18px; }
+.sr-state { margin: 0 0 8px; }
+.sr-on { color: var(--ok-ink); }
+.sr-off { color: var(--ng-ink); }
+.sr-tool-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sr-grid { display: grid; gap: 14px; }
+@media (min-width: 1024px) { .sr-grid { grid-template-columns: 1fr 1fr; } .sr-wide { grid-column: 1 / -1; } }
+.sr-card { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 18px; min-width: 0; }
+.sr-card h2 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 2px; }
+.sr-card h3 { font-size: 0.95rem; margin: 14px 0 6px; color: var(--ink-2); }
+.sr-no { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--title); color: #10331f; font-family: var(--font-display); }
+.sr-sub { margin: 0 0 8px; font-size: 0.82rem; color: var(--ink-3); }
+.sr-empty { color: var(--ink-3); margin: 0; }
+/* 棒グラフ：細い棒・はしを 4px 丸く・目盛りは控えめ。数と割合は文字の色で棒の右に */
+.sr-bars { width: 100%; border-collapse: collapse; }
+.sr-bars th { text-align: left; font-weight: 700; font-size: 0.88rem; padding: 4px 10px 4px 0; white-space: nowrap; max-width: 12em; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.sr-bars td { padding: 4px 0; }
+.sr-bars td:nth-child(2) { width: 100%; }
+.sr-track { display: block; height: 14px; background: var(--surface-2); border-radius: 4px; }
+.sr-bar { display: block; height: 100%; min-width: 2px; background: var(--bar); border-radius: 0 4px 4px 0; }
+.sr-bars tr:hover .sr-bar { filter: brightness(1.15); }
+.sr-n { padding-left: 10px !important; white-space: nowrap; text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--ink); }
+.sr-n small { display: inline-block; min-width: 3.2em; margin-left: 6px; font-weight: 500; color: var(--ink-3); }
+/* 狭い画面：名前を棒の上に（切らずに全部出す） */
+@media (max-width: 560px) {
+  .sr-bars, .sr-bars tbody { display: block; }
+  .sr-bars tr { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; padding: 2px 0 6px; }
+  .sr-bars th { grid-column: 1 / -1; max-width: none; white-space: normal; padding: 0; font-size: 0.85rem; }
+  .sr-bars td { padding: 0; }
+  .sr-bars td:nth-child(2) { width: auto; }
+}
+.sr-texts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 520px; overflow-y: auto; }
+.sr-texts li { background: var(--bg); border-radius: var(--r-md); padding: 8px 12px; white-space: pre-wrap; line-height: 1.7; }
+.sr-meta { display: block; font-size: 0.75rem; color: var(--ink-3); }

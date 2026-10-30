@@ -37,6 +37,7 @@ export const PUBLIC_FOOTER: FooterColumn[] = [
       { label: "タイムテーブル", href: "/schedule" },
       { label: "マップ", href: "/map" },
       { label: "ご来場の方へ・アクセス", href: "/info" },
+      { label: "アンケート", href: "/survey" },
     ],
   },
   {
@@ -54,6 +55,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { key: "home", label: "いまの様子", href: "/staff", icon: "ホーム" },
       { key: "news", label: "お知らせ", href: "/staff/news", icon: "お知らせ" },
       { key: "tools", label: "当日の道具", href: "/staff/tools", icon: "設定" },
+      { key: "survey", label: "アンケートの集計", href: "/staff/survey", icon: "成績" },
     ],
   },
   {
