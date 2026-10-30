@@ -117,7 +117,7 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
           <TextArea className="st-span2" label="お店の思い" value={f.message} maxLength={600} rows={4} onChange={(e) => set("message", e.target.value)} hint={`お店の人の言葉をそのまま。名前は書かない（${f.message.length}/600 字）`} />
           <TextField className="st-span2" label="お客さんへのお知らせ" value={f.notice} maxLength={120} onChange={(e) => set("notice", e.target.value)} hint="お店の人も自分で変えられます" />
           <div className="st-span2">
-            <Checkbox label="お客さんの画面に出さない（非公開）" hint="中身ができるまで隠しておくとき" checked={f.hidden} onChange={(e) => set("hidden", e.target.checked)} />
+            <Checkbox label="お客さんの画面に出さない（非表示）" hint="中身ができるまで隠しておくとき" checked={f.hidden} onChange={(e) => set("hidden", e.target.checked)} />
           </div>
         </div>
       </Card>

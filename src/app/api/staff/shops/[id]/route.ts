@@ -60,7 +60,7 @@ const LOGGED: [string, (s: Shop, deptName: (id: string) => string) => string][] 
   ["お店の思い", (s) => s.message],
   ["地図のピン", (s) => s.placeId],
   ["場所の補足", (s) => s.placeNote],
-  ["非公開", (s) => (s.hidden ? "非公開" : "公開")],
+  ["非表示", (s) => (s.hidden ? "非表示" : "表示")],
   ["並び順", (s) => String(s.order)],
   ["お客さんへのお知らせ", (s) => s.notice],
   ["当日の流れ", (s) => s.schedule.map((x) => `${x.time} ${x.text}`.trim()).join(" ／ ")],

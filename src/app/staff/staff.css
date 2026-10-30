@@ -78,6 +78,30 @@
 .st-list-row { display: flex; gap: 10px; align-items: center; padding: 12px 14px; min-height: 56px; color: inherit; text-decoration: none; }
 a.st-list-row:hover { background: var(--surface-2); }
 .st-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--line)); }
+.st-list > li[data-hidden] .st-list-row strong { color: var(--ink-3); }
+.st-badge--hidden { margin-left: 8px; vertical-align: 2px; background: var(--ink-3); color: var(--surface); }
+
+/* 一覧のまま押す 3 つ（営業の状態・売り切れ・非表示）。左から大事な順 */
+.st-quick { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; padding: 0 14px 12px 36px; }
+.st-quick .st-states { grid-column: 1 / -1; }
+.st-states--sm .st-state { min-height: 44px; font-size: 0.85rem; }
+.st-qbtn {
+  min-height: 44px; border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface); cursor: pointer;
+  font-weight: 900; font-size: 0.85rem; padding: 2px 8px; line-height: 1.25; display: grid; place-content: center;
+}
+.st-qbtn-sub { font-size: 0.7rem; font-weight: 700; color: var(--ink-3); }
+.st-qbtn--out[aria-pressed="true"] { background: var(--ng); border-color: var(--ng); color: #fff; }
+.st-qbtn--hide[aria-pressed="true"] { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
+.st-qbtn[aria-pressed="true"] .st-qbtn-sub { color: inherit; opacity: 0.9; }
+.st-qbtn:disabled, .st-states--sm .st-state:disabled { opacity: 0.6; cursor: progress; }
+.st-qbtn--out:disabled:not([aria-pressed="true"]) { cursor: not-allowed; }
+.st-quick-msg { grid-column: 1 / -1; margin: 0; font-size: 0.78rem; font-weight: 700; color: var(--ok-ink); }
+.st-quick-msg--err { color: var(--ng-ink); background: var(--ng-soft); border-radius: var(--r-sm); padding: 4px 8px; }
+@media (min-width: 720px) {
+  .st-quick { grid-template-columns: minmax(0, 4fr) minmax(96px, 1fr) minmax(96px, 1fr); }
+  .st-quick .st-states { grid-column: auto; }
+}
+@media (max-width: 380px) { .st-quick { padding-left: 14px; } }
 
 /* 地図のピン */
 .st-place-pick { font-size: 0.875rem; font-weight: 700; color: var(--primary); }

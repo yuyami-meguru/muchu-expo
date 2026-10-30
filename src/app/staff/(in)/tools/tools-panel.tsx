@@ -62,7 +62,7 @@ export function ToolsPanel({ ready, summary }: { ready: boolean; summary: Summar
         <div className="st-tool">
           <div>
             <h3 className="st-tool-h">全部のお店を「営業中」にする</h3>
-            <p className="st-muted">10:00 の開始に合わせて押します。品物の残り・お店からのお知らせはそのままです（非公開のお店は変えません）。</p>
+            <p className="st-muted">10:00 の開始に合わせて押します。品物の残り・お店からのお知らせはそのままです（非表示のお店は変えません）。</p>
           </div>
           {ready ? (
             <ConfirmDialog

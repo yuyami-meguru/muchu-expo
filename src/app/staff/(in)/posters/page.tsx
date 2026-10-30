@@ -71,7 +71,7 @@ export default async function StaffPostersPage() {
         <Banner tone="info" title="これは、お客さんに見せてよい QR です">
           読み取ると、そのお店のメニュー・値段・売り切れ・お店の思いが見られます（だれでも見られるページ）。
           お店の人が売り切れを変えるための QR は「お店の QR」の画面にあり、そちらはお客さんに見せないでください。
-          {hiddenCount > 0 && ` 非公開のお店（${hiddenCount} 店）のポスターは出していません。`}
+          {hiddenCount > 0 && ` 非表示のお店（${hiddenCount} 店）のポスターは出していません。`}
         </Banner>
         <p className="st-muted">印刷の設定：用紙 A4・縦、余白なし（または「最小」）、「背景のグラフィック」をオンにすると水色の地も出ます。</p>
       </div>

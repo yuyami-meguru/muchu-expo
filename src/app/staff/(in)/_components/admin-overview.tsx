@@ -57,7 +57,7 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
                       {s.name}
                     </Link>
                     <span className="st-badge" data-v={s.state}>
-                      {s.hidden ? "非公開" : STATE_LABEL[s.state]}
+                      {s.hidden ? "非表示" : STATE_LABEL[s.state]}
                     </span>
                   </div>
                   {s.notice && <p className="st-muted">お知らせ：{s.notice}</p>}
