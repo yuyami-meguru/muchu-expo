@@ -1,31 +1,38 @@
 /*
  * 夢中万博のサービスワーカー（電波が弱いときの備え）。ライブラリなしの手書き。
  * 版（キャッシュの名前）は登録するときの URL の ?v= で受け取る（例 /sw.js?v=0.7.0-abc1234）。
- * 版が変わると URL が変わるので、新しいサービスワーカーに入れかわり、古い保存分は消える。
+ * 版が変わると URL が変わるので、新しいサービスワーカーに入れかわり、古いページの保存分は消える。
+ * /_next/static などのファイルは名前に中身の印が入っているので、版をまたいで 1 つの保存先に残す
+ * （開いたままの古いページが、電波のない所で古いファイルを探しても見つかるように）。
  *
  * きまり
- *  - お客さん側のページ：通信を先に。失敗したら前に保存したもの。一度も開いていなければ /offline.html
+ *  - お客さん側のページ：通信を先に。4 秒待っても返事がない・サーバーの不具合（5xx）なら、前に保存したもの。
+ *    一度も開いていなければ /offline.html
  *  - /_next/static・フォント・/brand・/img・アイコン：保存分を先に（なければ取りに行って保存）
- *  - /api/status：通信を先に。失敗したら最後に保存したもの
- *  - 従業員側（/staff・/join）、/api/staff、/api/survey、/api/radio、POST などの書き込み：さわらない（そのまま通す）
+ *  - /api/status：通信を先に。3 秒待っても返事がない・5xx なら、最後に保存したもの
+ *  - 従業員側（/staff・/join）のページ：保存しない。通信できないときだけ /offline-staff.html（何をすればよいかの案内）
+ *  - /api/staff、/api/survey、/api/radio、POST などの書き込み：さわらない（そのまま通す）
  */
 const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
 const PAGES = `muchu-pages-${VERSION}`;
-const ASSETS = `muchu-assets-${VERSION}`;
+const ASSETS = "muchu-assets";
 const OFFLINE_URL = "/offline.html";
+const OFFLINE_STAFF_URL = "/offline-staff.html";
 
 // お客さん側のページ（保存してよいもの）
 const PUBLIC_PAGE = /^\/(|shops(\/[a-z0-9-]+)?|schedule|map|info|survey|radio|award)$/;
 // 保存分を先に使うもの（中身が変わらない・名前に版が入っている）
 const ASSET = /^\/(_next\/static\/|brand\/|img\/|icon\.svg|apple-icon|favicon|opengraph-image|manifest\.webmanifest)/;
+// 従業員側のページ（保存しない。つながらないときの案内だけ）
+const STAFF_PAGE = /^\/(staff|join)(\/|$)/;
 // 絶対にさわらないもの
-const NEVER = /^\/(staff|join|api\/staff|api\/survey|api\/radio)(\/|$|\?)/;
+const NEVER = /^\/(api\/staff|api\/survey|api\/radio)(\/|$|\?)/;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(PAGES)
-      .then((c) => c.add(new Request(OFFLINE_URL, { cache: "reload" })))
+      .then((c) => c.addAll([new Request(OFFLINE_URL, { cache: "reload" }), new Request(OFFLINE_STAFF_URL, { cache: "reload" })]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -35,6 +42,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k.startsWith("muchu-") && k !== PAGES && k !== ASSETS).map((k) => caches.delete(k))))
+      // v0.9 までは版ごとにファイルの保存先を分けていた（muchu-assets-○○）。上で消える
       .then(() => self.clients.claim()),
   );
 });
@@ -49,16 +57,21 @@ self.addEventListener("fetch", (event) => {
   // 画面の切りかえ（RSC）の読み込みはさわらない。ページそのものの読み込みだけ扱う
   if (req.headers.get("RSC") || url.searchParams.has("_rsc")) return;
 
+  if (STAFF_PAGE.test(url.pathname)) {
+    if (req.mode === "navigate") event.respondWith(fetch(req).catch(() => caches.match(OFFLINE_STAFF_URL)));
+    return;
+  }
+
   if (ASSET.test(url.pathname)) {
     event.respondWith(cacheFirst(req));
     return;
   }
   if (url.pathname === "/api/status") {
-    event.respondWith(networkFirst(req, PAGES, null));
+    event.respondWith(networkFirst(req, PAGES, null, 3000));
     return;
   }
   if (req.mode === "navigate" && PUBLIC_PAGE.test(url.pathname)) {
-    event.respondWith(networkFirst(req, PAGES, OFFLINE_URL));
+    event.respondWith(networkFirst(req, PAGES, OFFLINE_URL, 4000));
     return;
   }
   if (req.mode === "navigate") {
@@ -78,17 +91,29 @@ async function cacheFirst(req) {
   return res;
 }
 
-async function networkFirst(req, cacheName, fallbackUrl) {
-  try {
-    const res = await fetch(req);
+/**
+ * 通信を先に。waitMs 待っても返事がない・サーバーの不具合（5xx）のときは、前に保存したものがあればそれを出す。
+ * 保存したものが無ければ、通信の返事を待つ（それも失敗したら fallbackUrl）
+ */
+async function networkFirst(req, cacheName, fallbackUrl, waitMs) {
+  const key = stripSearch(req);
+  const net = fetch(req).then(async (res) => {
     if (res.ok) {
       const c = await caches.open(cacheName);
       // ?v= などの付いたアドレスも、同じページとして 1 つにまとめて保存する
-      c.put(stripSearch(req), res.clone());
+      await c.put(key, res.clone());
     }
     return res;
+  });
+  net.catch(() => {});
+  try {
+    const res = await Promise.race([net, new Promise((done) => setTimeout(() => done(null), waitMs))]);
+    if (res && res.status < 500) return res;
+    const hit = await caches.match(key);
+    if (hit) return hit;
+    return res || (await net);
   } catch {
-    const hit = await caches.match(stripSearch(req));
+    const hit = await caches.match(key);
     if (hit) return hit;
     if (fallbackUrl) {
       const off = await caches.match(fallbackUrl);

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Live } from "@/lib/live";
+import { phaseOf, type Phase } from "@/lib/ops";
 
 const Ctx = createContext<Live | null>(null);
 /** 電波の様子：weak＝続けて読めなかった・ブラウザがオフラインと言っている。at＝最後に読めた時刻 */
@@ -21,6 +22,8 @@ export function LiveProvider({ initial, children }: { initial: Live; children: R
   const [fails, setFails] = useState(0);
   const [offline, setOffline] = useState(false);
   const [okAt, setOkAt] = useState(initial.at);
+  // 最後に読めた時刻（読み直しのたびに作り直さないよう、ref にも持つ）
+  const okAtRef = useRef(initial.at);
 
   useEffect(() => {
     let stop = false;
@@ -31,9 +34,11 @@ export function LiveProvider({ initial, children }: { initial: Live; children: R
         if (!r.ok) throw new Error(String(r.status));
         const next = (await r.json()) as Live;
         if (stop) return;
-        setLive(next);
+        // 届く順番が前後しても、古い様子で上書きしない
+        setLive((cur) => (next.at >= cur.at ? next : cur));
         // サービスワーカーが返した前の保存分は、時刻が進まない。そのときは「読めなかった」に数える
-        if (next.at > okAt) {
+        if (next.at > okAtRef.current) {
+          okAtRef.current = next.at;
           setOkAt(next.at);
           setFails(0);
         } else {
@@ -55,6 +60,8 @@ export function LiveProvider({ initial, children }: { initial: Live; children: R
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     if (!navigator.onLine) onOffline();
+    // はじめの様子が古い（保存してあったページ・読めなかったとき）なら、すぐ読み直す
+    if (Date.now() - okAtRef.current > EVERY_MS) load();
     return () => {
       stop = true;
       clearInterval(t);
@@ -62,7 +69,7 @@ export function LiveProvider({ initial, children }: { initial: Live; children: R
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [okAt]);
+  }, []);
 
   const signal: Signal = { weak: offline || fails >= FAILS_TO_WARN, at: okAt };
   return (
@@ -81,4 +88,13 @@ export function useLive(): Live {
 /** 電波の様子（帯を出すかどうか） */
 export function useSignal(): Signal {
   return useContext(SignalCtx);
+}
+
+/**
+ * 表示の時期（開催前・当日の朝・開催中・終了後）。サーバーが答えた時刻（live.at）で決めるので、
+ * はじめの描画（サーバー）と画面の側で食いちがわない。15 秒ごとの読み直しで進む。実行委員が練習用に切り替えたらそれに従う
+ */
+export function usePhase(): Phase {
+  const l = useLive();
+  return phaseOf(l.at, l.phase ?? "auto");
 }

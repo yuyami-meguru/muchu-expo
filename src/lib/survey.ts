@@ -74,7 +74,11 @@ export function summarize(answers: SurveyAnswer[], shopNames: Record<string, str
 
 /** 先生に渡す表（CSV。Excel で開けるように頭に BOM を付ける） */
 export function toCsv(answers: SurveyAnswer[], shopNames: Record<string, string>) {
-  const esc = (v: string) => (/[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  // = + - @ で始まる文は、Excel が式として動かさないよう前に ' を付ける
+  const esc = (raw: string) => {
+    const v = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  };
   const head = ["回答の日時", "あなたについて", "知ったきっかけ", "きっかけ（その他）", "交通手段", "交通手段（その他）", "印象に残ったお店・出し物", "印象に残ったもの（記入）", "感想"];
   const rows = answers.map((a) => [
     new Date(a.at + 9 * 3600e3).toISOString().slice(0, 16).replace("T", " "),

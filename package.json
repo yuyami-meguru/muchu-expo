@@ -12,7 +12,8 @@
     "check:tools": "node scripts/check-tools.mjs",
     "check:survey": "node scripts/check-survey.mjs",
     "check:award": "node scripts/check-award.mjs",
-    "check:radio": "node scripts/check-radio.mjs"
+    "check:radio": "node scripts/check-radio.mjs",
+    "check:live": "node scripts/check-live.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.0",

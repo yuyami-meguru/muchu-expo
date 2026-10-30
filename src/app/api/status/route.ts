@@ -3,14 +3,15 @@ import { loadAll } from "@/lib/store";
 import { liveOf } from "@/lib/live";
 import { radioLive } from "@/lib/radio";
 import { loadRadio } from "@/lib/radio-server";
+import { loadPublicOps } from "@/lib/ops-server";
 
 // みんなの画面が 15 秒ごとに読む「いまの様子」。売り切れ・お店の状態・お知らせ・ラジオの ON AIR だけ（説明文などは入れない）。
-// Vercel の CDN に 5 秒だけ置いて、人が多くても Redis を呼びすぎないようにする。
+// Vercel の CDN に 3 秒だけ置いて、人が多くても Redis を呼びすぎないようにする（お店が押してから、お客さんの画面に出るまで長くて 20 秒ほど）。
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [data, radio] = await Promise.all([loadAll(), loadRadio()]);
-  return NextResponse.json(liveOf(data, radioLive(radio)), {
-    headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10" },
+  const [data, radio, ops] = await Promise.all([loadAll(), loadRadio(), loadPublicOps()]);
+  return NextResponse.json(liveOf(data, radioLive(radio), ops), {
+    headers: { "Cache-Control": "public, s-maxage=3, stale-while-revalidate=5" },
   });
 }

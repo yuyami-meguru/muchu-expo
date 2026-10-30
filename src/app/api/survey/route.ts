@@ -4,15 +4,16 @@ import { addSurvey, allow, loadAll, surveyOpen } from "@/lib/store";
 import { isEmptyAnswer, surveyBody, type SurveyAnswer } from "@/lib/survey";
 
 // お客さんのアンケートの回答。ログインはいらない。
-// 回数の上限は「つなぎ先（IP）」ごとに 10 分 60 回（学校の Wi-Fi は全員が同じ IP になるので多め。いたずらの連打だけ止める）
-const LIMIT = process.env.NODE_ENV === "production" ? 60 : 500;
+// 回数の上限は「つなぎ先（IP）」ごとに 10 分 600 回。会場の Wi-Fi は全員が同じ IP になることがあるので大きめにし、
+// いたずらの連打だけ止める（ほかは見えない欄と受付のオン・オフで防ぐ）
+const LIMIT = process.env.NODE_ENV === "production" ? 600 : 1000;
 
 export async function POST(req: NextRequest) {
   return guarded(async () => {
     const b = await readBody(req, surveyBody);
     if ("error" in b) return b.error;
     if (!(await surveyOpen())) return fail(403, "アンケートの受付は終わりました。ありがとうございました");
-    if (!(await allow(`survey:${clientIp(req)}`, LIMIT, 600))) return fail(429, "少し時間をおいてから、もう一度送ってください");
+    if (!(await allow(`survey:${clientIp(req)}`, LIMIT, 600))) return fail(429, "いま回答がとても多いため、受け付けられませんでした。1 分ほど待ってから、もう一度「送る」を押してください");
     const { website, ...a } = b.data;
     // 見えない欄に何か入っていたら機械の送りつけ。送れたふりをして保存しない
     if (website) return ok();

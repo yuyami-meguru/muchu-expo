@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { fail, guarded, ok, readBody, zId } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { deleteDept, deletePlace, deleteShop, loadAll, saveDept, savePlace, saveShop } from "@/lib/store";
+import { deleteDept, deletePlace, deleteShop, loadAll, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
 
 /*
  * 控えから戻す（実行委員だけ）。控えの部門・お店・場所で上書きする。
@@ -38,9 +38,18 @@ const shopSchema = z.object({
   order: z.number().int().min(0).max(9999),
   updatedAt: z.number(),
 });
-const placeSchema = z.object({ id: zId, name: s(30).min(1), x: z.number().min(0).max(100), y: z.number().min(0).max(100), note: s(60) });
+const placeSchema = z.object({
+  id: zId,
+  kind: z.enum(["spot", "info", "toilet", "aid", "rest", "gate"]).optional(),
+  name: s(30).min(1),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  note: s(60),
+});
 const backupSchema = z.object({
   confirm: z.literal("上書き"),
+  /** true なら、営業の状態・売り切れ・お店からのお知らせは今のまま（当日の途中で戻すとき用） */
+  keepLive: z.boolean().default(false),
   data: z.object({
     app: z.literal("muchu-expo"),
     depts: z.array(deptSchema).max(50),
@@ -61,6 +70,12 @@ export async function POST(req: NextRequest) {
     for (const d of depts) await saveDept(d);
     for (const p of places) await savePlace(p);
     for (const shop of shops) await saveShop(shop);
+    if (!b.data.keepLive) {
+      const changes: Record<string, LivePatch> = Object.fromEntries(
+        shops.map((shop) => [shop.id, { state: shop.state, notice: shop.notice, stock: Object.fromEntries(shop.menu.map((m) => [m.id, m.stock])) }]),
+      );
+      await saveLive(changes);
+    }
 
     const keep = { dept: new Set(depts.map((d) => d.id)), shop: new Set(shops.map((x) => x.id)), place: new Set(places.map((p) => p.id)) };
     const removed = { depts: 0, shops: 0, places: 0 };

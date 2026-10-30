@@ -75,8 +75,20 @@ export type Shop = {
   updatedAt: number;
 };
 
-/** 地図のピン。x・y は地図の左上からの割合（0〜100） */
-export type Place = { id: string; name: string; x: number; y: number; note: string };
+/** ピンの種類。お店・出し物の場所のほかに、来た人が探す設備（トイレ・受付など）も置ける */
+export type PlaceKind = "spot" | "info" | "toilet" | "aid" | "rest" | "gate";
+export const PLACE_KINDS: { value: PlaceKind; label: string; mark: string }[] = [
+  { value: "spot", label: "お店・出し物の場所", mark: "" },
+  { value: "info", label: "受付・本部", mark: "受" },
+  { value: "toilet", label: "トイレ", mark: "WC" },
+  { value: "aid", label: "救護", mark: "＋" },
+  { value: "rest", label: "休憩所", mark: "休" },
+  { value: "gate", label: "入口・門", mark: "門" },
+];
+export const placeKindOf = (p: Pick<Place, "kind">): PlaceKind => p.kind ?? "spot";
+
+/** 地図のピン。x・y は地図の左上からの割合（0〜100）。kind が無い古いピンは「お店・出し物の場所」 */
+export type Place = { id: string; name: string; x: number; y: number; note: string; kind?: PlaceKind };
 
 /** 実行委員からのお知らせ（トップに出す） */
 export type News = { id: string; text: string; at: number; pinned: boolean };

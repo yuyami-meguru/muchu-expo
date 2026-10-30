@@ -29,8 +29,47 @@ export async function readBody<T extends z.ZodType>(req: NextRequest, schema: T)
     return { error: fail(400, "送られた中身が読めません") };
   }
   const r = schema.safeParse(json);
-  if (!r.success) return { error: fail(400, `入力を確かめてください（${r.error.issues[0]?.path.join(".") || "中身"}）`) };
+  if (!r.success) return { error: fail(400, issueText(r.error.issues[0])) };
   return { data: r.data };
+}
+
+/** 欄の英字の名前 → 画面での呼び名 */
+const FIELD_LABEL: Record<string, string> = {
+  name: "名前",
+  price: "値段",
+  note: "メモ",
+  text: "文",
+  time: "時刻",
+  catch: "ひとこと",
+  description: "どんなお店？",
+  message: "お店の思い",
+  notice: "お店からのお知らせ",
+  menu: "メニュー",
+  schedule: "当日の流れ",
+  placeNote: "場所の補足",
+  short: "短い名前",
+  tagline: "ひとこと",
+  id: "英字の名前",
+  pass: "合言葉",
+};
+
+/** zod の 1 件目の問題を、何をどう直せばいいかの日本語にする（例：「メニューの 2 行目の名前を入れてください」） */
+function issueText(issue: z.core.$ZodIssue | undefined) {
+  if (!issue) return "入れた内容を確かめてください";
+  const path = issue.path.map(String);
+  let where = "";
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
+    if (/^\d+$/.test(p)) where += ` ${Number(p) + 1} 行目の`;
+    else where += (FIELD_LABEL[p] ?? "") + (/^\d+$/.test(path[i + 1] ?? "") ? "の" : "");
+  }
+  where = where.replace(/の$/, "").trim();
+  const last = path.at(-1) ?? "";
+  const label = where || FIELD_LABEL[last] || "";
+  if (issue.code === "too_big" && "maximum" in issue) return `${label || "入れた内容"}が長すぎます（${issue.maximum} 字まで）`;
+  if (issue.code === "too_small") return `${label || "入れた内容"}を入れてください`;
+  if (issue.code === "invalid_format" || last === "id") return "英字の名前は、小文字の a〜z・数字・「-」だけにしてください";
+  return label ? `${label}を確かめてください` : "入れた内容を確かめてください。画面を読み込み直すと直ることがあります";
 }
 
 /** Origin だけ確かめる（中身のない操作：ログアウト・削除など） */
@@ -48,9 +87,9 @@ export async function guarded(fn: () => Promise<NextResponse>) {
   try {
     return await fn();
   } catch (e) {
-    if (e instanceof StoreNotReady) return fail(503, "保存先（Upstash）がまだつながっていません。実行委員に連絡してください");
+    if (e instanceof StoreNotReady) return fail(503, "いまは保存できません。実行委員（サイト担当の AVERIX）に知らせてください");
     console.error(e);
-    return fail(500, "保存できませんでした。少ししてからもう一度ためしてください");
+    return fail(500, "保存できませんでした。電波のよい所で、少ししてからもう一度ためしてください");
   }
 }
 
@@ -95,6 +134,7 @@ export const adminShopPatch = shopPatch.extend({
 });
 
 export const placeBody = z.object({
+  kind: z.enum(["spot", "info", "toilet", "aid", "rest", "gate"]).default("spot"),
   name: text(30).min(1),
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),

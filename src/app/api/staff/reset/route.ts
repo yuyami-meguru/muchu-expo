@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { fail, guarded, ok, readBody } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { loadAll, saveShop } from "@/lib/store";
+import { loadAll, saveLive, type LivePatch } from "@/lib/store";
 
 /**
  * 売り切れと状態をまとめて戻す（実行委員だけ）。前日の練習のあとや、当日の朝に使う。
@@ -16,9 +16,10 @@ export async function POST(req: NextRequest) {
     const b = await readBody(req, z.object({ confirm: z.literal("リセット") }));
     if ("error" in b) return b.error;
     const { shops } = await loadAll({ fresh: true });
-    for (const shop of shops) {
-      await saveShop({ ...shop, state: "prep", notice: "", menu: shop.menu.map((m) => ({ ...m, stock: "on" })) });
-    }
+    const changes: Record<string, LivePatch> = Object.fromEntries(
+      shops.map((shop) => [shop.id, { state: "prep" as const, notice: "", stock: Object.fromEntries(shop.menu.map((m) => [m.id, "on" as const])) }]),
+    );
+    await saveLive(changes);
     return ok({ count: shops.length });
   });
 }

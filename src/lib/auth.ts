@@ -15,6 +15,8 @@ export type Session = { role: "admin"; exp: number } | { role: "shop"; shop: str
 export const COOKIE = "muchu_staff";
 const ADMIN_HOURS = 12;
 const SHOP_HOURS = 72;
+/** お店の人のログインは、準備のあいだに入っても当日まで切れないよう、少なくとも開催日の翌日 0:00（日本時間）まで続ける */
+const SHOP_AT_LEAST_UNTIL = Date.parse("2026-11-29T00:00:00+09:00");
 
 /** 合言葉。手元（next dev）で設定がなければ dev-pass。本番は 12 文字より短いと使わない（当てられにくくするため） */
 export function adminPassphrase(): string | null {
@@ -29,6 +31,11 @@ function secret() {
   const p = adminPassphrase();
   // 合言葉が無いとき（本番の設定前）は、だれもログインできない値にする
   return createHash("sha256").update(`muchu-session:${p ?? createHash("sha256").update(String(Math.random())).digest("hex")}`).digest("hex");
+}
+
+/** ログインの署名に使う秘密が決まっているか（本番で合言葉も STAFF_SESSION_SECRET も無いと、だれもログインできない） */
+export function sessionReady() {
+  return !!process.env.STAFF_SESSION_SECRET || !!adminPassphrase();
 }
 
 const sha = (s: string) => createHash("sha256").update(s).digest();
@@ -69,7 +76,7 @@ export function newSession(role: "admin"): Session;
 export function newSession(role: "shop", shop: string, key: string): Session;
 export function newSession(role: "admin" | "shop", shop?: string, key?: string): Session {
   if (role === "admin") return { role, exp: Date.now() + ADMIN_HOURS * 3600e3 };
-  return { role, shop: shop!, kfp: keyPrint(key!), exp: Date.now() + SHOP_HOURS * 3600e3 };
+  return { role, shop: shop!, kfp: keyPrint(key!), exp: Math.max(Date.now() + SHOP_HOURS * 3600e3, SHOP_AT_LEAST_UNTIL) };
 }
 
 export function cookieOptions(s: Session) {

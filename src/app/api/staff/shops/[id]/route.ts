@@ -1,52 +1,73 @@
 import type { NextRequest } from "next/server";
 import { adminShopPatch, fail, guarded, ok, readBody, sameOrigin, shopPatch } from "@/lib/api";
 import { canEditShop, getSession } from "@/lib/auth";
-import { addLog, deleteShop, getShop, loadAll, saveShop, type LogEntry } from "@/lib/store";
+import { addLiveLog, addLog, deleteShop, getShop, loadAll, saveLive, saveShop, type LiveLogEntry, type LogEntry } from "@/lib/store";
 import type { MenuItem, Shop } from "@/lib/types";
 
 /*
  * お店を書き換える。
  *  - お店の人：自分のお店の「状態・お知らせ・品物ごとの残り」と「お店の紹介（ひとこと・どんなお店？・思い・当日の流れ・メニュー）」
- *    （店名・部門・場所・非公開・並び順は送っても捨てる。メニューを送っても、品物の残りは今のまま）
+ *    （店名・部門・場所・非表示・並び順は送っても捨てる）
  *  - 実行委員：すべての欄
- * ほかのお店は、ここ（サーバー）で断る。中身の欄が変わったら「変更の記録」に残す（売り切れ・状態だけの変更は残さない）。
+ * 営業の状態・お知らせ・品物の残りは、送られた物だけを 1 つずつ書く（saveLive）。同時にほかの人が押しても消えない。
+ * メニューを送っても、品物の残りは今のまま（残りは stock の配列でだけ変える）。
+ * ほかのお店は、ここ（サーバー）で断る。中身の欄が変わったら「変更の記録」に、状態・残り・お知らせは「当日の動き」に残す。
  */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/staff/shops/[id]">) {
   return guarded(async () => {
     const { id } = await ctx.params;
     const s = await getSession();
-    if (!s) return fail(401, "ログインしてください");
-    if (!canEditShop(s, id)) return fail(403, "このお店は編集できません");
+    if (!s) return fail(401, "ログインが切れました。お店の QR をもう一度読み取ってください");
+    if (!canEditShop(s, id)) return fail(403, "ほかのお店は変えられません。自分のお店の QR で入ってください");
     const admin = s.role === "admin";
+    const by = admin ? "admin" : s.shop;
     const b = await readBody(req, admin ? adminShopPatch : shopPatch);
     if ("error" in b) return b.error;
     const shop = await getShop(id, { fresh: true });
-    if (!shop) return fail(404, "お店が見つかりません");
+    if (!shop) return fail(404, "お店が見つかりません。画面を読み込み直してください");
 
-    const { stock, menu, ...rest } = b.data as typeof b.data & Partial<Shop>;
+    const { stock, menu, state, notice, ...rest } = b.data as typeof b.data & Partial<Shop>;
     const depts = rest.dept && rest.dept !== shop.dept ? (await loadAll({ fresh: true })).depts : null;
-    if (depts && !depts.some((d) => d.id === rest.dept)) return fail(400, "その部門はありません");
-    const next: Shop = { ...shop, ...rest };
-    if (menu) {
-      // 残り（stock）：実行委員は送った値、お店の人は今の値のまま（新しい品物は「販売中」）
-      const cur = new Map(shop.menu.map((m) => [m.id, m.stock]));
-      next.menu = menu.map(
-        (m): MenuItem => ({ id: m.id, name: m.name, price: m.price, note: m.note, stock: (admin && m.stock) || cur.get(m.id) || "on" }),
-      );
+    if (depts && !depts.some((d) => d.id === rest.dept)) return fail(400, "その部門はありません。画面を読み込み直してください");
+
+    // 1. 中身（名前・紹介・メニューなど）。送られた欄があるときだけ
+    let next: Shop = shop;
+    if (menu || Object.keys(rest).length) {
+      next = { ...shop, ...rest };
+      if (menu) {
+        // 残り（stock）は今の値のまま（新しい品物は「販売中」）
+        const cur = new Map(shop.menu.map((m) => [m.id, m.stock]));
+        next.menu = menu.map((m): MenuItem => ({ id: m.id, name: m.name, price: m.price, note: m.note, stock: cur.get(m.id) ?? "on" }));
+      }
+      await saveShop(next);
     }
-    if (stock?.length) {
-      const by = new Map(stock.map((x) => [x.id, x.stock]));
-      next.menu = next.menu.map((m) => (by.has(m.id) ? { ...m, stock: by.get(m.id)! } : m));
-    }
-    await saveShop(next);
+
+    // 2. 当日よく変わる物（送られた物だけ）
+    const items = new Set(next.menu.map((m) => m.id));
+    const stockMap = Object.fromEntries((stock ?? []).filter((x) => items.has(x.id)).map((x) => [x.id, x.stock]));
+    const live = {
+      ...(state !== undefined ? { state } : {}),
+      ...(notice !== undefined ? { notice } : {}),
+      ...(Object.keys(stockMap).length ? { stock: stockMap } : {}),
+    };
+    if (Object.keys(live).length) await saveLive({ [id]: live });
+
     try {
+      const at = Date.now();
       const deptName = (id: string) => depts?.find((d) => d.id === id)?.name ?? id;
-      await addLog(diff(shop, next, admin ? "admin" : s.shop, deptName));
+      await addLog(diff(shop, { ...next, notice: notice ?? shop.notice }, by, deptName));
+      const moves: LiveLogEntry[] = [];
+      if (state !== undefined && state !== shop.state) moves.push({ at, by, shop: id, kind: "state", value: state });
+      if (notice !== undefined && notice !== shop.notice) moves.push({ at, by, shop: id, kind: "notice", value: notice });
+      for (const [item, st] of Object.entries(stockMap)) {
+        if (shop.menu.find((m) => m.id === item)?.stock !== st) moves.push({ at, by, shop: id, kind: "stock", item, value: st });
+      }
+      await addLiveLog(moves);
     } catch (e) {
       // 記録に失敗しても、保存はできているので成功として返す
       console.error("変更の記録に失敗", e);
     }
-    return ok({ shop: { ...next, updatedAt: Date.now() } });
+    return ok({ shop: await getShop(id, { fresh: true }) });
   });
 }
 
@@ -60,11 +81,11 @@ const LOGGED: [string, (s: Shop, deptName: (id: string) => string) => string][] 
   ["お店の思い", (s) => s.message],
   ["地図のピン", (s) => s.placeId],
   ["場所の補足", (s) => s.placeNote],
-  ["非表示", (s) => (s.hidden ? "非表示" : "表示")],
+  ["非表示", (s) => (s.hidden ? "非表示" : "表示中")],
   ["並び順", (s) => String(s.order)],
-  ["お客さんへのお知らせ", (s) => s.notice],
+  ["お店からのお知らせ", (s) => s.notice],
   ["当日の流れ", (s) => s.schedule.map((x) => `${x.time} ${x.text}`.trim()).join(" ／ ")],
-  // メニューは名前・値段・メモだけを比べる（残りの切り替えは記録しない）
+  // メニューは名前・値段・メモだけを比べる（残りの切り替えは「当日の動き」へ）
   ["メニュー", (s) => s.menu.map((m) => [m.name, m.price, m.note].filter(Boolean).join(" ")).join(" ／ ")],
 ];
 

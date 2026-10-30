@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Redis } from "@upstash/redis";
 import { SEED } from "./seed";
-import type { Dept, News, Place, Shop, SiteData } from "./types";
+import type { Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./types";
 
 /*
  * 保存先。本番は Upstash Redis（Vercel で Upstash をつなぐと KV_REST_API_URL・KV_REST_API_TOKEN が入る）。
@@ -17,6 +17,12 @@ import type { Dept, News, Place, Shop, SiteData } from "./types";
  *   muchu:place  ハッシュ（場所の id → Place の JSON）
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
+ *   muchu:live   ハッシュ（当日よく変わる物を 1 つずつ。「お店id:state」「お店id:notice」「お店id:s:品物id」「お店id:at」）
+ *                → 同時に押しても、ほかの人の変更を上書きしない（お店の JSON の state・notice・stock より優先）
+ *   muchu:call   ハッシュ（お店から実行委員への呼び出し。id → Call の JSON）
+ *   muchu:check  ハッシュ（当日のチェックリスト。項目 id → 印を付けた時刻）
+ *   muchu:memo-ack ハッシュ（お店 id → 読んだ「お店の人へ」の連絡の id）
+ *   muchu:livelog リスト（当日の動き：営業の状態・売り切れ・お知らせの切り替え。新しい順に 5000 件まで）
  *   muchu:log    リスト（変更の記録。新しい順に 500 件まで。LogEntry の JSON）
  *   muchu:survey リスト（アンケートの回答。新しい順に 20000 件まで。SurveyAnswer の JSON）
  *   muchu:set:○○ 文字の設定（muchu:set:surveyOpen＝"1"/"0" など）
@@ -35,18 +41,23 @@ type Raw = {
   place: Record<string, string>;
   news: Record<string, string>;
   key: Record<string, string>;
+  live: Record<string, string>;
 };
-const TABLES = ["dept", "shop", "place", "news", "key"] as const;
+const TABLES = ["dept", "shop", "place", "news", "key", "live"] as const;
 
 interface Backend {
   readAll(): Promise<Raw>;
-  hset(table: keyof Raw, id: string, value: string): Promise<void>;
-  hdel(table: keyof Raw, id: string): Promise<void>;
+  /** ハッシュに書く（いくつ書いても 1 回でまとめて書く＝途中でほかの人の書き込みが混ざらない） */
+  hset(table: string, values: Record<string, string>): Promise<void>;
+  hdel(table: string, ids: string[]): Promise<void>;
+  hgetall(table: string): Promise<Record<string, string>>;
   /** はじめのデータを入れる（flag がまだなら）。入れたら true */
   seedOnce(flag: string, raw: Partial<Raw>): Promise<boolean>;
   incr(key: string, ttlSec: number): Promise<number>;
-  /** リストの先頭に足して、max 件より古いものを捨てる */
-  push(list: string, value: string, max: number): Promise<void>;
+  /** 数えた回数を読むだけ（増やさない） */
+  count(key: string): Promise<number>;
+  /** リストの先頭に足して（values は古い順。最後のものがいちばん新しくなる）、max 件より古いものを捨てる */
+  push(list: string, values: string[], max: number): Promise<void>;
   /** リストの先頭から n 件 */
   list(list: string, n: number): Promise<string[]>;
   /** リストを空にする */
@@ -90,17 +101,24 @@ class RedisBackend implements Backend {
     const res = (await p.exec()) as unknown[];
     return Object.fromEntries(TABLES.map((t, i) => [t, toTable(res[i])])) as Raw;
   }
-  async hset(table: keyof Raw, id: string, value: string) {
-    await this.r.hset(`muchu:${table}`, { [id]: value });
+  async hset(table: string, values: Record<string, string>) {
+    if (!Object.keys(values).length) return;
+    await this.r.hset(`muchu:${table}`, values);
   }
-  async hdel(table: keyof Raw, id: string) {
-    await this.r.hdel(`muchu:${table}`, id);
+  async hdel(table: string, ids: string[]) {
+    if (!ids.length) return;
+    await this.r.hdel(`muchu:${table}`, ...ids);
+  }
+  async hgetall(table: string) {
+    return toTable(await this.r.hgetall(`muchu:${table}`));
   }
   async seedOnce(flag: string, raw: Partial<Raw>) {
     const first = await this.r.set(`muchu:${flag}`, String(Date.now()), { nx: true });
     if (first !== "OK") return false;
     const p = this.r.pipeline();
     for (const t of TABLES) if (raw[t] && Object.keys(raw[t]).length) p.hset(`muchu:${t}`, raw[t]);
+    // はじめのデータには部門も入っている → 部門の目印も立てる（あとで部門を全部消しても入れ直さない）
+    if (flag === "seeded") p.set("muchu:seeded:dept", String(Date.now()), { nx: true });
     await p.exec();
     return true;
   }
@@ -111,9 +129,13 @@ class RedisBackend implements Backend {
     const [n] = (await p.exec()) as [number, number];
     return n;
   }
-  async push(list: string, value: string, max: number) {
+  async count(key: string) {
+    return Number(await this.r.get(`muchu:rl:${key}`)) || 0;
+  }
+  async push(list: string, values: string[], max: number) {
+    if (!values.length) return;
     const p = this.r.pipeline();
-    p.lpush(`muchu:${list}`, value);
+    p.lpush(`muchu:${list}`, ...values);
     p.ltrim(`muchu:${list}`, 0, max - 1);
     await p.exec();
   }
@@ -134,7 +156,15 @@ class RedisBackend implements Backend {
 /** 手元用。プロセスの中に持ち、.data/dev.json にも書く（next dev を止めても残る） */
 class FileBackend implements Backend {
   private file = join(process.cwd(), ".data", "dev.json");
-  private data: (Raw & { flags?: Record<string, boolean>; seeded?: boolean; lists?: Record<string, string[]>; settings?: Record<string, string> }) | null = null;
+  private data:
+    | (Raw & {
+        flags?: Record<string, boolean>;
+        seeded?: boolean;
+        lists?: Record<string, string[]>;
+        settings?: Record<string, string>;
+        hashes?: Record<string, Record<string, string>>;
+      })
+    | null = null;
   private counters = new Map<string, { n: number; until: number }>();
   constructor(private readonly writable: boolean) {}
   private load() {
@@ -142,10 +172,11 @@ class FileBackend implements Backend {
       try {
         this.data = JSON.parse(readFileSync(this.file, "utf8"));
       } catch {
-        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {} };
+        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {}, live: {} };
       }
-      // v0.3.0 の手元データには部門の表が無い
+      // v0.3.0 の手元データには部門の表が無い。v0.10.0 より前には live が無い
       this.data!.dept ??= {};
+      this.data!.live ??= {};
       this.data!.flags ??= this.data!.seeded ? { seeded: true } : {};
     }
     return this.data!;
@@ -159,15 +190,26 @@ class FileBackend implements Backend {
     const d = this.load();
     return Object.fromEntries(TABLES.map((t) => [t, { ...d[t] }])) as Raw;
   }
-  async hset(table: keyof Raw, id: string, value: string) {
+  /** ハッシュの置き場（読み込みでいつも読む 6 つは上の段、ほかは hashes の中） */
+  private table(name: string) {
+    const d = this.load();
+    if ((TABLES as readonly string[]).includes(name)) return d[name as keyof Raw];
+    d.hashes ??= {};
+    return (d.hashes[name] ??= {});
+  }
+  async hset(table: string, values: Record<string, string>) {
     if (!this.writable) throw new StoreNotReady();
-    this.load()[table][id] = value;
+    Object.assign(this.table(table), values);
     this.save();
   }
-  async hdel(table: keyof Raw, id: string) {
+  async hdel(table: string, ids: string[]) {
     if (!this.writable) throw new StoreNotReady();
-    delete this.load()[table][id];
+    const t = this.table(table);
+    for (const id of ids) delete t[id];
     this.save();
+  }
+  async hgetall(table: string) {
+    return { ...this.table(table) };
   }
   async seedOnce(flag: string, raw: Partial<Raw>) {
     const d = this.load();
@@ -184,11 +226,15 @@ class FileBackend implements Backend {
     this.counters.set(key, next);
     return next.n;
   }
-  async push(list: string, value: string, max: number) {
+  async count(key: string) {
+    const c = this.counters.get(key);
+    return c && c.until > Date.now() ? c.n : 0;
+  }
+  async push(list: string, values: string[], max: number) {
     if (!this.writable) throw new StoreNotReady();
     const d = this.load();
     d.lists ??= {};
-    d.lists[list] = [value, ...(d.lists[list] ?? [])].slice(0, max);
+    d.lists[list] = [...[...values].reverse(), ...(d.lists[list] ?? [])].slice(0, max);
     this.save();
   }
   async list(list: string, n: number) {
@@ -212,13 +258,13 @@ class FileBackend implements Backend {
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-const g = globalThis as unknown as { __muchuBackendV6?: Backend };
+const g = globalThis as unknown as { __muchuBackendV8?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV6) {
+  if (!g.__muchuBackendV8) {
     const env = redisEnv();
-    g.__muchuBackendV6 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV8 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV6;
+  return g.__muchuBackendV8;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -231,7 +277,7 @@ export function newKey() {
 }
 
 function seedRaw(): Raw {
-  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {} };
+  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {}, live: {} };
   for (const s of SEED.shops) {
     raw.shop[s.id] = JSON.stringify(s);
     raw.key[s.id] = newKey();
@@ -256,12 +302,19 @@ function parseAll<T>(rec: Record<string, string>): T[] {
   return out;
 }
 
-// 同じサーバーの中では 2 秒だけ使い回す（人が多いときに Redis を呼びすぎないため）
+// 同じサーバーの中では 2 秒だけ使い回す（人が多いときに Redis を呼びすぎないため）。
+// 書いたら世代を進める → 書く前に読み始めた古い中身を、使い回しに入れない
 let cache: { at: number; raw: Raw } | null = null;
+let generation = 0;
 const CACHE_MS = 2000;
+function dropCache() {
+  cache = null;
+  generation++;
+}
 
 async function raw(fresh = false): Promise<Raw> {
   if (!fresh && cache && Date.now() - cache.at < CACHE_MS) return cache.raw;
+  const gen = generation;
   const b = backend();
   let r = await b.readAll();
   if (!Object.keys(r.shop).length) {
@@ -280,15 +333,59 @@ async function raw(fresh = false): Promise<Raw> {
       r = { ...r, dept: seedDepts() };
     }
   }
-  cache = { at: Date.now(), raw: r };
+  if (gen === generation) cache = { at: Date.now(), raw: r };
   return r;
+}
+
+/* ───── 当日よく変わる物（営業の状態・お知らせ・品物の残り）は muchu:live に 1 つずつ ───── */
+const STATES: readonly ShopState[] = ["prep", "open", "break", "closed"];
+const STOCKS: readonly Stock[] = ["on", "few", "out"];
+type LiveRec = { state?: ShopState; notice?: string; at?: number; stock: Record<string, Stock> };
+
+function liveIndex(live: Record<string, string>) {
+  const m = new Map<string, LiveRec>();
+  for (const [k, v] of Object.entries(live)) {
+    const [shop, field, item] = k.split(":");
+    if (!shop || !field) continue;
+    let rec = m.get(shop);
+    if (!rec) m.set(shop, (rec = { stock: {} }));
+    if (field === "state" && STATES.includes(v as ShopState)) rec.state = v as ShopState;
+    else if (field === "notice") rec.notice = v;
+    else if (field === "at") rec.at = Number(v) || 0;
+    else if (field === "s" && item && STOCKS.includes(v as Stock)) rec.stock[item] = v as Stock;
+  }
+  return m;
+}
+
+/** お店の JSON に、当日の値（あれば）を重ねる */
+function withLive(shop: Shop, l: LiveRec | undefined): Shop {
+  if (!l) return shop;
+  return {
+    ...shop,
+    state: l.state ?? shop.state,
+    notice: l.notice ?? shop.notice,
+    menu: shop.menu.map((m) => (l.stock[m.id] ? { ...m, stock: l.stock[m.id] } : m)),
+    updatedAt: Math.max(shop.updatedAt || 0, l.at ?? 0),
+  };
+}
+
+function parseShop(v: string | undefined): Shop | null {
+  if (!v) return null;
+  try {
+    return JSON.parse(v) as Shop;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData> {
   const r = await raw(opts.fresh);
+  const live = liveIndex(r.live);
   return {
     depts: parseAll<Dept>(r.dept).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
-    shops: parseAll<Shop>(r.shop).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
+    shops: parseAll<Shop>(r.shop)
+      .map((s) => withLive(s, live.get(s.id)))
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
     places: parseAll<Place>(r.place).sort((a, b) => a.name.localeCompare(b.name, "ja")),
     news: parseAll<News>(r.news).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at),
   };
@@ -296,54 +393,82 @@ export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData>
 
 export async function getShop(id: string, opts: { fresh?: boolean } = {}) {
   const r = await raw(opts.fresh);
-  const v = r.shop[id];
-  return v ? (JSON.parse(v) as Shop) : null;
+  const shop = parseShop(r.shop[id]);
+  return shop ? withLive(shop, liveIndex(r.live).get(id)) : null;
 }
 
 function guard() {
   if (!storeReady()) throw new StoreNotReady();
 }
 
+/**
+ * お店の中身（名前・紹介・メニューなど）を保存する。営業の状態・お知らせ・品物の残りは saveLive で。
+ * メニューから消えた品物の「残り」は消しておく（同じ id の品物をあとで足したとき、古い売り切れが付かないように）
+ */
 export async function saveShop(shop: Shop) {
   guard();
-  await backend().hset("shop", shop.id, JSON.stringify({ ...shop, updatedAt: Date.now() }));
-  cache = null;
+  await backend().hset("shop", { [shop.id]: JSON.stringify({ ...shop, updatedAt: Date.now() }) });
+  const r = await raw(true);
+  const keep = new Set(shop.menu.map((m) => `${shop.id}:s:${m.id}`));
+  const stale = Object.keys(r.live).filter((k) => k.startsWith(`${shop.id}:s:`) && !keep.has(k));
+  if (stale.length) await backend().hdel("live", stale);
+  dropCache();
 }
+
+export type LivePatch = { state?: ShopState; notice?: string; stock?: Record<string, Stock> };
+
+/** 当日よく変わる物を、お店ごとにまとめて 1 回で書く（ほかの欄・ほかの品物には触らない） */
+export async function saveLive(changes: Record<string, LivePatch>) {
+  guard();
+  const at = String(Date.now());
+  const values: Record<string, string> = {};
+  for (const [id, c] of Object.entries(changes)) {
+    if (c.state !== undefined) values[`${id}:state`] = c.state;
+    if (c.notice !== undefined) values[`${id}:notice`] = c.notice;
+    for (const [item, st] of Object.entries(c.stock ?? {})) values[`${id}:s:${item}`] = st;
+    if (c.state !== undefined || c.notice !== undefined || Object.keys(c.stock ?? {}).length) values[`${id}:at`] = at;
+  }
+  await backend().hset("live", values);
+  dropCache();
+}
+
 export async function deleteShop(id: string) {
   guard();
-  await backend().hdel("shop", id);
-  await backend().hdel("key", id);
-  cache = null;
+  const r = await raw(true);
+  await backend().hdel("shop", [id]);
+  await backend().hdel("key", [id]);
+  await backend().hdel("live", Object.keys(r.live).filter((k) => k.startsWith(`${id}:`)));
+  dropCache();
 }
 export async function saveDept(d: Dept) {
   guard();
-  await backend().hset("dept", d.id, JSON.stringify(d));
-  cache = null;
+  await backend().hset("dept", { [d.id]: JSON.stringify(d) });
+  dropCache();
 }
 export async function deleteDept(id: string) {
   guard();
-  await backend().hdel("dept", id);
-  cache = null;
+  await backend().hdel("dept", [id]);
+  dropCache();
 }
 export async function savePlace(p: Place) {
   guard();
-  await backend().hset("place", p.id, JSON.stringify(p));
-  cache = null;
+  await backend().hset("place", { [p.id]: JSON.stringify(p) });
+  dropCache();
 }
 export async function deletePlace(id: string) {
   guard();
-  await backend().hdel("place", id);
-  cache = null;
+  await backend().hdel("place", [id]);
+  dropCache();
 }
 export async function saveNews(n: News) {
   guard();
-  await backend().hset("news", n.id, JSON.stringify(n));
-  cache = null;
+  await backend().hset("news", { [n.id]: JSON.stringify(n) });
+  dropCache();
 }
 export async function deleteNews(id: string) {
   guard();
-  await backend().hdel("news", id);
-  cache = null;
+  await backend().hdel("news", [id]);
+  dropCache();
 }
 
 /** お店の編集用のかぎ（なければ作る） */
@@ -353,15 +478,15 @@ export async function shopKey(id: string): Promise<string | null> {
   if (r.key[id]) return r.key[id];
   guard();
   const k = newKey();
-  await backend().hset("key", id, k);
-  cache = null;
+  await backend().hset("key", { [id]: k });
+  dropCache();
   return k;
 }
 export async function rotateShopKey(id: string) {
   guard();
   const k = newKey();
-  await backend().hset("key", id, k);
-  cache = null;
+  await backend().hset("key", { [id]: k });
+  dropCache();
   return k;
 }
 /** かぎの照合用（いつも最新を読む） */
@@ -386,8 +511,8 @@ const LOG_MAX = 500;
 
 export async function addLog(entries: LogEntry[]) {
   if (!entries.length || !storeReady()) return;
-  // 1 件ずつ先頭に足す（あとに足したものほど新しい）
-  for (const e of entries) await backend().push("log", JSON.stringify(e), LOG_MAX);
+  // まとめて 1 回で先頭に足す（あとのものほど新しい）
+  await backend().push("log", entries.map((e) => JSON.stringify(e)), LOG_MAX);
 }
 
 export async function listLog(n = LOG_MAX): Promise<LogEntry[]> {
@@ -403,10 +528,14 @@ export async function listLog(n = LOG_MAX): Promise<LogEntry[]> {
   return out;
 }
 
-/** 回数の上限（window 秒のあいだに limit 回まで）。超えたら false */
+/** 回数の上限（window 秒のあいだに limit 回まで）。数えて、超えたら false */
 export async function allow(bucket: string, limit: number, windowSec: number) {
   const n = await backend().incr(bucket, windowSec);
   return n <= limit;
+}
+/** まちがいの回数がもう上限に来ているか（数えない。まちがえたときだけ allow で数える） */
+export async function blocked(bucket: string, limit: number) {
+  return (await backend().count(bucket)) >= limit;
 }
 
 /* ───── アンケート（お客さんの回答。名前などは聞かない） ───── */
@@ -414,7 +543,7 @@ const SURVEY_MAX = 20000;
 
 export async function addSurvey(json: string) {
   guard();
-  await backend().push("survey", json, SURVEY_MAX);
+  await backend().push("survey", [json], SURVEY_MAX);
 }
 
 export async function listSurvey(): Promise<unknown[]> {
@@ -458,7 +587,7 @@ export async function setSetting(key: string, value: string) {
 /** リストの先頭に足す（max 件より古いものは捨てる） */
 export async function pushList(name: string, value: string, max: number) {
   guard();
-  await backend().push(name, value, max);
+  await backend().push(name, [value], max);
 }
 /** リストの先頭から n 件（新しい順） */
 export async function readList(name: string, n: number) {
@@ -468,4 +597,47 @@ export async function readList(name: string, n: number) {
 export async function clearList(name: string) {
   guard();
   await backend().clear(name);
+}
+
+/** ハッシュ（id → 文字）を読む・書く・消す。呼び出し・チェックリストなど、1 件ずつ別々に変わる物に使う */
+export async function readHash(name: string) {
+  return backend().hgetall(name);
+}
+export async function writeHash(name: string, values: Record<string, string>) {
+  guard();
+  await backend().hset(name, values);
+}
+export async function removeHash(name: string, ids: string[]) {
+  guard();
+  await backend().hdel(name, ids);
+}
+
+/* ───── 当日の動き（営業の状態・売り切れ・お知らせの切り替え。振り返りと来年の仕込みの参考に） ───── */
+export type LiveLogEntry = {
+  at: number;
+  /** "admin"（実行委員）か、お店の id（お店の人） */
+  by: string;
+  shop: string;
+  kind: "state" | "stock" | "notice";
+  /** 品物の id（kind が stock のとき） */
+  item?: string;
+  value: string;
+};
+const LIVELOG_MAX = 5000;
+
+export async function addLiveLog(entries: LiveLogEntry[]) {
+  if (!entries.length || !storeReady()) return;
+  await backend().push("livelog", entries.map((e) => JSON.stringify(e)), LIVELOG_MAX);
+}
+
+export async function listLiveLog(n = LIVELOG_MAX): Promise<LiveLogEntry[]> {
+  const out: LiveLogEntry[] = [];
+  for (const v of await backend().list("livelog", n)) {
+    try {
+      out.push(typeof v === "string" ? (JSON.parse(v) as LiveLogEntry) : (v as LiveLogEntry));
+    } catch {
+      // 壊れた 1 件は飛ばす
+    }
+  }
+  return out;
 }
