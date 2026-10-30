@@ -62,6 +62,23 @@ function redisEnv() {
   return url && token ? { url, token } : null;
 }
 
+/**
+ * hgetall の答えを「id → 文字」の表にそろえる。
+ * automaticDeserialization: false にすると、Upstash は hgetall の答えを表に組み立てず、[id, 中身, id, 中身…] の並びのまま返す
+ * （2026-10-30 に本番で、お店を id で探せず 404 になった原因）。表で返ってきたときもそのまま使えるようにする。
+ */
+export function toTable(x: unknown): Record<string, string> {
+  if (!x) return {};
+  const str = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
+  if (Array.isArray(x)) {
+    const out: Record<string, string> = {};
+    for (let i = 0; i + 1 < x.length; i += 2) out[String(x[i])] = str(x[i + 1]);
+    return out;
+  }
+  if (typeof x === "object") return Object.fromEntries(Object.entries(x as Record<string, unknown>).map(([k, v]) => [k, str(v)]));
+  return {};
+}
+
 class RedisBackend implements Backend {
   private r: Redis;
   constructor(url: string, token: string) {
@@ -70,8 +87,8 @@ class RedisBackend implements Backend {
   async readAll(): Promise<Raw> {
     const p = this.r.pipeline();
     for (const t of TABLES) p.hgetall(`muchu:${t}`);
-    const res = (await p.exec()) as (Record<string, string> | null)[];
-    return Object.fromEntries(TABLES.map((t, i) => [t, res[i] ?? {}])) as Raw;
+    const res = (await p.exec()) as unknown[];
+    return Object.fromEntries(TABLES.map((t, i) => [t, toTable(res[i])])) as Raw;
   }
   async hset(table: keyof Raw, id: string, value: string) {
     await this.r.hset(`muchu:${table}`, { [id]: value });
