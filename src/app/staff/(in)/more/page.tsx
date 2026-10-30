@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "その他" };
  * 狭い画面で「ポスタ／ー」のように言葉の途中で折り返さないよう、ひとまとまりごとに分けておく
  */
 const PLAIN: Record<string, { title: string[]; sub: string[] }> = {
-  qr: { title: ["お店の人に配る", " QR"], sub: ["売り切れを変える用・", "会場に貼らない"] },
+  qr: { title: ["お店の人に配る", " QR"], sub: ["お店の人のログイン用・", "会場に貼らない"] },
   posters: { title: ["会場に貼る", "ポスター"], sub: ["お客さんが読む", " QR コード"] },
   site: { title: ["お客さんの画面"], sub: ["新しいタブで", "開きます"] },
 };

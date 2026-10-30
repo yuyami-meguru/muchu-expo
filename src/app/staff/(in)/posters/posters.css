@@ -234,7 +234,8 @@
   html.st-print-one .pst-sec:not(:has([data-print-one])) { display: none; }
   /* 「ポスターを全部印刷」（印のない印刷）には、ポスターだけを入れる */
   html:not(.st-print-one) .pst-sec--floors, html:not(.st-print-one) .pst-docs { display: none; }
-  .pst-doc { box-shadow: none; border-radius: 0; padding: 0; font-size: 10pt; line-height: 1.5; }
+  /* 左右に 0.4mm だけあける：表の外の線（border-collapse）が紙の中の右の端にちょうど重なり、刷ると表の右の縦線が切れて消えていた */
+  .pst-doc { box-shadow: none; border-radius: 0; padding: 0 0.4mm; font-size: 10pt; line-height: 1.5; }
   /* 紙を減らす：表の行のすき間を少しつめる */
   .pst-doc-table th, .pst-doc-table td { padding: 1.1mm 2mm; }
   .pst-doc-h { margin: 3.5mm 0 1.5mm; }

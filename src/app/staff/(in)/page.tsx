@@ -8,6 +8,7 @@ import { loadMemoAcks, loadStaffOps } from "@/lib/ops-server";
 import { getShop, listLiveLog, loadAll, storeReady } from "@/lib/store";
 import { deptLookup, placeLabeler } from "@/lib/types";
 import { AdminOverview } from "./_components/admin-overview";
+import { loginHref } from "./_components/admin-only";
 import { ShopHome } from "./_components/shop-home";
 import { loadAdminOps, serverNow } from "./_components/staff-settings";
 
@@ -25,7 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function StaffHome() {
   const s = await getSession();
-  if (!s) redirect("/staff/login?from=expired");
+  // はじめて来た人には「ログインが切れました」を出さない（Cookie があるときだけ from=expired）
+  if (!s) redirect(await loginHref());
   const ready = storeReady();
   const notReady = !ready && (
     <Banner tone="error" title="保存先（Upstash）がまだつながっていません">

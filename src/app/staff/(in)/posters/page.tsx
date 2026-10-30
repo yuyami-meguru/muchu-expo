@@ -69,7 +69,7 @@ function leadOf(shop: Shop) {
  * 紙は実行委員が家や学校のプリンタで刷るので、余白の設定がまちまちでも 1 枚が 2 ページに割れない大きさにしてある（posters.css）。
  */
 export default async function StaffPostersPage() {
-  await adminOnly();
+  await adminOnly("/staff/posters");
   const { shops, depts, places, areas } = await loadAll({ fresh: true });
   const dept = deptLookup(depts);
   const where = placeReader(places, areas);

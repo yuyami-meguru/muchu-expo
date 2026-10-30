@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/field";
 import { deptLookup, placeLabeler, placeOptions, type Area, type Dept, type Place, type PlaceOption, type Shop } from "@/lib/types";
 import { send } from "../../_lib/client";
 import { OnlyToggle } from "../_components/only-toggle";
+import { noteAuth } from "../_components/session-signal";
 import { failText, nowClock, visible, without, type Result } from "../_components/shop-result";
 
 /** 選ぶ欄の中を、外・フロアごとにまとめる（placeOptions の並びのまま） */
@@ -75,16 +76,24 @@ export function ShopPlaces({ shops, places, areas, depts }: { shops: Shop[]; pla
     inflight.current.add(s.id);
     let placeId: string | undefined = first;
     let last: Result | null = null;
+    let unsure = false;
     while (placeId !== undefined) {
       queued.current.delete(s.id);
       const target: string = placeId;
-      const r = await send<{ shop: Shop | null }>(`/api/staff/shops/${s.id}`, "PATCH", { placeId: target });
+      // ログインが切れていたら、上の帯（入り直し）にも知らせる
+      const r = noteAuth(await send<{ shop: Shop | null }>(`/api/staff/shops/${s.id}`, "PATCH", { placeId: target }));
       if (r.ok) {
         if (r.shop) {
           const { placeId: now, updatedAt } = r.shop;
           setSaved((m) => ({ ...m, [s.id]: { placeId: now, at: updatedAt } }));
         }
         last = { ok: true, value: target, text: `✓ 保存しました ${nowClock()}` };
+      } else if (r.unsure) {
+        // 返事が来なかった：保存できているかもしれない。読み直して、選ぶ欄をサーバーの場所にする
+        // （保存できていれば、選ぶ欄がその場所になり、この文は visible() で消える。できていなければ残る）
+        unsure = true;
+        const label = labelOf(target);
+        last = { ok: false, value: target, text: `返事が来ませんでした。選ぶ欄を、いま保存されている場所にしました。「${label}」でなければ、もう一度押してください`, retry: () => choose(s, target) };
       } else {
         last = { ok: false, value: target, text: failText(`「${labelOf(target)}」にできませんでした`, r.error), retry: () => choose(s, target) };
       }
@@ -94,8 +103,8 @@ export function ShopPlaces({ shops, places, areas, depts }: { shops: Shop[]; pla
     const done = last;
     setWant((m) => without(m, s.id));
     if (done) setResults((m) => ({ ...m, [s.id]: done }));
-    // 上の地図のピンの数（その場所のお店の数）も新しくする
-    if (done?.ok) router.refresh();
+    // 上の地図のピンの数（その場所のお店の数）も新しくする。返事が来なかったときは、保存できたかを読み直して確かめる
+    if (done?.ok || unsure) router.refresh();
   }
 
   return (

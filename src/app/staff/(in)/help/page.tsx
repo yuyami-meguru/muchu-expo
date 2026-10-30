@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
+import { loginHref } from "../_components/admin-only";
 import "./help.css";
 
 export const metadata: Metadata = { title: "使い方" };
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "使い方" };
  */
 export default async function StaffHelpPage() {
   const s = await getSession();
-  if (!s) redirect("/staff/login");
+  if (!s) redirect(await loginHref("/staff/help"));
   const admin = s.role === "admin";
   return (
     <div className="st-page st-stack hp">
@@ -203,7 +204,9 @@ export default async function StaffHelpPage() {
 
           <h3 id="login">ログイン（実行委員）</h3>
           <ul>
-            <li>合言葉のログインは 12 時間で切れます。前の夜に入ると、当日の朝に切れることがあります（「いまの様子」に「ログインは ○時 まで」と出ています）</li>
+            <li>
+              合言葉のログインは 12 時間で切れます。前日（11/27）と当日に入ったときは、当日の 18:00 まで続きます（前の夜に入っても、当日の朝には切れません）。「いまの様子」に「ログインは ○時 まで」と出ています
+            </li>
             <li>
               切れる 1 時間前から、画面の上に黄色い帯が出ます。切れたら赤い帯（このままでは保存できません）。帯の［合言葉で入り直す］で、その場で入り直せます（書きかけの入力は消えません。入ったら、保存できなかったボタンをもう一度押す）
             </li>

@@ -92,6 +92,14 @@ function decodeSession(v: string | undefined): Session | null {
   }
 }
 
+/**
+ * クッキーの値が、署名の合った期限内のログインか（Redis は使わない。お店のかぎを作り直したかどうかは見ない）。
+ * store.ts が「従業員が見ているか」を決めるのに使う（でたらめのクッキーで、お客さん側の読みの使い回しを外されないように）
+ */
+export function isStaffCookie(v: string | undefined) {
+  return !!decodeSession(v);
+}
+
 export function newSession(role: "admin"): Session;
 export function newSession(role: "shop", shop: string, key: string): Session;
 export function newSession(role: "admin" | "shop", shop?: string, key?: string): Session {

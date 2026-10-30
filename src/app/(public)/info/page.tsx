@@ -10,7 +10,7 @@ import { ByPhase } from "../_components/in-phase";
 import { IfSurveyOpen } from "../_components/survey-entry";
 import { BUS_FROM_SCHOOL, BUS_FROM_STATION } from "./bus";
 import { BusTimes } from "./bus-times";
-import { InfoOrder } from "./info-order";
+import { InfoJump, InfoOrder } from "./info-order";
 import "./info.css";
 
 export const metadata: Metadata = { title: "ご来場の方へ" };
@@ -191,12 +191,7 @@ export default async function InfoPage() {
           <br />
           {VENUE.name}
         </p>
-        <nav className="if-jump" aria-label="このページの中">
-          <a href="#bus">送迎バスの時刻</a>
-          <a href="#access">行き方</a>
-          <a href="#help">困ったときは</a>
-          <a href="#before">ご来場の前に</a>
-        </nav>
+        <InfoJump />
       </header>
 
       <InfoOrder access={access} help={helpSection} notes={notes} />

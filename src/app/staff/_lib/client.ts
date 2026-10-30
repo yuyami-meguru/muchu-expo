@@ -57,10 +57,9 @@ export function clock(at: number) {
   return new Date(at).toLocaleTimeString("ja-JP", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Tokyo" });
 }
 
-/** 「保存しました 13:05」 */
+/** 「保存しました 13:05」（日本時間。端末の時間帯が日本でなくても、ほかの時刻の出し方とそろえる） */
 export function savedAt() {
-  const d = new Date();
-  return `保存しました ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `保存しました ${clock(Date.now())}`;
 }
 
 /** 英字の名前（a-z・0-9・-）に直す */

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { send } from "../../_lib/client";
+import { noteAuth } from "../_components/session-signal";
 
 export function PrintButton({ label = "印刷する" }: { label?: string }) {
   return (
@@ -74,8 +75,17 @@ export function RotateKeyButton({ shopId, shopName }: { shopId: string; shopName
         onConfirm={async () => {
           setError("");
           setDone(false);
-          const r = await send(`/api/staff/shops/${shopId}/key`, "POST");
-          if (!r.ok) return setError(r.error);
+          // ログインが切れていたら、画面の上の帯（合言葉で入り直す）にも知らせる
+          const r = noteAuth(await send(`/api/staff/shops/${shopId}/key`, "POST"));
+          if (!r.ok) {
+            // 返事が来なかったときは、作り直せているかもしれない（client.ts の UNSURE_ERROR は「読み直して確かめています」と言うが、
+            // ここでは確かめる手立てがない）。前の（使えなくなった）QR を刷らないよう、画面を読み直してから刷ってもらう
+            if (r.unsure) {
+              router.refresh();
+              return setError("返事が来ませんでした（作り直せたか分かりません）。使えなくなった QR を刷らないよう、電波のよい所でこの画面を開き直してから刷ってください。なくした QR を確実に使えなくするには、もう一度［QR を作り直す］を押してください");
+            }
+            return setError(r.error);
+          }
           setDone(true);
           router.refresh();
         }}

@@ -93,10 +93,10 @@ export const ADMIN_TABS: NavItem[] = [
   { key: "more", label: "その他", href: "/staff/more", icon: "その他" },
 ];
 
-/** お店の人（お店の QR でログイン）。自分のお店だけ */
+/** お店の人（お店の QR でログイン）。自分のお店だけ。開催前は紹介を書く画面でもあるので、「売り切れ」でなく「お店の画面」と呼ぶ */
 export function shopTabs(shopId: string): NavItem[] {
   return [
-    { key: "home", label: "売り切れ", href: "/staff", icon: "値札" },
+    { key: "home", label: "お店の画面", short: "お店", href: "/staff", icon: "値札" },
     { key: "view", label: "お客さんの画面", href: `/shops/${shopId}`, icon: "外へ", newTab: true },
     { key: "help", label: "使い方", href: "/staff/help", icon: "質問" },
   ];

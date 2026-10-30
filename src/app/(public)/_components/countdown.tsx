@@ -12,19 +12,15 @@ function daysLeft() {
 const noop = () => () => {};
 
 /**
- * 表紙の札。開催前は開催日までの日数、当日の朝は「まもなく開場」、10:00〜14:00 は「開催中」、14:00 からは「ありがとうございました」。
+ * 表紙の札。開催前は開催日までの日数、当日の朝は「まもなく開場」、10:00〜14:00 は「開催中」。
+ * 14:00 から（終了後）は出さない（表紙の上に「終了しました。ご来場ありがとうございました。」が出るので、同じことを 2 回言わない。
+ * 空になった札は home.css の .hm-count:empty で隠す）。
  * いつかは表示の時期（usePhase）で決める。日数だけは、サーバーと画面で日付がずれないよう画面で数える
  */
 export function Countdown() {
   const phase = usePhase();
   const days = useSyncExternalStore(noop, daysLeft, () => null);
-  if (phase === "after")
-    return (
-      <>
-        <span className="cd-l">ご来場</span>
-        <span className="cd-n cd-today cd-thanks">ありがとうございました</span>
-      </>
-    );
+  if (phase === "after") return null;
   if (phase === "during")
     return (
       <>

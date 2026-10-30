@@ -23,7 +23,7 @@ const PROD = process.env.VERCEL_ENV === "production";
  * かぎはまとめて 1 回で読む（お店ごとに読むと、40 店で Upstash を 80 回使っていた）。まだかぎの無いお店だけ、ここで作る。
  */
 export default async function StaffQrPage() {
-  await adminOnly();
+  await adminOnly("/staff/qr");
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3470";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");

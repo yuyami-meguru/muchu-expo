@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "地図のピン" };
 export const dynamic = "force-dynamic";
 
 export default async function StaffPlacesPage() {
-  await adminOnly();
+  await adminOnly("/staff/places");
   const { places, shops, areas, depts } = await loadAll({ fresh: true });
   const counts = Object.fromEntries(places.map((p) => [p.id, shops.filter((s) => s.placeId === p.id).length]));
   return (

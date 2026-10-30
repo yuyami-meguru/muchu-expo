@@ -23,6 +23,8 @@ type View =
 
 /** QR の中身の形がちがう（欠けている・読みまちがい）ときの文。サーバーの「入れた内容を…」は、QR を読んだ人には分からないので */
 const BAD_QR = "QR の中身が読めませんでした。カメラでもう一度読み取ってください（何度やってもだめなときは、実行委員に新しい QR をもらってください）";
+/** 実行委員がログイン中に読んだとき（「実行委員に…もらって」は合わないので） */
+const BAD_QR_ADMIN = "QR の中身が読めませんでした。カメラでもう一度、QR 全体が入るように読み取ってください（何度やってもだめなときは、「お店の人に配る QR」から刷り直してください）";
 /** QR の中身の形（サーバーの api/staff/join と同じ：お店の英字の名前・10〜100 字のかぎ）。ちがえば送らずに BAD_QR */
 const goodPair = (p: Pair) => /^[a-z0-9-]{1,40}$/.test(p.shop) && p.key.length >= 10 && p.key.length <= 100;
 
@@ -104,7 +106,7 @@ export function JoinClient({ admin, current }: { admin: JoinShop[] | null; curre
     const pair = s && k ? { shop: s, key: k } : readKept();
     let alive = true;
     const next: Promise<View | null> = !pair || !goodPair(pair)
-      ? Promise.resolve({ kind: "error", text: BAD_QR })
+      ? Promise.resolve({ kind: "error", text: admin ? BAD_QR_ADMIN : BAD_QR })
       : admin
         ? checkQr(pair, admin)
         : current && current.id !== pair.shop
@@ -145,9 +147,18 @@ export function JoinClient({ admin, current }: { admin: JoinShop[] | null; curre
             <p className="st-err" role="alert">
               {view.text}
             </p>
-            <p className="st-muted lg-join-text">
-              実行委員・先生は <Link href="/staff/login">合言葉でログイン</Link>
-            </p>
+            {admin ? (
+              // 実行委員でログイン中（入口へのリンクは要らない）
+              <div className="lg-actions">
+                <Button href="/staff" size="lg" block>
+                  実行委員の画面へ
+                </Button>
+              </div>
+            ) : (
+              <p className="st-muted lg-join-text">
+                実行委員・先生は <Link href="/staff/login">合言葉でログイン</Link>
+              </p>
+            )}
           </>
         )}
 

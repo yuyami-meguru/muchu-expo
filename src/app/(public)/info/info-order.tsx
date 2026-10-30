@@ -22,3 +22,25 @@ export function InfoOrder({ access, help, notes }: { access: ReactNode; help: Re
       ];
   return order.map(([k, node]) => <Fragment key={k}>{node}</Fragment>);
 }
+
+const JUMPS = [
+  { id: "bus", label: "送迎バスの時刻" },
+  { id: "access", label: "行き方" },
+  { id: "help", label: "困ったときは" },
+  { id: "before", label: "ご来場の前に" },
+];
+
+/** ページの中の案内（上の札）。並びは本文と同じにする（当日は「困ったときは」を先頭に） */
+export function InfoJump() {
+  const day = isDay(usePhase());
+  const list = day ? [JUMPS[2], JUMPS[0], JUMPS[1], JUMPS[3]] : JUMPS;
+  return (
+    <nav className="if-jump" aria-label="このページの中">
+      {list.map((j) => (
+        <a key={j.id} href={`#${j.id}`}>
+          {j.label}
+        </a>
+      ))}
+    </nav>
+  );
+}

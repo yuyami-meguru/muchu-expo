@@ -211,7 +211,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const listed = [...withShops, ...facPins];
   return (
     <>
-      <div className={cx("mp-grid", cur ? "mp-grid--floor" : "mp-grid--out")}>
+      <div className={cx("mp-grid", cur ? "mp-grid--floor" : "mp-grid--out", !cur && inside.length > 0 && "mp-grid--inside")}>
         {/* 外・フロアの切り替え（せまい画面では折り返して、全部のボタンが見えるように） */}
         <nav className="mp-areas" id="mp-areas" aria-label="外・フロアの切り替え">
           {tabs.map((t) => (
@@ -241,23 +241,6 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
             focusIds={focusIds}
             tabbable={false}
           />
-          {!cur &&
-            inside.map(({ building, floors }) => (
-              <div key={building} className="mp-inside">
-                <p className="mp-inside-h">
-                  <Icon name="場所" size={18} />
-                  {building}の中を見る
-                </p>
-                <div className="mp-inside-btns">
-                  {floors.map((t) => (
-                    <button key={t.id} type="button" className="mp-floor-btn" onClick={() => go(t.id, null, { scroll: true, focus: "area" })}>
-                      {t.main}
-                      {t.sub && <small>（{t.sub}）</small>} ▶
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
         </div>
 
         {/* 選んだ場所（読み上げは下の短い一文で。ここは長いので aria-live にしない） */}
@@ -311,6 +294,29 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
             </>
           )}
         </section>
+
+        {/* 外の地図に建物のピンがまだ無い建物の「中を見る」。スマホでは選んだ場所の欄の下に置く
+            （下の一覧から場所を選んで地図まで上がったとき、選んだ場所の欄が地図のすぐ下に見えるように。パソコンでは地図の下） */}
+        {!cur && inside.length > 0 && (
+          <div className="mp-insides">
+            {inside.map(({ building, floors }) => (
+              <div key={building} className="mp-inside">
+                <p className="mp-inside-h">
+                  <Icon name="場所" size={18} />
+                  {building}の中を見る
+                </p>
+                <div className="mp-inside-btns">
+                  {floors.map((t) => (
+                    <button key={t.id} type="button" className="mp-floor-btn" onClick={() => go(t.id, null, { scroll: true, focus: "area" })}>
+                      {t.main}
+                      {t.sub && <small>（{t.sub}）</small>} ▶
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* この面の場所（ピンが小さい・重なっているときも、ここから選べる）。お店の無い場所はたたむ */}
         <section className="mp-places" aria-labelledby="mp-places-h">

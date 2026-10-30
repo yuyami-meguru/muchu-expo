@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth";
 import { getShop, loadAll } from "@/lib/store";
 import { adminOnly } from "../../_components/admin-only";
 import { ShopForm } from "./shop-form";
@@ -12,8 +13,14 @@ export const dynamic = "force-dynamic";
 /** タブの名前と画面で、同じ 1 回の読み込みを使う */
 const loadShop = cache((id: string) => getShop(id, { fresh: true }));
 
-/** タブの名前：「焼きそばを編集」（いくつも開いていても見分けられるように） */
+/**
+ * タブの名前：「焼きそばを編集」（いくつも開いていても見分けられるように）。
+ * 店名は実行委員にだけ出す。ログインなし・お店の人は入口や自分の画面へ回されるが、その返事の <title> にも
+ * 店名が入るので（非表示のお店の名前や、どの id があるかが分かってしまう）、決まった題名にする
+ */
 export async function generateMetadata({ params }: PageProps<"/staff/shops/[id]">): Promise<Metadata> {
+  const s = await getSession();
+  if (s?.role !== "admin") return { title: "お店を編集" };
   const { id } = await params;
   const shop = await loadShop(id);
   return { title: shop ? `${shop.name}を編集` : "お店を編集" };

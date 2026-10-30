@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { ADMIN_GROUPS, ADMIN_TABS, StaffShell, shopTabs } from "@/components/shell";
 import { AppVersion } from "@/components/shell/app-version";
 import { SwRegister } from "@/components/live/sw-register";
-import { COOKIE, getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { phaseOf } from "@/lib/ops";
 import { getShop } from "@/lib/store";
 import { LogoutButton } from "./_components/logout-button";
@@ -28,7 +26,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function StaffInLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
-  if (!s) redirect((await cookies()).has(COOKIE) ? "/staff/login?from=expired" : "/staff/login");
+  // ログインしていないときは、枠では入口へ回さず、画面（page.tsx）の adminOnly・loginHref に回させる。
+  // 枠が先に回すと、画面が付ける next（入り直したあとに戻る画面）が消え、いつも /staff に戻ってしまうため。
+  // どの画面も、中身を作る前に adminOnly か loginHref で入口へ回している（中身は出ない）
+  if (!s) return <>{children}</>;
   const shop = s.role === "shop" ? await getShop(s.shop) : null;
   const ops = s.role === "admin" ? await loadAdminOps() : null;
   const tabs = s.role === "admin" ? ADMIN_TABS : shopTabs(s.shop);

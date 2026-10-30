@@ -33,7 +33,9 @@ export function AwardEditor({
 }) {
   const router = useRouter();
   const [a, setA] = useState<AwardSetting>(initial);
-  const [dirty, setDirty] = useState(false);
+  /** 保存してある内容（開いたとき・保存したとき）。いまの内容とちがうあいだが書きかけ（元に戻したら、離れるときに聞かない） */
+  const [saved, setSaved] = useState<AwardSetting>(initial);
+  const dirty = JSON.stringify(a) !== JSON.stringify(saved);
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
@@ -52,7 +54,6 @@ export function AwardEditor({
 
   const change = (next: AwardSetting) => {
     setA(next);
-    setDirty(true);
     setMsg("");
   };
   const setAward = (i: number, patch: Partial<AwardSetting["awards"][number]>) =>
@@ -81,7 +82,7 @@ export function AwardEditor({
     setPending(false);
     if (!r.ok) return setError(failMsg("保存", r, "少し待ってから、もう一度［保存する］を押してください（同じ内容なら 2 回押しても大丈夫です）"));
     setA(r.award);
-    setDirty(false);
+    setSaved(r.award);
     setMsg(savedAt());
     router.refresh();
   }

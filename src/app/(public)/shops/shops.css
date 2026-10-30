@@ -127,5 +127,7 @@
   .sd-card { break-inside: avoid; margin-bottom: 12px; box-shadow: none; border: 1px solid var(--line); }
   .sd-card h2::before, .sd-flow li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .sp-depts { columns: auto; }
+  /* 部門の見出しだけがページの終わりに残らないように（カードと同じページへ） */
+  .sp-dept-h { break-after: avoid; }
   .sp-card { break-inside: avoid; box-shadow: none; border: 1px solid var(--line); border-top: 6px solid var(--c); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }

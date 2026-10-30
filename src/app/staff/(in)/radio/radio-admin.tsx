@@ -191,7 +191,8 @@ export function RadioAdmin({
               maxLength={60}
               onChange={(e) => {
                 setNow(e.target.value);
-                setNowDirty(true);
+                // 保存してある文に戻したら、書きかけではない（離れるときに聞かない）
+                setNowDirty(e.target.value.trim() !== state.now.trim());
               }}
               placeholder="例：クイズ大会！ 会場の答えはメッセージで"
             />

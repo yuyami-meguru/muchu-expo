@@ -31,7 +31,7 @@ export function HomeTop({ awardTitle }: { awardTitle: string }) {
         )}
         <AwardBanner title={awardTitle} />
         <OnAirBadge />
-        {after && <SurveyEntry />}
+        {after && <SurveyEntry after />}
         {after && <NextBus big />}
       </div>
     </div>

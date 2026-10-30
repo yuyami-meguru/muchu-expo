@@ -104,10 +104,17 @@ export function toTable(x: unknown): Record<string, string> {
   return {};
 }
 
+/**
+ * Upstash への 1 回の通信を待つ長さ（試し直しも含めて）。@upstash/redis には時間切れが無く、Node の既定は 300 秒なので、
+ * 返事が来ないと、そのページ・窓口（と、相乗りした読み）が止まり続ける。時間切れは投げる（guarded・error.tsx が日本語で出す）
+ */
+const REDIS_TIMEOUT_MS = 8000;
+
 class RedisBackend implements Backend {
   private r: Redis;
   constructor(url: string, token: string) {
-    this.r = new Redis({ url, token, automaticDeserialization: false });
+    // signal は関数で渡す（通信のたびに新しい時間切れ。関数でない signal だと、切れたときに「答えなし」として扱われてしまう）
+    this.r = new Redis({ url, token, automaticDeserialization: false, signal: () => AbortSignal.timeout(REDIS_TIMEOUT_MS) });
   }
   async readAll(): Promise<Raw> {
     // 編集用のかぎ（key）はここでは読まない（お客さんの画面には要らない。照合は hget で 1 件だけ）
@@ -433,16 +440,24 @@ function parseTable<T>(rec: Record<string, string>, as: (key: string, v: string)
   return out;
 }
 
-const sortNews = (list: News[]) => list.sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at);
+/**
+ * 並びが同じときの最後の決め手（id）。Upstash の hgetall は、大きいハッシュでは入れた順に返らない（手元の .data/dev.json は入れた順）。
+ * 同じ名前のピン（各階の「トイレ」など）の並びが、台や読み直しのたびに変わらないように
+ */
+const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+const sortNews = (list: News[]) => list.sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at || byId(a, b));
 
 /* ───── 読みの使い回し（Upstash の回数を増やさないため） ─────
  * 同じサーバーの中だけで使い回す（Vercel の関数は何台かに分かれるので、ほかの台の書き込みは、使い回す古さの分だけ遅れて入る）。
  *  - 表を 2 つに分ける：content（部門・お店・場所・フロア。めったに変わらない）と live（当日の値・全体のお知らせ。よく変わる）
- *  - 読みかけがあれば相乗りする（ページの枠と中身が同時に読んでも、Redis へは 1 回）
+ *  - 読みかけがあれば相乗りする（ページの枠と中身が同時に読んでも、Redis へは 1 回）。ただし始めてから JOIN_MS より前の読みには
+ *    相乗りしない（返事が来ないまま止まった 1 回の読みに、その台のお客さんの全部のページが巻きこまれないように）
  *  - 書いたら世代を進める → 書く前に読み始めた古い中身を、使い回しに入れない。fresh の読みはいつも Redis から
  *  - どれだけ古くてよいかは、読む人で決める（どれも 1 台の中で 10 秒まで）：
  *      お客さん …… 表示の時期で（ops.ts の LIVE_TIMING。開催中は当日の値 3 秒・中身 10 秒、ほかは 10 秒）
- *      従業員がページを開いた …… 2 秒（いままでどおり。設定はいつも新しく）。だれかはクッキー（muchu_staff）があるかで見る
+ *      従業員がページを開いた …… 2 秒（いままでどおり。設定はいつも新しく）。だれかは、署名が合って期限内のクッキー（muchu_staff）で見る
+ *      （クッキーが「あるだけ」にすると、でたらめのクッキーで使い回しを外して、Upstash の回数を増やせてしまう）
  *      従業員の画面の 15 秒ごとの読み直し …… STAFF_POLL_READ（押したあとの読み直しは fresh）
  *  - 開発中の作り直し（HMR）や、ページと API で写しが別になっても同じものを使うよう、globalThis に置く
  */
@@ -457,7 +472,14 @@ const STAFF_PAGE_READ: ReadWindow = { content: 2000, live: 2000, set: 0 };
 /** 従業員の画面の 15 秒ごとの読み直し（GET /api/staff/live。押したあとの読み直しは fresh で読む） */
 export const STAFF_POLL_READ: ReadWindow = { content: 10_000, live: 5000, set: 5000 };
 
-type Shared<T> = { gen: number; p: Promise<T> };
+/** 読みかけ（相乗りの置き場）。at＝読み始めた時刻 */
+type Shared<T> = { gen: number; at: number; p: Promise<T> };
+/** 読みかけに相乗りしてよい長さ。これより前に始めて、まだ返事の無い読みは待たずに、新しく読み直す（ふだんの読みは 0.1 秒もかからない） */
+const JOIN_MS = 3000;
+/** その読みかけに相乗りしてよいか（同じ世代で、始めてから JOIN_MS まで） */
+function joinable<T>(s: Shared<T> | null, gen: number): s is Shared<T> {
+  return !!s && s.gen === gen && Date.now() - s.at < JOIN_MS;
+}
 type Mem = {
   /** 書いた回数（書いたら進める） */
   gen: number;
@@ -517,7 +539,7 @@ export function staffPollBusy() {
 /** 読みかけを相乗りできるように置き、終わったら外す */
 function share<T>(slot: "allP" | "liveP" | "setP" | "keyP", gen: number, p: Promise<T>): Promise<T> {
   const m = mem() as unknown as Record<string, Shared<unknown> | null>;
-  const entry: Shared<T> = { gen, p };
+  const entry: Shared<T> = { gen, at: Date.now(), p };
   m[slot] = entry as Shared<unknown>;
   p.finally(() => {
     if (m[slot] === (entry as Shared<unknown>)) m[slot] = null;
@@ -540,12 +562,16 @@ export function publicRead(now = Date.now()): ReadWindow {
   return { content: t.contentMs, live: t.liveMs, set: t.liveMs };
 }
 
-/** 従業員（クッキー muchu_staff がある人。auth.ts の COOKIE と同じ名前）が見ているか */
+/** 従業員（署名が合って期限内のクッキー muchu_staff がある人。auth.ts の COOKIE と同じ名前）が見ているか。Redis は使わない */
 const STAFF_COOKIE = "muchu_staff";
 async function staffViewer(): Promise<boolean> {
   try {
     const { cookies } = await import("next/headers");
-    return (await cookies()).has(STAFF_COOKIE);
+    const v = (await cookies()).get(STAFF_COOKIE)?.value;
+    if (!v) return false;
+    // auth.ts は store.ts を読みこむので、ここで読む（読みこみの輪にしない）
+    const { isStaffCookie } = await import("./auth");
+    return isStaffCookie(v);
   } catch (e) {
     // Next の合図（「このページは毎回作る」など）は飲みこまずに上へ。ページや API の外で呼ばれたときは、お客さんとして扱う
     unstable_rethrow(e);
@@ -594,7 +620,7 @@ async function loadRaw(): Promise<Raw> {
 /** 全部の表を読む。fresh でなければ、読みかけに相乗りする */
 function readAll(fresh: boolean): Promise<Raw> {
   const m = mem();
-  if (!fresh && m.allP && m.allP.gen === m.gen) return m.allP.p;
+  if (!fresh && joinable(m.allP, m.gen)) return m.allP.p;
   const gen = m.gen;
   const at = Date.now();
   return share(
@@ -615,8 +641,8 @@ function readAll(fresh: boolean): Promise<Raw> {
 function readLive(fresh: boolean): Promise<Pick<Raw, "live" | "news">> {
   const m = mem();
   if (!fresh) {
-    if (m.allP && m.allP.gen === m.gen) return m.allP.p.then((r) => ({ live: r.live, news: r.news }));
-    if (m.liveP && m.liveP.gen === m.gen) return m.liveP.p;
+    if (joinable(m.allP, m.gen)) return m.allP.p.then((r) => ({ live: r.live, news: r.news }));
+    if (joinable(m.liveP, m.gen)) return m.liveP.p;
   }
   const gen = m.gen;
   const at = Date.now();
@@ -682,12 +708,17 @@ function withLive(shop: Shop, l: LiveRec | undefined): Shop {
 function siteData(r: Raw): SiteData {
   const live = liveIndex(r.live);
   return {
-    depts: parseTable(r.dept, asDept).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
+    depts: parseTable(r.dept, asDept).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja") || byId(a, b)),
     shops: parseTable(r.shop, asShop)
       .map((s) => withLive(s, live.get(s.id)))
-      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
-    places: parseTable(r.place, asPlace).sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true })),
-    areas: parseTable(r.area, asArea).sort((a, b) => a.order - b.order || a.building.localeCompare(b.building, "ja") || a.floor.localeCompare(b.floor, "ja", { numeric: true })),
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja") || byId(a, b)),
+    // 同じ名前のピン（各階のトイレなど）は、外 → フロアの id の順（f2・f3・f4）
+    places: parseTable(r.place, asPlace).sort(
+      (a, b) => a.name.localeCompare(b.name, "ja", { numeric: true }) || (a.area ?? "").localeCompare(b.area ?? "", "ja", { numeric: true }) || byId(a, b),
+    ),
+    areas: parseTable(r.area, asArea).sort(
+      (a, b) => a.order - b.order || a.building.localeCompare(b.building, "ja") || a.floor.localeCompare(b.floor, "ja", { numeric: true }) || byId(a, b),
+    ),
     news: sortNews(parseTable(r.news, asNews)),
   };
 }
@@ -861,7 +892,7 @@ export async function storedShopKey(id: string): Promise<string | null> {
 export async function cachedShopKey(id: string): Promise<string | null> {
   const m = mem();
   if (m.keys && Date.now() - m.keys.at < KEY_MS) return m.keys.t[id] ?? null;
-  if (!(m.keyP && m.keyP.gen === m.keyGen)) {
+  if (!joinable(m.keyP, m.keyGen)) {
     const gen = m.keyGen;
     const at = Date.now();
     share(
@@ -1004,7 +1035,7 @@ async function readSettings(keys: string[], maxAge: number): Promise<(string | n
     if (first) return first;
     if (keys.every((k) => PUBLIC_SET.has(k))) {
       // お客さん側の設定は、5 つまとめて 1 回で読む（読みかけがあれば相乗り）
-      if (!(m.setP && m.setP.gen === m.setGen)) share("setP", m.setGen, settingsNow([...PUBLIC_SETTING_KEYS]).then(() => undefined));
+      if (!joinable(m.setP, m.setGen)) share("setP", m.setGen, settingsNow([...PUBLIC_SETTING_KEYS]).then(() => undefined));
       await m.setP!.p;
       const second = hit();
       if (second) return second;

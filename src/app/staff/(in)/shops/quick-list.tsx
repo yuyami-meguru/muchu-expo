@@ -93,7 +93,7 @@ export function ShopQuickList({ rows, depts, phase }: { rows: QuickRow[]; depts:
           <label className="ui-label" htmlFor={searchId}>
             名前で探す
           </label>
-          <input id={searchId} type="search" className="ui-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="例：やきそば" autoComplete="off" enterKeyHint="search" />
+          <input id={searchId} type="search" className="ui-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="例：焼きそば" autoComplete="off" enterKeyHint="search" />
         </div>
         <div className="st-filters" role="group" aria-label="しぼり込み">
           {FILTERS.map((x) => {

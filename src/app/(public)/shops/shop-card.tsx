@@ -57,14 +57,13 @@ export function FilterCount({ filter, label, ids }: { filter: string; label: str
   const n = filter === "open" ? ids.filter(isOpen).length : ids.length;
   let text: string;
   if (filter === "open") {
+    // 終了後は 0 件なので「ありません」（上の説明の「終了しました。ご来場ありがとうございました。」を重ねない）
     text =
       phase === "before"
         ? "当日（11/28）10:00 から、開いているお店・出し物がここに出ます。"
-        : phase === "after"
-          ? "エンカレ夢中万博は終了しました。ご来場ありがとうございました。"
-          : n
-            ? `いま開いているのは ${n} 件です。`
-            : "いま開いているお店・出し物はありません。";
+        : n
+          ? `いま開いているのは ${n} 件です。`
+          : "いま開いているお店・出し物はありません。";
   } else if (!n) {
     text = "この条件のお店・出し物は、まだありません。";
   } else {

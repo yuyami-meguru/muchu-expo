@@ -9,6 +9,8 @@
  *  - お客さん側のページ：通信を先に。4 秒待っても返事がない・サーバーの不具合（5xx）なら、前に保存したもの。
  *    保存の名前は ? の中身（area・place・kind だけ）も入れる（/map?area=f3 と /map を別に保存する）。
  *    その名前で保存が無ければ ? なしの保存、それも無ければ /offline.html
+ *    /shops/<id> の「見つかりません」（非表示・id のまちがい）と実行委員の下見は、どちらも 200 で本文に noindex の印がある → 保存せず、前の保存分も消す
+ *    （あとで表示にしたお店が電波のないときに「見つかりません」のまま出ない・下見のページが同じ端末に残らない・非表示にしたお店の前の保存分を出さない）
  *  - /_next/static：保存分を先に（なければ取りに行って保存。版をまたいで残す）
  *  - /brand・/img・アイコン・manifest：保存分を先に。ただし版ごとの保存先に入れる（同じ名前で差し替えても、次の版で新しくなる）
  *  - /api/status：通信を先に。3 秒待っても返事がない・5xx なら、最後に保存したもの（ヘッダー x-muchu-sw: cache を付ける → 画面は「読めなかった」に数える）
@@ -38,6 +40,9 @@ const ASSET = /^\/(brand\/|img\/|icon\.svg|icon\d*|apple-icon|favicon|opengraph-
 const STAFF_PAGE = /^\/(staff|join)(\/|$)/;
 // 絶対にさわらないもの
 const NEVER = /^\/(api\/staff|api\/survey|api\/radio)(\/|$|\?)/;
+// お店のページ（「見つかりません」・下見は保存しない。本文の noindex の印で見分ける）
+const SHOP_PAGE = /^\/shops\/[a-z0-9-]+$/;
+const NOINDEX = /<meta name="robots" content="[^"]*noindex/i;
 // 下のタブのページ（当日に先に保存する）
 const TAB_PAGES = ["/", "/shops", "/schedule", "/map", "/info"];
 // 保存がこれより新しければ取りに行かない（人が多い日に、同じページを何度もサーバーへ取りに行かないように）
@@ -102,10 +107,26 @@ function pageKey(url) {
   return u.toString();
 }
 
+/**
+ * 通信の答えを key の名前で保存する（200 で、回されていないものだけ）。/shops/<id> は本文に noindex の印があれば保存せず、前の保存分も消す。
+ * 保存に失敗しても（端末の空きが無いなど）投げない（答えはそのまま画面へ渡す）
+ */
+async function store(cache, key, res) {
+  try {
+    if (!res.ok || res.redirected) return;
+    if (!SHOP_PAGE.test(new URL(key).pathname)) return await cache.put(key, res.clone());
+    const text = await res.clone().text();
+    if (NOINDEX.test(text)) return await cache.delete(key);
+    await cache.put(key, new Response(text, { status: res.status, statusText: res.statusText, headers: res.headers }));
+  } catch {
+    // 保存できなくても、ふつうに使える
+  }
+}
+
 /** ページを取りに行って保存する */
 async function keepPage(cache, key) {
   const res = await fetch(new Request(key, { cache: "no-store", credentials: "same-origin" }));
-  if (res.ok && !res.redirected) await cache.put(new Request(key), res);
+  await store(cache, key, res);
 }
 
 /** 保存が無いか古いときだけ取りに行く */
@@ -199,10 +220,8 @@ async function saved(cacheName, key, alt) {
  */
 async function networkFirst(req, key, alt, fallbackUrl, waitMs) {
   const net = fetch(req).then(async (res) => {
-    if (res.ok && !res.redirected) {
-      const c = await caches.open(PAGES);
-      await c.put(key, res.clone());
-    }
+    const c = await caches.open(PAGES).catch(() => null);
+    if (c) await store(c, key, res);
     return res;
   });
   net.catch(() => {});

@@ -16,14 +16,18 @@
  * 選んだ場所の箱は、この箱の中だけで画面に貼りつく（下の「階ごとの案内」に重ならない）
  */
 .mp-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "areas" "map" "here" "places" "legend"; }
+/* 外の地図で建物の「中を見る」があるとき（mp-grid--inside）：スマホでは選んだ場所の欄の下に */
+.mp-grid--inside { grid-template-areas: "areas" "map" "here" "inside" "places" "legend"; }
 .mp-areas { grid-area: areas; }
 .mp-map { grid-area: map; min-width: 0; }
 .mp-here { grid-area: here; }
+.mp-insides { grid-area: inside; min-width: 0; display: grid; gap: 12px; }
 .mp-places { grid-area: places; min-width: 0; }
 .mp-legend { grid-area: legend; }
 @media (min-width: 960px) {
   .mp-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
   .mp-grid--out { grid-template-areas: "areas areas" "map here" "places here" "legend here"; }
+  .mp-grid--inside { grid-template-areas: "areas areas" "map here" "inside here" "places here" "legend here"; }
   .mp-grid--floor { grid-template-areas: "areas areas" "map map" "places here" "legend here"; }
   .mp-here { position: sticky; top: 84px; max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; }
 }
@@ -68,7 +72,7 @@
   border-radius: var(--r-md); border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font-weight: 900;
 }
 .mp-place[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
-.mp-place-name { flex: 1 1 8em; min-width: 0; line-height: 1.4; }
+.mp-place-name { flex: 1 1 8em; min-width: 0; line-height: 1.4; word-break: auto-phrase; }
 .mp-place-n { font-size: 0.8rem; color: var(--ink-2); white-space: nowrap; }
 .mp-place-x { font-size: 0.8rem; color: var(--ng-ink); }
 /* お店の無い部屋・場所（たたんでおく） */
@@ -123,7 +127,7 @@
 }
 .mp-floor-btn small { font-size: 0.8em; }
 /* 外の地図の下：建物のピンがまだ無い建物の「中を見る」 */
-.mp-inside { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); }
+.mp-inside { padding: 12px 14px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); }
 .mp-inside-h { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-weight: 900; }
 .mp-inside-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 /* その場所のお店：ひとこと・どんなことをするか */
@@ -157,10 +161,16 @@
 
 /* 印刷：押すための物（切り替え・表示のボタン・一覧への案内・地図アプリのボタン）は刷らない。色の印は背景の設定によらず刷る */
 @media print {
-  .mp-areas, .mp-fac-toggle, .mp-jump, .mp-inside, .mp-here--empty, .mp-access button { display: none !important; }
+  /* 「会場への行き方」は地図アプリを開くボタンだけなので、見出しごと刷らない（ご来場の方へのページを刷ると行き方が載る）。「くわしく ▶」も押す物 */
+  .mp-areas, .mp-fac-toggle, .mp-jump, .mp-insides, .mp-here--empty, .mp-access, .mp-more { display: none !important; }
   .mp-here { position: static; max-height: none; overflow: visible; box-shadow: none; border: 1px solid #9aa3c0; }
   .mp-grid { display: block; }
   .mp-grid > * + * { margin-top: 16px; }
   .mp-glyph, .mp-fac, .mp-count, .mp-x, .mp-list a, .mp-swatch, .mp-place, .mp-area { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .mp-map { break-inside: avoid; }
+  /* 階ごとの案内：1 つの面（外など）が 1 ページより長いと、まるごと次のページへ送られて、前のページが見出しだけの白紙になる。
+     紙では面の途中で分けてよい（場所ごと・お店ごとには分けない。面の名前だけがページの終わりに残らないように） */
+  .mp-guide-area { break-inside: auto; }
+  .mp-guide-area h3 { break-after: avoid; }
+  .mp-guide-place, .mp-list li { break-inside: avoid; }
 }

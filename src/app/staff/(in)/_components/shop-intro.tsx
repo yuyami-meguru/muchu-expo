@@ -314,6 +314,9 @@ export function ShopIntroEditor({
   const dirty = changed.length > 0;
   const busy = pending || !!verify;
   useLeaveGuard(dirty);
+  // 戻した書きかけが無くなったら（［保存されている方にする］・元の文に書き直した）、「…の書きかけを戻しました」は終わり
+  // （そのあと書き始めた分に、前の時刻の「戻しました」を出さない）
+  if (restored && !dirty) setRestored(null);
 
   // 品物の名前がない行・することがない行（何か書いてある行だけ）
   const noName = f.menu.filter((m) => !m.gone && !m.name.trim() && (m.price.trim() || m.note.trim()));
@@ -571,7 +574,16 @@ export function ShopIntroEditor({
           <div className="st-rows">
             {f.menu.map((m) =>
               m.gone ? (
-                <GoneRow key={m.id} id={m.id} text={`「${m.name.trim() || "名前のない品物"}」を消しました`} onUndo={() => setItem(m.id, { gone: false })} />
+                <GoneRow
+                  key={m.id}
+                  id={m.id}
+                  text={`「${m.name.trim() || "名前のない品物"}」を消しました`}
+                  onUndo={() => {
+                    setItem(m.id, { gone: false });
+                    // ［元に戻す］は消えるので、戻した品物の名前の欄へ（キーボード・読み上げの人が場所を見失わないように）
+                    focusLater(nameId(m.id));
+                  }}
+                />
               ) : (
                 <div key={m.id} className="st-rowbox">
                   <div className="st-rowbox-grid">
@@ -619,7 +631,17 @@ export function ShopIntroEditor({
           <div className="st-rows">
             {f.schedule.map((s) => {
               if (s.gone) {
-                return <GoneRow key={s.k} id={s.k} text={`「${`${s.time} ${s.text}`.trim()}」の行を消しました`} onUndo={() => setStep(s.k, { gone: false })} />;
+                return (
+                  <GoneRow
+                    key={s.k}
+                    id={s.k}
+                    text={`「${`${s.time} ${s.text}`.trim()}」の行を消しました`}
+                    onUndo={() => {
+                      setStep(s.k, { gone: false });
+                      focusLater(textId(s.k));
+                    }}
+                  />
+                );
               }
               const unreadable = s.time.trim() !== "" && minutesOf(s.time) === null && (tried || touched.includes(s.k));
               return (

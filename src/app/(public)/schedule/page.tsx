@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { allSchedule } from "@/lib/schedule";
 import { loadAll } from "@/lib/store";
 import { EVENT } from "@/lib/venue";
+import { ByPhase } from "../_components/in-phase";
 import { ScheduleList, ScheduleRow } from "./schedule-list";
 import "./schedule.css";
 
@@ -23,7 +24,9 @@ export default async function SchedulePage() {
         </p>
         <h1 className="sc-h1 px-title">タイムテーブル</h1>
         <p className="sc-lead">
-          <span className="keep">{EVENT.date}</span> <span className="nowrap">{EVENT.hours}</span>。発表や演奏、お店の時間を、時刻の順にまとめました。時間は変わることがあります。
+          <span className="keep">{EVENT.date}</span> <span className="nowrap">{EVENT.hours}</span>。発表や演奏、お店の時間を、時刻の順にまとめました。
+          {/* 終わったあとは「変わることがあります」と言わない */}
+          <ByPhase before="時間は変わることがあります。" day="時間は変わることがあります。" />
         </p>
       </header>
 

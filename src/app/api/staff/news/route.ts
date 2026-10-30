@@ -22,7 +22,8 @@ export async function GET() {
 
 /**
  * 実行委員からのお知らせを出す（トップの上に出る）。
- * 同じ文のお知らせを 1 分のうちにもう一度出したら、新しく足さずに前のものを返す（押し直しで同じお知らせが 2 つ並ばないように）
+ * 同じ文のお知らせを 1 分のうちにもう一度出したら、新しく足さずに前のものを返す（押し直しで同じお知らせが 2 つ並ばないように）。
+ * 「いちばん上に固定する」だけちがうときは、前のお知らせの固定の印を、送られた方に直して返す（出した時刻はそのまま）
  */
 export async function POST(req: NextRequest) {
   return guarded(async () => {
@@ -32,7 +33,12 @@ export async function POST(req: NextRequest) {
     if ("error" in b) return b.error;
     const now = Date.now();
     const same = (await loadNews({ fresh: true })).find((n) => n.text === b.data.text && now - n.at < SAME_MS);
-    if (same) return ok({ news: same, again: true });
+    if (same) {
+      if (same.pinned === b.data.pinned) return ok({ news: same, again: true });
+      const fixed = { ...same, pinned: b.data.pinned };
+      await saveNews(fixed);
+      return ok({ news: fixed, again: true });
+    }
     const news = { id: randomBytes(6).toString("hex"), at: now, ...b.data };
     await saveNews(news);
     return ok({ news });

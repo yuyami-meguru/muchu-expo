@@ -105,7 +105,8 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
                 <strong>{placeText}</strong>
               ) : (
                 <span className="sd-tbd">
-                  <ByPhase before="決まりしだいお知らせします" day="近くの係（生徒・先生）におたずねください" after="未定" />
+                  {/* 終了後は「未定」と言わない（一覧の「場所の情報はありません」とそろえる） */}
+                  <ByPhase before="決まりしだいお知らせします" day="近くの係（生徒・先生）におたずねください" after="情報はありません" />
                 </span>
               )}
               {placeExtra && <span className="sd-place-extra">{placeExtra}</span>}
@@ -149,13 +150,16 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
                 </li>
               ))}
             </ul>
+            {/* 終了後は出さない（<p> ごと時期で出し分ける。中だけ出し分けると、終了後に点線だけの空の行が残る） */}
             {priced < s.menu.length && (
-              <p className="sd-menu-note">
-                <ByPhase
-                  before={priced ? "値段の書いていないものは、まだ決まっていません。" : "値段は、まだ決まっていません。決まりしだいお知らせします。"}
-                  day={priced ? "値段の書いていないものは、お店でおたずねください。" : "値段は、お店でおたずねください。"}
-                />
-              </p>
+              <ByPhase
+                before={
+                  <p className="sd-menu-note">
+                    {priced ? "値段の書いていないものは、まだ決まっていません。" : "値段は、まだ決まっていません。決まりしだいお知らせします。"}
+                  </p>
+                }
+                day={<p className="sd-menu-note">{priced ? "値段の書いていないものは、お店でおたずねください。" : "値段は、お店でおたずねください。"}</p>}
+              />
             )}
           </section>
         ) : (

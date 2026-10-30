@@ -49,6 +49,7 @@ export function useStaffLive<T extends AdminLive | ShopLive>() {
       }
       setExpired(false);
       setFailed(false);
+      // at は「中身はこれより新しい」時刻（ふだんの読み直しは、使い回しの分だけ前の時刻で来る：api/staff/live/route.ts）。新しい方だけ使う
       if (!latest.current || json.at >= latest.current.at) latest.current = json;
       setLive((cur) => (!cur || json.at >= cur.at ? json : cur));
     } catch {
