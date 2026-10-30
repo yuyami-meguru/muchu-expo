@@ -152,4 +152,5 @@ export const SEED_SHOPS: Shop[] = [
   },
 ];
 
-export const SEED: SiteData = { depts: SEED_DEPTS, shops: SEED_SHOPS, places: SEED_PLACES, news: [] };
+// フロア（areas）とその部屋は floor-plans.ts の FLOOR_SEED から、別に 1 度だけ入れる（store.ts）
+export const SEED: SiteData = { depts: SEED_DEPTS, shops: SEED_SHOPS, places: SEED_PLACES, areas: [], news: [] };

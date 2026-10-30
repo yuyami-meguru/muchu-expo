@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges, LiveStock } from "@/components/live/live-parts";
 import { getShop, loadAll } from "@/lib/store";
-import { deptLookup, KIND_LABEL, type Kind } from "@/lib/types";
+import { deptLookup, KIND_LABEL, type Kind, placeLabeler } from "@/lib/types";
 import "../shops.css";
 
 export async function generateMetadata({ params }: PageProps<"/shops/[id]">): Promise<Metadata> {
@@ -19,11 +19,13 @@ const nounOf = (kind: Kind) => (kind === "see" ? "出し物" : "お店");
 /** お店の詳細：いまの状態と場所・どんなお店？・メニューと値段（売り切れ）・当日の流れ・お店の思い */
 export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
   const { id } = await params;
-  const { shops, places, depts } = await loadAll();
+  const { shops, places, areas, depts } = await loadAll();
   const s = shops.find((x) => x.id === id);
   if (!s || s.hidden) notFound();
   const place = places.find((p) => p.id === s.placeId);
-  const placeText = s.placeNote || place?.name;
+  // 場所：フロアなら「知育館 2階・201 小講義室」。補足（placeNote）はその下に
+  const placeText = place ? placeLabeler(areas)(place) : s.placeNote;
+  const placeExtra = place && s.placeNote ? s.placeNote : "";
   const dept = deptLookup(depts)(s.dept);
   const noun = nounOf(s.kind);
   const others = shops.filter((x) => !x.hidden && x.dept === s.dept && x.id !== s.id);
@@ -56,6 +58,7 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
             <p>
               <span className="sd-place-k">場所</span>
               {placeText ? <strong>{placeText}</strong> : <span className="sd-tbd">決まりしだいお知らせします</span>}
+              {placeExtra && <span className="sd-place-extra">{placeExtra}</span>}
             </p>
             {place && (
               <Link href={`/map?place=${place.id}`} className="sd-maplink">

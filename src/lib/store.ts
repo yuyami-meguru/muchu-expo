@@ -4,7 +4,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Redis } from "@upstash/redis";
 import { SEED } from "./seed";
-import type { Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./types";
+import { FLOOR_SEED } from "./floor-plans";
+import type { Area, Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./types";
 
 /*
  * 保存先。本番は Upstash Redis（Vercel で Upstash をつなぐと KV_REST_API_URL・KV_REST_API_TOKEN が入る）。
@@ -14,7 +15,8 @@ import type { Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./type
  * Redis の中身：
  *   muchu:dept   ハッシュ（部門の id → Dept の JSON）
  *   muchu:shop   ハッシュ（お店の id → Shop の JSON）
- *   muchu:place  ハッシュ（場所の id → Place の JSON）
+ *   muchu:place  ハッシュ（場所の id → Place の JSON。外のピンも、フロアの部屋の四角も）
+ *   muchu:area   ハッシュ（フロアの id → Area の JSON。外は入れない。はじめの 2〜4 階は muchu:seeded:areas で 1 度だけ入れた）
  *   muchu:news   ハッシュ（お知らせの id → News の JSON）
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
  *   muchu:live   ハッシュ（当日よく変わる物を 1 つずつ。「お店id:state」「お店id:notice」「お店id:nat」（お知らせを出した時刻）「お店id:s:品物id」「お店id:at」）
@@ -41,8 +43,9 @@ type Raw = {
   news: Record<string, string>;
   key: Record<string, string>;
   live: Record<string, string>;
+  area: Record<string, string>;
 };
-const TABLES = ["dept", "shop", "place", "news", "key", "live"] as const;
+const TABLES = ["dept", "shop", "place", "news", "key", "live", "area"] as const;
 
 interface Backend {
   readAll(): Promise<Raw>;
@@ -186,11 +189,12 @@ class FileBackend implements Backend {
       try {
         this.data = JSON.parse(readFileSync(this.file, "utf8"));
       } catch {
-        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {}, live: {} };
+        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {}, live: {}, area: {} };
       }
-      // v0.3.0 の手元データには部門の表が無い。v0.10.0 より前には live が無い
+      // v0.3.0 の手元データには部門の表が無い。v0.10.0 より前には live が、v0.11.0 より前には area が無い
       this.data!.dept ??= {};
       this.data!.live ??= {};
+      this.data!.area ??= {};
       this.data!.flags ??= this.data!.seeded ? { seeded: true } : {};
     }
     return this.data!;
@@ -279,13 +283,13 @@ class FileBackend implements Backend {
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-const g = globalThis as unknown as { __muchuBackendV9?: Backend };
+const g = globalThis as unknown as { __muchuBackendV10?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV9) {
+  if (!g.__muchuBackendV10) {
     const env = redisEnv();
-    g.__muchuBackendV9 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV10 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV9;
+  return g.__muchuBackendV10;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -298,13 +302,21 @@ export function newKey() {
 }
 
 function seedRaw(): Raw {
-  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {}, live: {} };
+  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {}, live: {}, area: {} };
   for (const s of SEED.shops) {
     raw.shop[s.id] = JSON.stringify(s);
     raw.key[s.id] = newKey();
   }
   for (const p of SEED.places) raw.place[p.id] = JSON.stringify(p);
   return raw;
+}
+
+/** はじめのフロア（2〜4 階の見取り図）と、その部屋の四角・トイレ・玄関のピン */
+function seedFloors(): Partial<Raw> {
+  return {
+    area: Object.fromEntries(FLOOR_SEED.areas.map((a) => [a.id, JSON.stringify(a)])),
+    place: Object.fromEntries(FLOOR_SEED.places.map((p) => [p.id, JSON.stringify(p)])),
+  };
 }
 
 function seedDepts() {
@@ -352,6 +364,15 @@ async function raw(fresh = false): Promise<Raw> {
       if (await b.seedOnce("seeded:dept", { dept: seedDepts() })) r = await b.readAll();
     } else {
       r = { ...r, dept: seedDepts() };
+    }
+  }
+  // v0.11.0 から：フロア（建物の中）の見取り図。まだ 1 つも無ければ、はじめの 2〜4 階を 1 度だけ入れる（そのあと全部消しても入れ直さない）
+  if (!Object.keys(r.area).length) {
+    if (storeReady()) {
+      if (await b.seedOnce("seeded:areas", seedFloors())) r = await b.readAll();
+    } else {
+      const f = seedFloors();
+      r = { ...r, area: f.area!, place: { ...r.place, ...f.place } };
     }
   }
   if (gen === generation) cache = { at: Date.now(), raw: r };
@@ -409,7 +430,8 @@ export async function loadAll(opts: { fresh?: boolean } = {}): Promise<SiteData>
     shops: parseAll<Shop>(r.shop)
       .map((s) => withLive(s, live.get(s.id)))
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja")),
-    places: parseAll<Place>(r.place).sort((a, b) => a.name.localeCompare(b.name, "ja")),
+    places: parseAll<Place>(r.place).sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true })),
+    areas: parseAll<Area>(r.area).sort((a, b) => a.order - b.order || a.building.localeCompare(b.building, "ja") || a.floor.localeCompare(b.floor, "ja", { numeric: true })),
     news: parseAll<News>(r.news).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at - a.at),
   };
 }
@@ -490,6 +512,16 @@ export async function savePlace(p: Place) {
 export async function deletePlace(id: string) {
   guard();
   await backend().hdel("place", [id]);
+  dropCache();
+}
+export async function saveArea(a: Area) {
+  guard();
+  await backend().hset("area", { [a.id]: JSON.stringify(a) });
+  dropCache();
+}
+export async function deleteArea(id: string) {
+  guard();
+  await backend().hdel("area", [id]);
   dropCache();
 }
 export async function saveNews(n: News) {

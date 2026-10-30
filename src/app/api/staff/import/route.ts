@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { fail, guarded, ok, readBody, zId } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { deleteDept, deletePlace, deleteShop, loadAll, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
+import { deleteArea, deleteDept, deletePlace, deleteShop, loadAll, saveArea, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
 
 /*
  * 控えから戻す（実行委員だけ）。控えの部門・お店・場所で上書きする。
@@ -40,12 +40,16 @@ const shopSchema = z.object({
 });
 const placeSchema = z.object({
   id: zId,
-  kind: z.enum(["spot", "info", "toilet", "aid", "rest", "gate"]).optional(),
+  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate"]).optional(),
+  area: zId.optional(),
+  w: z.number().min(0).max(100).optional(),
+  h: z.number().min(0).max(100).optional(),
   name: s(30).min(1),
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
   note: s(60),
 });
+const areaSchema = z.object({ id: zId, building: s(20).min(1), floor: s(12).min(1), order: z.number().int().min(0).max(9999), plan: s(40).optional() });
 const backupSchema = z.object({
   confirm: z.literal("上書き"),
   /** true なら、営業の状態・売り切れ・お店からのお知らせは今のまま（当日の途中で戻すとき用） */
@@ -54,7 +58,9 @@ const backupSchema = z.object({
     app: z.literal("muchu-expo"),
     depts: z.array(deptSchema).max(50),
     shops: z.array(shopSchema).max(200),
-    places: z.array(placeSchema).max(100),
+    places: z.array(placeSchema).max(300),
+    /** v0.11.0 から。古い控えには無い（無ければフロアはそのまま） */
+    areas: z.array(areaSchema).max(50).optional(),
   }),
 });
 
@@ -64,10 +70,11 @@ export async function POST(req: NextRequest) {
     if (sess?.role !== "admin") return fail(403, "実行委員の合言葉でログインしてください");
     const b = await readBody(req, backupSchema);
     if ("error" in b) return b.error;
-    const { depts, shops, places } = b.data.data;
+    const { depts, shops, places, areas } = b.data.data;
     const now = await loadAll({ fresh: true });
 
     for (const d of depts) await saveDept(d);
+    for (const a of areas ?? []) await saveArea(a);
     for (const p of places) await savePlace(p);
     for (const shop of shops) await saveShop(shop);
     if (!b.data.keepLive) {
@@ -78,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const keep = { dept: new Set(depts.map((d) => d.id)), shop: new Set(shops.map((x) => x.id)), place: new Set(places.map((p) => p.id)) };
-    const removed = { depts: 0, shops: 0, places: 0 };
+    const removed = { depts: 0, shops: 0, places: 0, areas: 0 };
     for (const x of now.shops) {
       if (keep.shop.has(x.id)) continue;
       await deleteShop(x.id);
@@ -95,6 +102,15 @@ export async function POST(req: NextRequest) {
       removed.places++;
     }
 
-    return ok({ saved: { depts: depts.length, shops: shops.length, places: places.length }, removed });
+    if (areas) {
+      const keepArea = new Set(areas.map((a) => a.id));
+      for (const x of now.areas) {
+        if (keepArea.has(x.id)) continue;
+        await deleteArea(x.id);
+        removed.areas++;
+      }
+    }
+
+    return ok({ saved: { depts: depts.length, shops: shops.length, places: places.length, areas: areas?.length ?? 0 }, removed });
   });
 }

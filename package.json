@@ -1,6 +1,6 @@
 {
   "name": "muchu-expo",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3470",
@@ -13,7 +13,8 @@
     "check:survey": "node scripts/check-survey.mjs",
     "check:award": "node scripts/check-award.mjs",
     "check:radio": "node scripts/check-radio.mjs",
-    "check:live": "node scripts/check-live.mjs"
+    "check:live": "node scripts/check-live.mjs",
+    "check:map": "node scripts/check-map.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.0",

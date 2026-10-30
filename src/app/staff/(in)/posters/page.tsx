@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/card";
 import { allSchedule } from "@/lib/schedule";
 import { SITE_URL } from "@/lib/site";
 import { loadAll } from "@/lib/store";
-import { NO_DEPT, deptLookup, type Tone } from "@/lib/types";
+import { NO_DEPT, deptLookup, type Tone, placeLabeler } from "@/lib/types";
 import { EVENT, VENUE } from "@/lib/venue";
 import { adminOnly } from "../_components/admin-only";
 import { PrintButton, PrintOneButton } from "../qr/qr-tools";
@@ -75,9 +75,10 @@ const LOGO_ALT = "学校法人鶴学園 広島工業大学高等学校［通信�
  */
 export default async function StaffPostersPage() {
   await adminOnly();
-  const { shops, depts, places } = await loadAll({ fresh: true });
+  const { shops, depts, places, areas } = await loadAll({ fresh: true });
   const dept = deptLookup(depts);
-  const placeName = Object.fromEntries(places.map((p) => [p.id, p.name]));
+  const where = placeLabeler(areas);
+  const placeName = Object.fromEntries(places.map((p) => [p.id, where(p)]));
   const visible = shops.filter((s) => !s.hidden);
   const hiddenCount = shops.length - visible.length;
   const topQr = await qr(`${SITE_URL}/`);
@@ -191,7 +192,7 @@ export default async function StaffPostersPage() {
         {/* 3 枚目から：お店ごと */}
         {sheets.map(({ shop, d, svg }, i) => {
           const [a, b] = PAIRS[i % PAIRS.length];
-          const place = shop.placeNote || placeName[shop.placeId];
+          const place = placeName[shop.placeId] || shop.placeNote;
           return (
             <PrintItem key={shop.id} id={`pst-${i + 3}`} label={`${i + 3} ページ目・${shop.name}`}>
               <section className="pst-sheet" style={{ "--c": TONE_HEX[d.color] } as CSSProperties} aria-label={`${shop.name}のポスター`}>
@@ -262,7 +263,7 @@ export default async function StaffPostersPage() {
                           {s.name}
                           {s.catch && <small>{s.catch}</small>}
                         </th>
-                        <td>{s.placeNote || placeName[s.placeId] || "場所は未定"}</td>
+                        <td>{placeName[s.placeId] ? `${placeName[s.placeId]}${s.placeNote ? `（${s.placeNote}）` : ""}` : s.placeNote || "場所は未定"}</td>
                         <td>
                           {s.menu.length ? (
                             <ul className="pst-doc-menu">

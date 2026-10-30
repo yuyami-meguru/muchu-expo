@@ -77,10 +77,11 @@ export type Shop = {
   updatedAt: number;
 };
 
-/** ピンの種類。お店・出し物の場所のほかに、来た人が探す設備（トイレ・受付など）も置ける */
-export type PlaceKind = "spot" | "info" | "toilet" | "aid" | "rest" | "gate";
+/** ピンの種類。お店・出し物の場所のほかに、来た人が探す設備（トイレ・受付など）と、外の地図の建物（中のフロアへ）も置ける */
+export type PlaceKind = "spot" | "building" | "info" | "toilet" | "aid" | "rest" | "gate";
 export const PLACE_KINDS: { value: PlaceKind; label: string; mark: string }[] = [
   { value: "spot", label: "お店・出し物の場所", mark: "" },
+  { value: "building", label: "建物（中のフロアへ）", mark: "建" },
   { value: "info", label: "受付・本部", mark: "受" },
   { value: "toilet", label: "トイレ", mark: "WC" },
   { value: "aid", label: "救護", mark: "＋" },
@@ -89,13 +90,38 @@ export const PLACE_KINDS: { value: PlaceKind; label: string; mark: string }[] = 
 ];
 export const placeKindOf = (p: Pick<Place, "kind">): PlaceKind => p.kind ?? "spot";
 
-/** 地図のピン。x・y は地図の左上からの割合（0〜100）。kind が無い古いピンは「お店・出し物の場所」 */
-export type Place = { id: string; name: string; x: number; y: number; note: string; kind?: PlaceKind };
+/**
+ * 地図のピン。x・y は地図の左上からの割合（0〜100）。kind が無い古いピンは「お店・出し物の場所」。
+ * area はどの面にあるか（無ければ「外」）。w・h があれば、ピンでなく部屋の四角（x・y が真ん中、幅と高さも割合）で描く
+ */
+export type Place = { id: string; name: string; x: number; y: number; note: string; kind?: PlaceKind; area?: string; w?: number; h?: number };
+
+/** 外の地図（学校の建物と道の形）。保存しない決まった面 */
+export const OUTSIDE = "outside";
+
+/**
+ * 地図の面のうち、建物の中のフロア（「知育館 2階」など）。実行委員が足す・消す。外（OUTSIDE）は入れない。
+ * plan は見取り図の名前（floor-plans.ts の FLOOR_PLANS）。無いフロアは方眼の上に部屋の四角とピンを置く
+ */
+export type Area = { id: string; building: string; floor: string; order: number; plan?: string };
+
+export const areaName = (a: Pick<Area, "building" | "floor">) => `${a.building} ${a.floor}`.trim();
+export const areaOf = (p: Pick<Place, "area">) => p.area || OUTSIDE;
+
+/** 場所の呼び方：外なら場所の名前だけ、フロアなら「知育館 2階・201 教室」 */
+export function placeLabeler(areas: Area[]) {
+  const m = new Map(areas.map((a) => [a.id, a]));
+  return (p: Place | undefined | null) => {
+    if (!p) return "";
+    const a = m.get(areaOf(p));
+    return a ? `${areaName(a)}・${p.name}` : p.name;
+  };
+}
 
 /** 実行委員からのお知らせ（トップに出す） */
 export type News = { id: string; text: string; at: number; pinned: boolean };
 
-export type SiteData = { depts: Dept[]; shops: Shop[]; places: Place[]; news: News[] };
+export type SiteData = { depts: Dept[]; shops: Shop[]; places: Place[]; areas: Area[]; news: News[] };
 
 /** 部門が見つからないとき（消した部門のお店など） */
 export const NO_DEPT: Dept = { id: "", name: "未分類", short: "未分類", tagline: "", color: "brown", order: 9999 };

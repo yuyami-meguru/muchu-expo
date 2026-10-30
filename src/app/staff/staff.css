@@ -137,6 +137,9 @@ a.st-list-row:hover { background: var(--surface-2); }
 
 /* 地図のピン */
 .st-place-bar { display: grid; gap: 8px; }
+/* 外・フロアの切り替え（横に並べ、多いときは折り返す）。数はその面のピンの数 */
+.st-areas { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-area-n { margin-left: 6px; padding: 0 6px; border-radius: var(--r-pill); background: color-mix(in srgb, currentColor 15%, transparent); font-size: 0.75rem; }
 .st-place-pick { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--primary); }
 /* 地図で押した所（まだ動かしていない）：点線。押しても下の地図に届くように */
 .mx-pin.st-pin-spot { --c: var(--accent); pointer-events: none; }

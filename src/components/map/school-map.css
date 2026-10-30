@@ -73,3 +73,63 @@
 }
 .mx-pin--on .mx-pin-dot { outline: 3px solid var(--accent); outline-offset: 1px; }
 .mx-pin--on .mx-pin-label { background: var(--ink); color: var(--bg); }
+
+/* ───── フロア（建物の中）の見取り図 ───── */
+/* 見取り図は横に長いので、せまい画面では横にスクロールして見る（部屋を押せる大きさを保つ。ページ全体ははみ出さない） */
+.mx-map-scroll { width: 100%; }
+.mx-map--floor .mx-map-scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: var(--r-card); }
+.mx-map--floor .mx-map-board { min-width: 560px; background: var(--surface); container-type: inline-size; }
+.mx-map--floor .mx-map-board:not([style]) { aspect-ratio: 100 / 70; }
+.mx-map {
+  --fp-line: #2f5287;
+  --fp-fixed: #eef1f5;
+  --fp-hall: #f6f8fc;
+}
+@media (prefers-color-scheme: dark) {
+  .mx-map { --fp-line: #93b4e6; --fp-fixed: #26314a; --fp-hall: #1c2a4a; }
+}
+.fp .fp-bg { fill: var(--surface); }
+.fp .fp-hall { fill: var(--fp-hall); stroke: var(--fp-line); stroke-width: 10; stroke-linejoin: round; }
+.fp .fp-room { fill: var(--surface); stroke: var(--fp-line); stroke-width: 10; }
+.fp .fp-fixed { fill: var(--fp-fixed); stroke: var(--fp-line); stroke-width: 8; }
+.fp .fp-step { stroke: var(--fp-line); stroke-width: 3; }
+.fp .fp-wall { stroke: var(--fp-line); stroke-width: 8; }
+.fp .fp-door { fill: var(--surface); }
+/* 見取り図の上の、使わない部屋・階段の名前（押せない。字は見取り図の幅に合わせた大きさ） */
+.fp-label {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none; text-align: center; white-space: pre-line;
+  font-size: max(9px, 1.25cqi); font-weight: 700; line-height: 1.2; color: var(--ink-3); overflow: hidden;
+}
+/* 見取り図の無いフロア：方眼 */
+.mx-map-grid {
+  position: absolute; inset: 0;
+  background-color: var(--surface);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 5% 7.14%;
+}
+
+/* 部屋の四角（押すと選ぶ）。お店のある部屋は部門の色をうすく塗る。名前は四角に収まる大きさで、はみ出す分は省く */
+.mx-room {
+  position: absolute; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 2px; border: 2px solid transparent; border-radius: 4px; background: transparent; color: var(--ink); cursor: pointer;
+  font: inherit; overflow: hidden; -webkit-tap-highlight-color: transparent; min-width: 0; min-height: 0;
+}
+.mx-room:hover { border-color: var(--fp-line); background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.mx-room--has { background: color-mix(in srgb, var(--c-soft, var(--surface-2)) 85%, transparent); border-color: var(--c, var(--fp-line)); }
+.mx-room--multi { border-color: var(--ink); }
+.mx-room--on { z-index: 3; border: 3px solid var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.mx-room:focus-visible { z-index: 3; outline: 3px solid var(--accent); outline-offset: -3px; }
+.mx-room-name {
+  max-width: 100%; font-size: max(10px, 1.5cqi); font-weight: 900; line-height: 1.2; text-align: center; word-break: auto-phrase;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mx-room-mark {
+  display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: var(--r-pill);
+  background: var(--c, var(--ink)); color: var(--on-primary); font-size: max(10px, 1.2cqi); font-weight: 900; line-height: 1.6; white-space: nowrap;
+}
+.mx-room--multi .mx-room-mark { background: var(--ink); color: var(--bg); }
+.mx-room-n { padding-left: 4px; border-left: 1px solid currentColor; }
+.mx-room-x {
+  position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ng); color: var(--on-primary); font-size: 0.75rem; font-weight: 900; line-height: 18px; text-align: center;
+}

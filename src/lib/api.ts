@@ -48,6 +48,8 @@ const FIELD_LABEL: Record<string, string> = {
   schedule: "当日の流れ",
   placeNote: "場所の補足",
   short: "短い名前",
+  building: "建物の名前",
+  floor: "階",
   tagline: "ひとこと",
   id: "英字の名前",
   pass: "合言葉",
@@ -134,7 +136,12 @@ export const adminShopPatch = shopPatch.extend({
 });
 
 export const placeBody = z.object({
-  kind: z.enum(["spot", "info", "toilet", "aid", "rest", "gate"]).default("spot"),
+  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate"]).default("spot"),
+  /** どの面か（外は "outside"） */
+  area: z.union([zId, z.literal("outside")]).default("outside"),
+  /** 部屋の四角の幅と高さ（割合）。どちらも 0 ならピン */
+  w: z.number().min(0).max(100).default(0),
+  h: z.number().min(0).max(100).default(0),
   name: text(30).min(1),
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
@@ -146,6 +153,13 @@ export const deptBody = z.object({
   short: text(8).min(1),
   tagline: text(40),
   color: z.enum(["blue", "orange", "red", "purple", "green", "teal", "pink", "brown"]),
+  order: z.number().int().min(0).max(9999),
+});
+
+/** フロア（建物の中の面）。見取り図の画像は別の窓口で */
+export const areaBody = z.object({
+  building: text(20).min(1),
+  floor: text(12).min(1),
   order: z.number().int().min(0).max(9999),
 });
 

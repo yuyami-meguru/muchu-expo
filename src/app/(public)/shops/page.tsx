@@ -4,7 +4,7 @@ import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges } from "@/components/live/live-parts";
 import { parsePhaseMode, phaseOf } from "@/lib/ops";
 import { getSetting, loadAll } from "@/lib/store";
-import { KIND_LABEL, NO_DEPT, type Kind, type Shop } from "@/lib/types";
+import { KIND_LABEL, NO_DEPT, type Kind, type Shop, placeLabeler } from "@/lib/types";
 import { ShopCardLink } from "./shop-card";
 import "./shops.css";
 
@@ -24,8 +24,9 @@ async function phaseNow() {
 export default async function ShopsPage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   const { kind: k } = await searchParams;
   const filter = (FILTERS as string[]).includes(k ?? "") ? (k as Filter) : "all";
-  const [{ shops, places, depts }, phase] = await Promise.all([loadAll(), phaseNow()]);
-  const placeName = Object.fromEntries(places.map((p) => [p.id, p.name]));
+  const [{ shops, places, areas, depts }, phase] = await Promise.all([loadAll(), phaseNow()]);
+  const where = placeLabeler(areas);
+  const placeName = Object.fromEntries(places.map((p) => [p.id, where(p)]));
   // 「いま開いている」は、当日（朝・開催中）だけ。開催前の試しの「営業中」は数えない
   const isOpen = (s: Shop) => (phase === "morning" || phase === "during") && (s.state === "open" || s.state === "break");
   const list = shops.filter((s) => !s.hidden && (filter === "all" || (filter === "open" ? isOpen(s) : s.kind === filter)));
@@ -81,7 +82,7 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
                       {prices.length > 0 && <span className="sp-card-price">{prices.slice(0, 2).join(" ／ ")}</span>}
                       <span className="sp-card-place">
                         <Icon name="場所" size={16} />
-                        {s.placeNote || placeName[s.placeId] || "場所は決まりしだいお知らせします"}
+                        {placeName[s.placeId] || s.placeNote || "場所は決まりしだいお知らせします"}
                       </span>
                       <LiveNotice shopId={s.id} />
                       <span className="sp-card-more">

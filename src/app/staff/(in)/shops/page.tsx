@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/card";
 import { loadAll } from "@/lib/store";
-import { deptLookup } from "@/lib/types";
+import { deptLookup, placeLabeler } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { adminOnly } from "../_components/admin-only";
 import { NewShopForm } from "./new-shop-form";
@@ -12,9 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function StaffShopsPage() {
   await adminOnly();
-  const { shops, places, depts } = await loadAll({ fresh: true });
+  const { shops, places, areas, depts } = await loadAll({ fresh: true });
   const dept = deptLookup(depts);
-  const placeName = new Map(places.map((p) => [p.id, p.name]));
+  const where = placeLabeler(areas);
+  const placeName = new Map(places.map((p) => [p.id, where(p)]));
   return (
     <div className="st-page st-stack">
       <PageHeader

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Select, TextArea, TextField } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { KIND_LABEL, STATE_LABEL, type Dept, type Kind, type MenuItem, type Place, type ScheduleItem, type Shop, type ShopState } from "@/lib/types";
+import { KIND_LABEL, STATE_LABEL, type Dept, type Kind, type MenuItem, type Place, type ScheduleItem, type Shop, type ShopState, areaOf, OUTSIDE, placeKindOf, placeLabeler, type Area } from "@/lib/types";
 import { savedAt, send } from "../../../_lib/client";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
@@ -31,7 +31,17 @@ function newItemId() {
 }
 
 /** 実行委員の、お店をまるごと編集する画面。保存では、開いた時から変えた欄だけを送る（お店の人があとで変えた売り切れ・お知らせなどを戻さない） */
-export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[]; depts: Dept[] }) {
+/** お店の場所の選び方：外 → フロアの順に、「知育館 2階・201 小講義室」の形で（トイレ・建物などの設備は出さない） */
+function placeOptions(places: Place[], areas: Area[]) {
+  const where = placeLabeler(areas);
+  const rank = (p: Place) => (areaOf(p) === OUTSIDE ? -1 : (areas.find((a) => a.id === areaOf(p))?.order ?? 999));
+  return places
+    .filter((p) => placeKindOf(p) === "spot")
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "ja", { numeric: true }))
+    .map((p) => ({ value: p.id, label: areaOf(p) === OUTSIDE ? `外・${p.name}` : where(p) }));
+}
+
+export function ShopForm({ shop, places, areas, depts }: { shop: Shop; places: Place[]; areas: Area[]; depts: Dept[] }) {
   const router = useRouter();
   // base：開いた時（保存したあとは保存した時）の値。f：いま画面で直している値
   const [base, setBase] = useState(shop);
@@ -128,7 +138,7 @@ export function ShopForm({ shop, places, depts }: { shop: Shop; places: Place[];
             label="地図のピン"
             value={f.placeId}
             onChange={(e) => set("placeId", e.target.value)}
-            options={[{ value: "", label: "未定" }, ...places.map((p) => ({ value: p.id, label: p.name }))]}
+            options={[{ value: "", label: "未定" }, ...placeOptions(places, areas)]}
             hint="ピンは「地図のピン」の画面で足せます"
           />
           <TextField label="場所の補足" value={f.placeNote} maxLength={60} onChange={(e) => set("placeNote", e.target.value)} placeholder="例：201 号室" />

@@ -69,3 +69,41 @@
 .mp-nowhere a { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: 700; }
 .mp-access { margin-top: 40px; }
 .mp-access h2 { font-size: 1.2rem; }
+
+/* 外・フロアの切り替え（横に並べる。多いときは横にスクロール） */
+.mp-grid { grid-template-areas: "areas" "map" "here" "places" "legend" "guide" "nowhere"; }
+@media (min-width: 960px) {
+  .mp-grid { grid-template-areas: "areas areas" "map here" "places here" "legend here" "guide guide" "nowhere nowhere"; }
+}
+.mp-areas { grid-area: areas; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scroll-margin-top: 80px; }
+.mp-area {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 18px; border-radius: var(--r-pill);
+  border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; font-weight: 900; cursor: pointer; white-space: nowrap;
+}
+.mp-area[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.mp-hint { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-3); }
+.mp-where { margin: 0; font-size: 0.8rem; font-weight: 900; color: var(--ink-3); }
+.mp-floors { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.mp-floors .mp-note { width: 100%; margin: 0; }
+.mp-floor-btn {
+  min-height: 48px; padding: 0 16px; border-radius: var(--r-md); border: 2px solid var(--primary); background: var(--primary-soft);
+  color: var(--primary); font: inherit; font-weight: 900; cursor: pointer;
+}
+/* その場所のお店：ひとこと・どんなことをするか */
+.mp-catch { width: 100%; font-weight: 700; color: var(--ink); line-height: 1.5; }
+.mp-about { width: 100%; font-size: 0.875rem; color: var(--ink-2); line-height: 1.6; }
+.mp-more { margin-left: auto; font-size: 0.8rem; font-weight: 900; color: var(--c); }
+.mp-list--compact a { min-height: 48px; padding: 8px 12px; }
+
+/* フロアガイド */
+.mp-guide { grid-area: guide; }
+.mp-guide > h2 { font-size: 1.15rem; margin: 0 0 4px; }
+.mp-guide-area { margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--line); }
+.mp-guide-area h3 { font-size: 1.05rem; margin: 0 0 8px; }
+.mp-guide-place + .mp-guide-place { margin-top: 12px; }
+.mp-guide-where {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; border: 0; background: none;
+  color: var(--primary); font: inherit; font-weight: 900; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.mp-guide-fac { margin: 10px 0 0; font-size: 0.9rem; color: var(--ink-2); }
+.mp-guide-facbtn { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--primary); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }

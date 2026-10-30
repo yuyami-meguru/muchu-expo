@@ -6,11 +6,11 @@ AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
 
 | 区画 | URL | だれが | できること |
 |---|---|---|---|
-| お客さん側 | `/` `/shops` `/shops/[id]` `/schedule` `/map` `/info` `/survey` `/radio` `/award` | だれでも | いまの売り切れ・お知らせ（15 秒ごとに自動更新）、全体の帯（雨・急ぎ）、お店のメニュー・値段・当日の流れ・お店の思い、地図（お店の場所・トイレ・受付など）、困ったときは・次の送迎バス。開催前・当日・終了後で出し方が変わる |
+| お客さん側 | `/` `/shops` `/shops/[id]` `/schedule` `/map` `/info` `/survey` `/radio` `/award` | だれでも | いまの売り切れ・お知らせ（15 秒ごとに自動更新）、全体の帯（雨・急ぎ）、お店のメニュー・値段・当日の流れ・お店の思い、地図（外と建物の中のフロア＝知育館 2〜4 階の見取り図、お店の場所・トイレ・受付など、フロアガイド）、困ったときは・次の送迎バス。開催前・当日・終了後で出し方が変わる |
 | お店の人 | `/join`（お店の QR）→ `/staff` | 各お店 | 自分のお店の売り切れ・営業中など・お店からのお知らせ、紹介（ひとこと・説明・思い・当日の流れ・メニューと値段）、実行委員からの連絡と［見ました］ |
 | 実行委員・先生 | `/staff/login`（合言葉）→ `/staff` | 実行委員 | いまの様子（お店の人への連絡の既読）、全部のお店の編集・一覧で営業／売り切れ／隠す、部門、地図のピン、全体のお知らせ・全体の帯・お店の人への連絡、お店の人に配る QR、会場に貼るポスター・控えの紙、当日の道具（一斉に営業中・終了・まとめて戻す・控え・表示の時期・チェックリスト）、変更の記録・当日の動き、アンケートの集計、校内ラジオ、夢中アワード |
 
-ほかのお店を書き換えようとするとサーバーで断る（`npm run check:auth`・`check:tools`・`check:survey`・`check:radio`・`check:award`・`check:live`）。使い方はサイトの中の `/staff/help`。
+ほかのお店を書き換えようとするとサーバーで断る（`npm run check:auth`・`check:tools`・`check:survey`・`check:radio`・`check:award`・`check:live`・`check:map`）。使い方はサイトの中の `/staff/help`。
 
 当日よく変わる物（売り切れ・営業の状態・お店からのお知らせ）は、お店の中身とは別に 1 つずつ保存する（Redis の `muchu:live`）。同時に押しても、ほかの人の変更が消えない。運営の道具（お店の人への連絡・全体の帯・表示の時期・チェックリスト）は `src/lib/ops.ts`。
 
@@ -21,7 +21,8 @@ AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
 - `src/lib/ops.ts`・`ops-server.ts` 当日の運営の道具（開催の時刻・表示の時期・全体の帯・お店の人への連絡・チェックリスト）　`src/app/staff/_lib/use-staff-live.ts` 従業員側の 15 秒ごとの読み直し
 - `vercel.json` サーバーの場所（東京 hnd1。Upstash と同じ場所にして往復を速く）
 - `src/lib/venue.ts` 会場の名前・住所・位置（Apple マップ／Google マップのボタンと埋め込みの地図）。**正確な位置が分かったら point に入れる**
-- `src/components/map/school-map.tsx` 校内マップ。下の絵は `campus-shapes.ts`（OpenStreetMap の建物と道の形）。建物の名前はピンで付ける
+- `src/components/map/school-map.tsx` 校内マップ。外の絵は `campus-shapes.ts`（OpenStreetMap の建物と道の形）、フロアの絵は `floor-plan.tsx`。建物の名前はピンで付ける
+- `src/lib/floor-plans.ts` 知育館 2〜4 階の見取り図（実行委員の「会場配置図エディタ」の建物の形だけ。物品と人の名前は入れない）と、はじめに入れる部屋の四角
 - `public/sw.js` 電波が切れても一度開いたページを出すサービスワーカー（本番だけ）
 - `docs/` … GitHub Pages。いまは転送のページだけ（`https://yuyami-meguru.github.io/muchu-expo/` → https://encare-dream-expo2026.encourage-school.averix.jp）。QR は `docs/print/qr.svg`（github.io 経由）と `docs/print/qr-site.svg`（新しいアドレスへ直接）
 
