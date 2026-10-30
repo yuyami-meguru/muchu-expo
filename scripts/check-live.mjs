@@ -1,4 +1,4 @@
-// 当日の操作（売り切れ・状態・呼び出し・連絡・全体の帯・表示の時期・チェックリスト）を確かめる（手元の next dev に向けて実行）。
+// 当日の操作（売り切れ・状態・お店の人への連絡・全体の帯・表示の時期・チェックリスト）を確かめる（手元の next dev に向けて実行）。
 //   npm run dev のあとで  npm run check:live
 // とくに「同時に押しても、ほかの人の変更が消えない」こと。最後に元に戻す。本番には向けない。
 import { readFileSync } from "node:fs";
@@ -73,20 +73,7 @@ const mine = (await a.req("GET", "/api/staff/live")).json;
 check("お店の人の「いまの様子」は自分のお店だけ", !!mine.shop && !mine.shops && mine.shop.notice === "テストのお知らせ");
 check("ログインなしでは「いまの様子」を読めない", (await new Client().req("GET", "/api/staff/live")).status === 401);
 
-// 5. 呼び出し
-const call = await a.req("POST", "/api/staff/calls", { reason: "おつり・お金", text: "千円札が足りません" });
-check("お店から実行委員を呼べる", call.status === 200 && !!call.json.call?.id);
-const id = call.json.call.id;
-check("実行委員の画面に呼び出しが出る", (await admin.req("GET", "/api/staff/live")).json.calls.some((c) => c.id === id && c.status === "new"));
-check("ほかのお店は、その呼び出しを変えられない", (await b.req("PATCH", `/api/staff/calls/${id}`, { status: "done" })).status === 403);
-check("お店の人は「向かっています」にはできない", (await a.req("PATCH", `/api/staff/calls/${id}`, { status: "going" })).status === 403);
-check("実行委員が「向かっています」にできる", (await admin.req("PATCH", `/api/staff/calls/${id}`, { status: "going" })).status === 200);
-check("お店の画面に「向かっています」が出る", (await a.req("GET", "/api/staff/live")).json.calls.some((c) => c.id === id && c.status === "going"));
-check("ほかのお店には、その呼び出しは見えない", !(await b.req("GET", "/api/staff/live")).json.calls.some((c) => c.id === id));
-check("お店の人が「済み」にできる", (await a.req("PATCH", `/api/staff/calls/${id}`, { status: "done" })).status === 200);
-check("実行委員は呼び出しを作れない（お店の人だけ）", (await admin.req("POST", "/api/staff/calls", { reason: "その他", text: "" })).status === 403);
-
-// 6. お店の人への連絡
+// 5. お店の人への連絡
 check("お店の人は連絡を出せない", (await a.req("PUT", "/api/staff/memo", { text: "x" })).status === 403);
 const memo = await admin.req("PUT", "/api/staff/memo", { text: "13:45 で販売を締めてください" });
 check("実行委員がお店の人へ連絡を出せる", memo.status === 200 && !!memo.json.memo?.id);
@@ -99,7 +86,7 @@ check("お客さんの「いまの様子」に連絡は出ない", !JSON.stringi
 await admin.req("PUT", "/api/staff/memo", { text: "" });
 check("連絡を消せる", (await a.req("GET", "/api/staff/live")).json.memo === null);
 
-// 7. 全体の帯・表示の時期
+// 6. 全体の帯・表示の時期
 check("お店の人は全体の帯を出せない", (await a.req("PUT", "/api/staff/alert", { on: true, level: "rain", text: "x" })).status === 403);
 check("文のない帯は出せない", (await admin.req("PUT", "/api/staff/alert", { on: true, level: "rain", text: "" })).status === 400);
 await admin.req("PUT", "/api/staff/alert", { on: true, level: "rain", text: "雨のため屋内に移っています" });
@@ -114,12 +101,12 @@ check("表示の時期を「当日」にできる", st.phase === "during");
 await admin.req("PUT", "/api/staff/phase", { mode: "auto" });
 check("表示の時期を「日時で自動」に戻せる", (await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json())).phase === "auto");
 
-// 8. チェックリスト
+// 7. チェックリスト
 check("チェックリストに印を付けられる", (await admin.req("PUT", "/api/staff/check", { id: "qr", done: true })).status === 200);
 check("ない項目には付けられない", (await admin.req("PUT", "/api/staff/check", { id: "nope", done: true })).status === 400);
 await admin.req("PUT", "/api/staff/check", { id: "qr", done: false });
 
-// 9. 品物を消して同じ英字の名前で足しても、前の売り切れは付かない
+// 8. 品物を消して同じ英字の名前で足しても、前の売り切れは付かない
 const menu0 = (await a.req("PATCH", `/api/staff/shops/${A}`, {})).json.shop.menu;
 await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: menu0[0].id, stock: "out" }] });
 await admin.req("PATCH", `/api/staff/shops/${A}`, { menu: menu0.slice(1).map(({ id, name, price, note }) => ({ id, name, price, note })) });

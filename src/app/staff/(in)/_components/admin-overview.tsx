@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { CALL_STATUS_LABEL, CLOSE_AT, OPEN_AT, type AdminLive, type Call } from "@/lib/ops";
+import { CLOSE_AT, OPEN_AT, type AdminLive } from "@/lib/ops";
 import { NO_DEPT, STATE_LABEL, STOCK_LABEL, type Dept, type Shop, type Stock } from "@/lib/types";
 import { clock, send } from "../../_lib/client";
 import { useStaffLive } from "../../_lib/use-staff-live";
@@ -14,17 +14,15 @@ const NEXT: Record<Stock, Stock> = { on: "few", few: "out", out: "on" };
 type Note = { id: number; text: string; error: boolean };
 
 /**
- * 実行委員の「いまの様子」。いちばん上に呼び出し、その下にお店の人への連絡、部門ごとのお店。
+ * 実行委員の「いまの様子」。いちばん上にお店の人への連絡、その下に部門ごとのお店。
  * 品物の札を押すと「販売中 → 残りわずか → 売り切れ」の順に変わる（次の値は、いちばん新しい値から決める）。
- * 15 秒ごとに読み直すので、お店の人や、ほかの実行委員が押した売り切れ・呼び出しも入る。押した結果は画面の下の帯に出す。
+ * 15 秒ごとに読み直すので、お店の人や、ほかの実行委員が押した売り切れも入る。押した結果は画面の下の帯に出す。
  */
 export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts: Dept[] }) {
   const { live, failed, refresh } = useStaffLive<AdminLive>();
   const [mine, setMine] = useState<Record<string, Shop>>({});
   /** 送っているお店（お店 id → 品物と送った値）。答えが来るまで、そのお店の札は押せない */
   const [sending, setSending] = useState<Record<string, { item: string; stock: Stock }>>({});
-  const [callMine, setCallMine] = useState<Record<string, Call>>({});
-  const [callBusy, setCallBusy] = useState<string | null>(null);
   const [note, setNote] = useState<Note | null>(null);
   const noteId = useRef(0);
   useShapeRefresh(live, shapeOf(initial));
@@ -46,21 +44,6 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
       const p = sending[s.id];
       return p ? { ...v, menu: v.menu.map((m) => (m.id === p.item ? { ...m, stock: p.stock } : m)) } : v;
     });
-  const name = (id: string) => initial.find((s) => s.id === id)?.name ?? id;
-
-  const calls = (live?.calls ?? []).map((c) => (callMine[c.id] && callMine[c.id].updatedAt >= c.updatedAt ? callMine[c.id] : c));
-  const waiting = calls.filter((c) => c.status === "new");
-  const going = calls.filter((c) => c.status === "going");
-  const done = calls.filter((c) => c.status === "done");
-
-  // 対応していない呼び出しがあるあいだは、タブの題にも出す（ほかのタブを見ていても気づけるように。音は出さない）
-  useEffect(() => {
-    const strip = (t: string) => t.replace(/^（呼び出し \d+）/, "");
-    document.title = waiting.length ? `（呼び出し ${waiting.length}）${strip(document.title)}` : strip(document.title);
-    return () => {
-      document.title = strip(document.title);
-    };
-  }, [waiting.length]);
 
   async function cycle(s: Shop, itemId: string) {
     if (sending[s.id]) return;
@@ -80,20 +63,6 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
     refresh();
   }
 
-  async function answer(c: Call, status: "going" | "done") {
-    setCallBusy(c.id);
-    const r = await send<{ call: Call }>(`/api/staff/calls/${c.id}`, "PATCH", { status });
-    setCallBusy(null);
-    if (!r.ok) return say(`${name(c.shop)}の呼び出し：${r.error}`, true);
-    setCallMine((p) => ({ ...p, [c.id]: r.call }));
-    say(
-      status === "going"
-        ? `${name(c.shop)}に「向かっています」と出しました・${clockNow()}`
-        : `${name(c.shop)}の呼び出しを「済み」にしました・${clockNow()}`,
-    );
-    refresh();
-  }
-
   const visible = shops.filter((s) => !s.hidden);
   const memo = live?.memo ?? null;
   const seen = memo ? visible.filter((s) => live?.acks[s.id] === memo.id) : [];
@@ -101,13 +70,6 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
   // 当日の 10:00〜14:00 に「準備中」のままのお店（時刻はサーバーの時計）
   const lateTime = at >= OPEN_AT && at < CLOSE_AT;
   const late = lateTime ? visible.filter((s) => s.state === "prep") : [];
-
-  const callLine = (c: Call) => (
-    <>
-      <strong>{name(c.shop)}</strong>：{c.reason}
-      {c.text && `『${c.text}』`} <time dateTime={new Date(c.at).toISOString()}>{clock(c.at)}</time>
-    </>
-  );
 
   return (
     <div className="ops">
@@ -119,47 +81,6 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
             ? `読み直せませんでした（電波を確かめてください）。表示は ${clock(at)} のままです`
             : `${clock(at)} の様子（15 秒ごとに更新）`}
       </p>
-
-      <section className="ops-calls" id="calls" aria-labelledby="ops-calls-h">
-        <h2 id="ops-calls-h" className="ops-h">
-          お店からの呼び出し
-          {waiting.length > 0 && <span className="ops-count">まだ {waiting.length}</span>}
-        </h2>
-        {!live ? null : waiting.length + going.length === 0 ? (
-          <p className="st-muted">いまは呼び出しはありません。</p>
-        ) : (
-          <ul className="ops-call-list">
-            {[...waiting, ...going].map((c) => (
-              <li key={c.id} className={`ops-call ops-call--${c.status}${c.status === "new" && at - c.at < 120_000 ? " ops-call--fresh" : ""}`}>
-                <p className="ops-call-text">
-                  <span className="ops-call-state">{c.status === "new" ? "まだ" : CALL_STATUS_LABEL[c.status]}</span>
-                  {callLine(c)}
-                </p>
-                <div className="ops-call-btns">
-                  {c.status === "new" && (
-                    <button type="button" className="ops-btn ops-btn--go" disabled={callBusy === c.id} onClick={() => answer(c, "going")}>
-                      向かいます
-                    </button>
-                  )}
-                  <button type="button" className="ops-btn" disabled={callBusy === c.id} onClick={() => answer(c, "done")}>
-                    済み
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {done.length > 0 && (
-          <details className="ops-done">
-            <summary>済んだ呼び出し（{done.length}）</summary>
-            <ul>
-              {done.map((c) => (
-                <li key={c.id}>{callLine(c)}</li>
-              ))}
-            </ul>
-          </details>
-        )}
-      </section>
 
       {memo && (
         <section className="ops-memo" aria-label="お店の人への連絡">
@@ -243,19 +164,8 @@ export function AdminOverview({ shops: initial, depts }: { shops: Shop[]; depts:
         );
       })}
 
-      {/* 押した結果と、まだ対応していない呼び出しは、画面の下に固定して出す（スクロールしていても見える） */}
+      {/* 押した結果は、画面の下に固定して出す（スクロールしていても見える） */}
       <div className="ops-band">
-        {waiting.length > 0 && (
-          <p className="ops-band-item ops-band-item--call">
-            <span>
-              まだ対応していない呼び出しが {waiting.length} 件あります（{name(waiting[0].shop)}
-              {waiting.length > 1 && " ほか"}）
-            </span>
-            <a href="#calls" className="ops-band-act">
-              見る
-            </a>
-          </p>
-        )}
         <div role="status" aria-live="polite">
           {note && !note.error && <p className="ops-band-item">{note.text}</p>}
         </div>

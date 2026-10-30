@@ -19,7 +19,6 @@ import type { Dept, News, Place, Shop, ShopState, SiteData, Stock } from "./type
  *   muchu:key    ハッシュ（お店の id → 編集用のかぎ）
  *   muchu:live   ハッシュ（当日よく変わる物を 1 つずつ。「お店id:state」「お店id:notice」「お店id:nat」（お知らせを出した時刻）「お店id:s:品物id」「お店id:at」）
  *                → 同時に押しても、ほかの人の変更を上書きしない（お店の JSON の state・notice・stock より優先）
- *   muchu:call   ハッシュ（お店から実行委員への呼び出し。id → Call の JSON）
  *   muchu:check  ハッシュ（当日のチェックリスト。項目 id → 印を付けた時刻）
  *   muchu:memo-ack ハッシュ（お店 id → 読んだ「お店の人へ」の連絡の id）
  *   muchu:livelog リスト（当日の動き：営業の状態・売り切れ・お知らせの切り替え。新しい順に 5000 件まで）
@@ -635,7 +634,7 @@ export async function clearList(name: string) {
   await backend().clear(name);
 }
 
-/** ハッシュ（id → 文字）を読む・書く・消す。呼び出し・チェックリストなど、1 件ずつ別々に変わる物に使う */
+/** ハッシュ（id → 文字）を読む・書く・消す。チェックリスト・連絡を読んだ印など、1 件ずつ別々に変わる物に使う */
 export async function readHash(name: string) {
   return backend().hgetall(name);
 }

@@ -4,11 +4,10 @@ import { useState, type ReactNode } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
-import type { Call, Memo, ShopLive, StaffLiveShop } from "@/lib/ops";
+import type { Memo, ShopLive, StaffLiveShop } from "@/lib/ops";
 import type { Shop } from "@/lib/types";
 import { clock } from "../../_lib/client";
 import { useStaffLive } from "../../_lib/use-staff-live";
-import { ShopCalls } from "./shop-calls";
 import { ShopEditor } from "./shop-editor";
 import { ShopIntroEditor } from "./shop-intro";
 import { ShopMemo } from "./shop-memo";
@@ -21,8 +20,8 @@ function liveOf(s: Shop): StaffLiveShop {
 
 /**
  * お店の人の画面（/staff）。「いまの様子」を読み直し続けて、ほかのスマホや実行委員が変えた内容も出す。
- * 上から：見出し・読めているか・非表示の知らせ・実行委員からの連絡・実行委員を呼ぶ・状態・売り切れ・お知らせ・紹介。
- * 読み込んだときの呼び出し・連絡はサーバーから受け取る（あとから出てきて、ボタンがずれないように）。
+ * 上から：見出し・読めているか・非表示の知らせ・実行委員からの連絡・状態・売り切れ・お知らせ・紹介。
+ * 読み込んだときの連絡はサーバーから受け取る（あとから出てきて、ボタンがずれないように）。
  */
 export function ShopHome({
   shop: first,
@@ -35,10 +34,10 @@ export function ShopHome({
   deptName: string;
   /** いまのお知らせを出した時刻（当日の動きの記録から。分からなければ null） */
   noticeAt: number | null;
-  ops: { calls: Call[]; memo: Memo | null; acked: boolean };
+  ops: { memo: Memo | null; acked: boolean };
   notReady?: ReactNode;
 }) {
-  const { live, failed, expired, refresh } = useStaffLive<ShopLive>();
+  const { live, failed, expired } = useStaffLive<ShopLive>();
   // いちばん新しく分かっているお店（はじめは読み込んだとき、あとは押した・保存したときの答え）
   const [shop, setShop] = useState(first);
   const keep = (next: Shop) => setShop((cur) => (next.updatedAt >= cur.updatedAt ? next : cur));
@@ -51,7 +50,7 @@ export function ShopHome({
   if (since.text !== now.notice) setSince({ text: now.notice, at: now.notice ? now.updatedAt : null });
   const noticeSince = now.notice ? (now.noticeAt ?? since.at) : null;
 
-  const { calls, memo, acked } = live ?? ops;
+  const { memo, acked } = live ?? ops;
 
   return (
     <div className="st-page st-stack">
@@ -82,7 +81,6 @@ export function ShopHome({
         </Banner>
       )}
       <ShopMemo memo={memo} acked={acked} />
-      <ShopCalls calls={calls} at={live?.at ?? 0} refresh={refresh} />
       <ShopEditor shop={shop} now={now} noticeAt={noticeSince} onShop={keep} />
       <ShopIntroEditor shop={first} onSaved={keep} />
     </div>

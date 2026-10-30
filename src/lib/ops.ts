@@ -5,7 +5,6 @@ import type { ShopState, Stock } from "./types";
  * 当日の運営の道具（画面とサーバーの両方で使う。server-only の物は入れない）。
  *  - 全体の帯：雨・急ぎの知らせを、お客さん側の全部のページのいちばん上に出す（setting "alert"）
  *  - 表示の時期：開催前・当日・終了後でホームの出し方を変える。ふだんは日時で自動、練習のときは実行委員が切り替える（setting "phase"）
- *  - 呼び出し：お店の人 → 実行委員（ハッシュ muchu:call）
  *  - お店の人への連絡：実行委員 → 全部のお店（お客さんには見えない。setting "memo"、読んだ印はハッシュ muchu:memo-ack）
  *  - 当日のチェックリスト（ハッシュ muchu:check）
  */
@@ -63,29 +62,6 @@ const t = (max: number) => z.string().trim().max(max);
 export const alertBody = z.object({ on: z.boolean(), level: z.enum(["info", "rain", "urgent"]), text: t(140) });
 export const phaseBody = z.object({ mode: z.enum(["auto", "before", "during", "after"]) });
 
-/* ───── 呼び出し（お店の人 → 実行委員） ───── */
-export const CALL_REASONS = ["おつり・お金", "人手が足りない", "材料・物が足りない", "けが・体調", "機械・電気", "その他"] as const;
-export type CallReason = (typeof CALL_REASONS)[number];
-export type CallStatus = "new" | "going" | "done";
-export const CALL_STATUS_LABEL: Record<CallStatus, string> = { new: "まだ", going: "向かっています", done: "済み" };
-export type Call = { id: string; shop: string; reason: CallReason; text: string; at: number; status: CallStatus; updatedAt: number };
-
-export const callBody = z.object({ reason: z.enum(CALL_REASONS), text: t(80).default("") });
-export const callPatch = z.object({ status: z.enum(["going", "done"]) });
-
-export function parseCalls(rec: Record<string, string>): Call[] {
-  const out: Call[] = [];
-  for (const v of Object.values(rec)) {
-    try {
-      const c = JSON.parse(v) as Call;
-      if (c && typeof c.id === "string" && typeof c.shop === "string") out.push(c);
-    } catch {
-      // 壊れた 1 件は飛ばす
-    }
-  }
-  return out.sort((a, b) => b.at - a.at);
-}
-
 /* ───── お店の人への連絡（実行委員 → 全部のお店） ───── */
 export type Memo = { id: string; text: string; at: number };
 export const memoBody = z.object({ text: t(200) });
@@ -122,7 +98,7 @@ export const checkBody = z.object({ id: z.string().max(40), done: z.boolean() })
 
 /* ───── 従業員側の画面が 15 秒ごとに読む「いまの様子」（GET /api/staff/live） ───── */
 export type StaffLiveShop = { state: ShopState; notice: string; noticeAt?: number; stock: Record<string, Stock>; hidden: boolean; updatedAt: number };
-/** 実行委員：全部のお店（非表示も）・呼び出し・お店の人への連絡と、読んだ印（お店 id → 読んだ連絡の id） */
-export type AdminLive = { at: number; shops: Record<string, StaffLiveShop>; calls: Call[]; memo: Memo | null; acks: Record<string, string> };
-/** お店の人：自分のお店・自分の呼び出し・お店の人への連絡（読んだかどうか） */
-export type ShopLive = { at: number; shop: StaffLiveShop | null; calls: Call[]; memo: Memo | null; acked: boolean };
+/** 実行委員：全部のお店（非表示も）・お店の人への連絡と、読んだ印（お店 id → 読んだ連絡の id） */
+export type AdminLive = { at: number; shops: Record<string, StaffLiveShop>; memo: Memo | null; acks: Record<string, string> };
+/** お店の人：自分のお店・お店の人への連絡（読んだかどうか） */
+export type ShopLive = { at: number; shop: StaffLiveShop | null; memo: Memo | null; acked: boolean };

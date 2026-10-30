@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Banner } from "@/components/ui/banner";
 import { PageHeader } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
-import { loadCalls, loadMemo, loadMemoAcks } from "@/lib/ops-server";
+import { loadMemo, loadMemoAcks } from "@/lib/ops-server";
 import { getShop, listLiveLog, loadAll, storeReady } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
 import { AdminOverview } from "./_components/admin-overview";
@@ -29,11 +29,10 @@ export default async function StaffHome() {
   );
 
   if (s.role === "shop") {
-    // 呼び出し・実行委員からの連絡も、はじめから出しておく（あとから出てきて、ボタンがずれないように）
-    const [shop, { depts }, calls, memo, acks, moves] = await Promise.all([
+    // 実行委員からの連絡も、はじめから出しておく（あとから出てきて、ボタンがずれないように）
+    const [shop, { depts }, memo, acks, moves] = await Promise.all([
       getShop(s.shop, { fresh: true }),
       loadAll(),
-      loadCalls(s.shop),
       loadMemo(),
       loadMemoAcks(),
       listLiveLog(200).catch(() => []),
@@ -47,7 +46,7 @@ export default async function StaffHome() {
         shop={shop}
         deptName={deptLookup(depts)(shop.dept).name}
         noticeAt={noticeAt}
-        ops={{ calls, memo, acked: !!memo && acks[shop.id] === memo.id }}
+        ops={{ memo, acked: !!memo && acks[shop.id] === memo.id }}
         notReady={notReady}
       />
     );

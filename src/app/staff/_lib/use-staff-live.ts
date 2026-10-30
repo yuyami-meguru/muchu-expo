@@ -8,7 +8,7 @@ const EVERY_MS = 15_000;
 
 /**
  * 従業員側の「いまの様子」を 15 秒ごとと、画面に戻ったときに読み直す（GET /api/staff/live）。
- * 別のスマホや実行委員が押した売り切れ・呼び出し・連絡が、読み込み直さなくても入る。
+ * 別のスマホや実行委員が押した売り切れ・連絡が、読み込み直さなくても入る。
  * 画面が裏に回っているあいだは読まない。refresh() で今すぐ読む（押したあとなど）。
  */
 export function useStaffLive<T extends AdminLive | ShopLive>() {

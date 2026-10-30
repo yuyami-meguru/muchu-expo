@@ -7,45 +7,15 @@
 .ops-clock--ng { color: var(--ng-ink); }
 .ops-clock--ng::before { background: var(--ng); }
 .ops-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 1.05rem; margin: 0 0 8px; }
-.ops-count { font-size: 0.8rem; font-weight: 900; padding: 0 10px; border-radius: var(--r-pill); background: var(--ng); color: var(--on-primary); }
 
-.ops-calls, .ops-memo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px 14px; }
-.ops-calls .st-muted { margin: 0; }
-.ops-call-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.ops-call {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px;
-  border-radius: var(--r-lg); border: 2px solid var(--line); border-left-width: 8px; background: var(--surface); color: var(--ink);
-}
-.ops-call--new { background: var(--ng-soft); border-color: var(--ng); }
-.ops-call--going { background: var(--warn-soft); border-color: var(--warn); }
-/* 来たばかり（2 分）の呼び出しは、枠を光らせて目立たせる（音は出さない。動きを減らす設定なら光らない） */
-.ops-call--fresh { animation: ops-glow 1.2s ease-in-out 6; box-shadow: 0 0 0 3px var(--ng); }
-@keyframes ops-glow { 50% { box-shadow: 0 0 0 7px var(--ng-soft); } }
-.ops-call-text { flex: 1 1 240px; min-width: 0; margin: 0; line-height: 1.6; }
-.ops-call-text time { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 0.875rem; }
-.ops-call-state { display: inline-block; margin-right: 8px; padding: 0 10px; border-radius: var(--r-pill); font-size: 0.8rem; font-weight: 900; background: var(--ng); color: var(--on-primary); }
-.ops-call--going .ops-call-state { background: var(--warn); color: var(--surface); }
-.ops-call-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.ops-btn {
-  min-height: 44px; min-width: 88px; padding: 0 16px; border-radius: var(--r-md); border: 2px solid var(--field-line);
-  background: var(--surface); color: var(--ink); font: inherit; font-weight: 900; cursor: pointer;
-}
-.ops-btn:hover { background: var(--surface-2); }
-.ops-btn--go { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
-.ops-btn--go:hover { background: var(--primary); filter: brightness(1.08); }
-.ops-btn:disabled { opacity: 0.6; cursor: progress; }
-.ops-done { margin-top: 8px; }
-.ops-done summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 700; color: var(--ink-2); }
-.ops-done ul { margin: 0; padding-left: 1.2em; color: var(--ink-2); font-size: 0.9rem; }
-
-.ops-memo { border-left: 6px solid var(--primary); }
+.ops-memo { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--primary); border-radius: var(--r-card); padding: 12px 14px; }
 .ops-memo-text { margin: 0 0 4px; font-weight: 700; overflow-wrap: anywhere; }
 .ops-memo-k { display: block; font-size: 0.8rem; color: var(--ink-3); }
 .ops-memo-seen { margin: 0; font-weight: 900; }
 .ops-link { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
 .ops-late { margin: 0; padding: 10px 14px; border-radius: var(--r-lg); background: var(--warn-soft); color: var(--warn); font-weight: 900; }
 
-/* 押した結果・呼び出しの帯（画面の下に固定。スマホは下のメニューの上） */
+/* 押した結果の帯（画面の下に固定。スマホは下のメニューの上） */
 .ops-band {
   position: fixed; z-index: 45; left: 12px; right: 12px; max-width: 640px; margin: 0 auto;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
@@ -58,7 +28,6 @@
 }
 .ops-band-item > span { flex: 1; min-width: 0; }
 .ops-band-item--ng { background: var(--ng); color: var(--on-primary); }
-.ops-band-item--call { background: var(--ng-soft); color: var(--ng-ink); border: 2px solid var(--ng); }
 .ops-band-act {
   flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; min-width: 64px; padding: 0 12px;
   border: 2px solid currentColor; border-radius: var(--r-md); background: transparent; color: inherit; font: inherit; font-weight: 900;
