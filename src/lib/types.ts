@@ -118,6 +118,30 @@ export function placeLabeler(areas: Area[]) {
   };
 }
 
+/** お店の場所の選び方の 1 つ。group は「外」かフロアの名前（選ぶ欄で、フロアごとにまとめるときの見出し） */
+export type PlaceOption = { value: string; label: string; group: string };
+
+/**
+ * お店の場所の選び方：外 → フロアの順に、「知育館 2階・201 小講義室」の形で（外は「外・中庭のテント」。トイレ・建物などの設備は出さない）。
+ * お店の編集（shops/[id]/shop-form.tsx）と、地図のピンの「お店の場所を決める」（places/shop-places.tsx）で同じものを使う
+ */
+export function placeOptions(places: Place[], areas: Area[]): PlaceOption[] {
+  const where = placeLabeler(areas);
+  const byId = new Map(areas.map((a) => [a.id, a]));
+  // フロアの並び（並び順が同じなら渡された順のまま）。消したフロアに残ったピンはいちばん後ろ
+  const rankOf = new Map([...areas].sort((a, b) => a.order - b.order).map((a, i) => [a.id, i]));
+  const rank = (p: Place) => (areaOf(p) === OUTSIDE ? -1 : (rankOf.get(areaOf(p)) ?? areas.length));
+  const group = (p: Place) => {
+    if (areaOf(p) === OUTSIDE) return "外";
+    const a = byId.get(areaOf(p));
+    return a ? areaName(a) : "そのほか";
+  };
+  return places
+    .filter((p) => placeKindOf(p) === "spot")
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, "ja", { numeric: true }))
+    .map((p) => ({ value: p.id, label: areaOf(p) === OUTSIDE ? `外・${p.name}` : where(p), group: group(p) }));
+}
+
 /** 実行委員からのお知らせ（トップに出す） */
 export type News = { id: string; text: string; at: number; pinned: boolean };
 

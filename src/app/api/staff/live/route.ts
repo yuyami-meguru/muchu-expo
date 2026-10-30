@@ -9,7 +9,7 @@ import type { Shop } from "@/lib/types";
  * 従業員側の画面が 15 秒ごとに読む「いまの様子」（CDN にはためない）。
  * 当日は 20 台ほどが読み続けるので、読む量を小さくする（お店の人は自分のお店だけ。実行委員は 2 秒の使い回しを使う）。
  *  - 実行委員：全部のお店（非表示のお店も）・お店の人への連絡と読んだ印
- *  - お店の人：自分のお店・お店の人への連絡（読んだかどうか）
+ *  - お店の人：自分のお店・お店の人への連絡（読んだかどうか）・表示の時期の設定（連絡と同じ 1 回の読み込みで読む）
  * 別のスマホや実行委員が変えた売り切れも、これで画面に入る。
  */
 export async function GET() {
@@ -23,8 +23,8 @@ export async function GET() {
       const body: AdminLive = { at: Date.now(), shops: Object.fromEntries(data.shops.map((x) => [x.id, pick(x)!])), memo, acks };
       return ok(body);
     }
-    const [shop, { memo }, ack] = await Promise.all([getShop(s.shop, { fresh: true }), loadStaffOps(), loadMemoAck(s.shop)]);
-    const body: ShopLive = { at: Date.now(), shop: pick(shop), memo, acked: !!memo && ack === memo.id };
+    const [shop, { memo, phase }, ack] = await Promise.all([getShop(s.shop, { fresh: true }), loadStaffOps(), loadMemoAck(s.shop)]);
+    const body: ShopLive = { at: Date.now(), shop: pick(shop), memo, acked: !!memo && ack === memo.id, phase };
     return ok(body);
   });
 }

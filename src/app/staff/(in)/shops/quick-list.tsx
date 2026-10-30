@@ -5,32 +5,65 @@ import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { AdminLive, StaffLiveShop } from "@/lib/ops";
+import { missingText, type Readiness } from "@/lib/readiness";
 import { STATE_LABEL, type Shop, type ShopState, type Stock, type Tone } from "@/lib/types";
 import { send } from "../../_lib/client";
 import { useStaffLive } from "../../_lib/use-staff-live";
+import { OnlyToggle } from "../_components/only-toggle";
 import { clockNow, latest, shapeOf, useShapeRefresh } from "../ops-live";
 import "../ops.css";
 
 const STATES: ShopState[] = ["prep", "open", "break", "closed"];
 
-export type QuickRow = { shop: Shop; deptName: string; color: Tone; placeName: string };
+/** ready：お客さんに見せる準備（サーバーで lib/readiness.ts の readinessOf で決める） */
+export type QuickRow = { shop: Shop; deptName: string; color: Tone; placeName: string; ready: Readiness };
 
 /**
  * 実行委員の「お店の情報」の一覧。行を押すと編集の画面へ。
  * 当日よく使う 3 つ（営業の状態・品物の売り切れ・お客さんの画面に出すか）は、一覧のまま押してすぐ保存する。
  * 15 秒ごとに「いまの様子」を読み直すので、お店の人が押した売り切れなども入る。
+ * 上に準備の進み具合（「準備ができたお店 5／9」と［まだのお店だけ］）、行の名前の下に「まだ：場所・ひとこと」（声をかけるお店を探す）
  */
 export function ShopQuickList({ rows }: { rows: QuickRow[] }) {
   const { live, refresh } = useStaffLive<AdminLive>();
+  const [onlyTodo, setOnlyTodo] = useState(false);
   useShapeRefresh(live, shapeOf(rows.map((r) => r.shop)));
+  const list = rows.filter((r) => !live || live.shops[r.shop.id]); // 消されたお店は出さない
+  const readyCount = list.filter((r) => r.ready.ready).length;
+  const shown = onlyTodo ? list.filter((r) => !r.ready.ready) : list;
   return (
-    <ul className="st-list">
-      {rows
-        .filter((r) => !live || live.shops[r.shop.id]) // 消されたお店は出さない
-        .map((r) => (
-          <QuickItem key={r.shop.id} row={r} live={live?.shops[r.shop.id]} onSaved={refresh} />
-        ))}
-    </ul>
+    <>
+      <div className="st-ready-bar">
+        <p className="st-ready-count">
+          準備ができたお店 <strong>{readyCount}／{list.length}</strong>
+        </p>
+        <OnlyToggle on={onlyTodo} onChange={setOnlyTodo}>
+          まだのお店だけ
+        </OnlyToggle>
+        {onlyTodo && <p className="st-ready-what">場所・ひとこと・どんなお店？・メニューと値段（食べる・飲むのお店だけ）のどれかが、まだ入っていないお店です</p>}
+      </div>
+      {shown.length ? (
+        <ul className="st-list">
+          {shown.map((r) => (
+            <QuickItem key={r.shop.id} row={r} live={live?.shops[r.shop.id]} onSaved={refresh} />
+          ))}
+        </ul>
+      ) : (
+        <p className="st-ready-none">{list.length ? "✓ 全部のお店の準備ができています" : "お店がまだありません（下の「お店を足す」で足せます）"}</p>
+      )}
+    </>
+  );
+}
+
+/** 行に出す準備の進み具合（「まだ：場所・ひとこと」か「✓ 準備ができました」）。値段が空の品物があれば、そのことも小さく */
+function ReadyLine({ r }: { r: Readiness }) {
+  // 食べる・飲むのお店の「値段」は「まだ」に入っている。ほかのお店は、あれば知らせるだけ
+  const price = r.noPrice > 0 && !r.missing.some((x) => x.key === "menu");
+  return (
+    <>
+      <span className={r.ready ? "st-ready st-ready--ok" : "st-ready"}>{r.ready ? "✓ 準備ができました" : `まだ：${missingText(r)}`}</span>
+      {price && <span className="st-ready-price"> ・ 値段が未定の品物あり</span>}
+    </>
   );
 }
 
@@ -111,6 +144,8 @@ function QuickItem({ row, live, onSaved }: { row: QuickRow; live: StaffLiveShop 
           <span className="st-muted">
             {row.deptName} ・ {row.placeName} ・ 品物 {shop.menu.length}
           </span>
+          <br />
+          <ReadyLine r={row.ready} />
         </span>
         <Icon name="右へ" size={20} />
       </Link>

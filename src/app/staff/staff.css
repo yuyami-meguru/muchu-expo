@@ -108,6 +108,26 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-list > li[data-hidden] .st-list-row strong { color: var(--ink-3); }
 .st-badge--hidden { margin-left: 8px; vertical-align: 2px; background: var(--ink-3); color: var(--surface); }
 
+/* 一覧をしぼる切り替え（［まだのお店だけ］［未定のお店だけ］。_components/only-toggle.tsx） */
+.st-toggle {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill);
+  border: 2px solid var(--field-line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.875rem; font-weight: 900; cursor: pointer;
+}
+.st-toggle:hover { background: var(--surface-2); }
+.st-toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.st-toggle-box { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 2px solid currentColor; border-radius: 4px; font-size: 13px; line-height: 1; }
+
+/* 準備の進み具合（「お店の情報」の一覧。決め方は lib/readiness.ts）：上に「準備ができたお店 5／9」と［まだのお店だけ］、行に「まだ：場所・ひとこと」 */
+.st-ready-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.st-ready-count { margin: 0; font-weight: 700; min-width: 0; }
+.st-ready-count strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.st-ready-what { flex-basis: 100%; margin: 0; font-size: 0.8rem; color: var(--ink-3); }
+.st-ready-bar + .st-list, .st-ready-bar + .st-ready-none { margin-top: 12px; }
+.st-ready { display: inline-block; margin-top: 2px; font-size: 0.8rem; font-weight: 900; color: var(--warn); }
+.st-ready--ok { color: var(--ok-ink); }
+.st-ready-price { font-size: 0.8rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.st-ready-none { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); font-weight: 700; color: var(--ok-ink); }
+
 /* 一覧のまま押す 3 つの組（営業・品物・お客さんの画面）。小さな見出しを付けて、組のあいだをあける。
    ボタンの文字は「押すと起きること」、その横の「いま：○○」が今の様子 */
 .st-quick { display: grid; gap: 12px 24px; grid-template-columns: minmax(0, 1fr); padding: 0 14px 14px 36px; }
@@ -153,6 +173,32 @@ a.st-list-row:hover { background: var(--surface-2); }
 .st-place-pos .ui-field { margin: 0; }
 .st-place-nudge { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .st-place-nudge .ui-btn { padding: 0 4px; }
+
+/* お店の場所を決める（places/shop-places.tsx）。お店ごとに 1 行：お店の名前（部門・非表示）・選ぶ欄・場所の補足・結果。
+   広い画面では、左にお店の名前と補足、右に選ぶ欄と結果。結果の 1 行ぶんは先に空けておく（出ても下の行がずれないように） */
+.st-sp-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 12px 0 4px; }
+.st-sp-count { margin: 0; font-weight: 700; }
+.st-sp-count strong { margin-right: 4px; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.st-sp-list { list-style: none; margin: 0; padding: 0; }
+.st-sp-row { min-width: 0; padding: 12px 0 2px; border-top: 1px solid var(--line); }
+.st-sp-row .ui-label { font-size: 1rem; line-height: 1.5; color: var(--ink); }
+.st-sp-row .ui-label .st-dot { display: inline-block; margin-right: 8px; vertical-align: 0.05em; }
+.st-sp-name { font-weight: 900; overflow-wrap: anywhere; }
+.st-sp-dept { margin-left: 8px; font-size: 0.75rem; font-weight: 700; color: var(--ink-3); white-space: nowrap; }
+.st-sp-row .ui-hint { font-size: 0.8rem; overflow-wrap: anywhere; }
+/* せまい画面では、選ぶ欄を少しでも広く（場所の名前が切れにくいように） */
+@media (max-width: 420px) { .st-sp.ui-card { padding: 16px 12px; } }
+.st-sp-result.sh-result { min-height: 1.45em; margin-top: 4px; }
+.st-sp-wait { color: var(--ink-3); }
+.st-sp-none { margin: 12px 0 0; font-weight: 700; color: var(--ink-2); }
+@media (min-width: 720px) {
+  .st-sp-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); column-gap: 20px; align-items: center; }
+  .st-sp-row .ui-field { display: contents; }
+  .st-sp-row .ui-label { grid-column: 1; grid-row: 1; }
+  .st-sp-row .ui-select-wrap { grid-column: 2; grid-row: 1; }
+  .st-sp-row .ui-hint { grid-column: 1; grid-row: 2; align-self: start; }
+  .st-sp-row .st-sp-result { grid-column: 2; grid-row: 2; }
+}
 
 /* ログアウト（ページのいちばん下） */
 .st-foot { max-width: 960px; margin: 0 auto; padding: 0 16px 120px; display: flex; justify-content: flex-end; }

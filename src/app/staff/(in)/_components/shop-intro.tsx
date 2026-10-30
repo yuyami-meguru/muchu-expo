@@ -29,6 +29,17 @@ function newId(head: "m" | "r") {
 /** 書きかけを残す場所（この端末の中だけ。お店ごと） */
 const draftKey = (shopId: string) => `muchu-draft-${shopId}`;
 
+/** 書く欄の id（「お客さんに見せる準備」の［書く］から、その欄へ飛ぶのに使う。shop-ready.tsx） */
+export const INTRO_ID = {
+  catch: "intro-catch",
+  description: "intro-description",
+  message: "intro-message",
+  menu: "intro-menu",
+  schedule: "intro-schedule",
+  /** 品物ごとの値段の欄 */
+  price: (itemId: string) => `intro-price-${itemId}`,
+} as const;
+
 function savedOf(s: Pick<Shop, "catch" | "description" | "message" | "schedule" | "menu">): Saved {
   return {
     catch: s.catch,
@@ -200,6 +211,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
           </div>
         )}
         <TextField
+          id={INTRO_ID.catch}
           label="ひとこと（一覧のカードに出る）"
           value={f.catch}
           maxLength={60}
@@ -207,6 +219,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
           onChange={(e) => set({ catch: e.target.value })}
         />
         <TextArea
+          id={INTRO_ID.description}
           label="どんなお店？"
           value={f.description}
           maxLength={600}
@@ -215,6 +228,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
           onChange={(e) => set({ description: e.target.value })}
         />
         <TextArea
+          id={INTRO_ID.message}
           label="お店の思い"
           value={f.message}
           maxLength={600}
@@ -223,7 +237,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
           onChange={(e) => set({ message: e.target.value })}
         />
 
-        <fieldset className="st-intro-set">
+        <fieldset className="st-intro-set" id={INTRO_ID.menu}>
           <legend>メニュー（{f.menu.length}）</legend>
           <p className="st-muted">値段が決まっていなければ空のままで大丈夫です。売り切れは上のボタンで変えてください。</p>
           <div className="st-rows">
@@ -231,7 +245,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
               <div key={m.id} className="st-rowbox">
                 <div className="st-rowbox-grid">
                   <TextField label="品物の名前" value={m.name} maxLength={40} hint="例：焼きそば" onChange={(e) => setItem(m.id, { name: e.target.value })} />
-                  <TextField label="値段" value={m.price} maxLength={30} hint="例：300 円" onChange={(e) => setItem(m.id, { price: e.target.value })} />
+                  <TextField id={INTRO_ID.price(m.id)} label="値段" value={m.price} maxLength={30} hint="例：300 円" onChange={(e) => setItem(m.id, { price: e.target.value })} />
                   <TextField
                     label="ひとこと説明（お客さんに見えます）"
                     value={m.note}
@@ -254,7 +268,7 @@ export function ShopIntroEditor({ shop, onSaved }: { shop: Shop; onSaved: (s: Sh
           </div>
         </fieldset>
 
-        <fieldset className="st-intro-set">
+        <fieldset className="st-intro-set" id={INTRO_ID.schedule}>
           <legend>当日の流れ（{f.schedule.length}）</legend>
           <p className="st-muted">「10:00　開店」「12:00　焼きたてができる」のように書くと、お客さんが来る時間を決めやすくなります。</p>
           <div className="st-rows">

@@ -71,6 +71,7 @@ check("全部を終了にできる", (await full(A)).state === "closed" || after
 // 4. お店の人の「いまの様子」は自分のお店だけ
 const mine = (await a.req("GET", "/api/staff/live")).json;
 check("お店の人の「いまの様子」は自分のお店だけ", !!mine.shop && !mine.shops && mine.shop.notice === "テストのお知らせ");
+check("お店の人の「いまの様子」に表示の時期の設定が入る（お客さんに見せる準備の出し方に使う）", ["auto", "before", "during", "after"].includes(mine.phase));
 check("ログインなしでは「いまの様子」を読めない", (await new Client().req("GET", "/api/staff/live")).status === 401);
 
 // 5. お店の人への連絡
@@ -98,6 +99,7 @@ check("全体の帯を消せる", st.alert === null);
 await admin.req("PUT", "/api/staff/phase", { mode: "during" });
 st = await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json());
 check("表示の時期を「当日」にできる", st.phase === "during");
+check("お店の人の「いまの様子」も「当日」になる", (await a.req("GET", "/api/staff/live")).json.phase === "during");
 await admin.req("PUT", "/api/staff/phase", { mode: "auto" });
 check("表示の時期を「日時で自動」に戻せる", (await fetch(`${BASE}/api/status`, { cache: "no-store" }).then((r) => r.json())).phase === "auto");
 

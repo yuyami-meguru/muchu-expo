@@ -100,5 +100,8 @@ export const checkBody = z.object({ id: z.string().max(40), done: z.boolean() })
 export type StaffLiveShop = { state: ShopState; notice: string; noticeAt?: number; stock: Record<string, Stock>; hidden: boolean; updatedAt: number };
 /** 実行委員：全部のお店（非表示も）・お店の人への連絡と、読んだ印（お店 id → 読んだ連絡の id） */
 export type AdminLive = { at: number; shops: Record<string, StaffLiveShop>; memo: Memo | null; acks: Record<string, string> };
-/** お店の人：自分のお店・お店の人への連絡（読んだかどうか） */
-export type ShopLive = { at: number; shop: StaffLiveShop | null; memo: Memo | null; acked: boolean };
+/**
+ * お店の人：自分のお店・お店の人への連絡（読んだかどうか）・表示の時期の設定（phaseOf(at, phase) で決める。
+ * 開催前だけ「お客さんに見せる準備」を開いて上に出し、当日は売り切れの操作の邪魔にならないよう、たたんで下へ）
+ */
+export type ShopLive = { at: number; shop: StaffLiveShop | null; memo: Memo | null; acked: boolean; phase: PhaseMode };

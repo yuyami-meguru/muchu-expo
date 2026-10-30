@@ -26,10 +26,10 @@ export async function loadMemo() {
   return parseMemo(await getSetting("memo"));
 }
 
-/** 従業員側の「いまの様子」で読む設定（お店の人への連絡） */
+/** 従業員側の「いまの様子」で読む設定（お店の人への連絡・表示の時期）。まとめて 1 回で読む */
 export async function loadStaffOps() {
-  const [memo] = await getSettings(["memo"]);
-  return { memo: parseMemo(memo) };
+  const [memo, phase] = await getSettings(["memo", "phase"]);
+  return { memo: parseMemo(memo), phase: parsePhaseMode(phase) };
 }
 
 /** そのお店が読んだ連絡の id */

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
-import type { Memo, ShopLive, StaffLiveShop } from "@/lib/ops";
+import { phaseOf, type Memo, type Phase, type ShopLive, type StaffLiveShop } from "@/lib/ops";
 import type { Shop } from "@/lib/types";
 import { clock } from "../../_lib/client";
 import { useStaffLive } from "../../_lib/use-staff-live";
 import { ShopEditor } from "./shop-editor";
 import { ShopIntroEditor } from "./shop-intro";
 import { ShopMemo } from "./shop-memo";
+import { ShopReady } from "./shop-ready";
 import "./shop.css";
 
 /** お店を「いまの様子」の形に（品物の残りを 品物の id → 残り に） */
@@ -20,13 +21,15 @@ function liveOf(s: Shop): StaffLiveShop {
 
 /**
  * お店の人の画面（/staff）。「いまの様子」を読み直し続けて、ほかのスマホや実行委員が変えた内容も出す。
- * 上から：見出し・読めているか・非表示の知らせ・実行委員からの連絡・状態・売り切れ・お知らせ・紹介。
+ * 上から：見出し・読めているか・非表示の知らせ・実行委員からの連絡・（開催前は）お客さんに見せる準備・状態・売り切れ・お知らせ・紹介。
+ * 当日（朝・開催中）は、お客さんに見せる準備をたたんでいちばん下に（売り切れの操作の邪魔にならないように）。終わったら出さない。
  * 読み込んだときの連絡はサーバーから受け取る（あとから出てきて、ボタンがずれないように）。
  */
 export function ShopHome({
   shop: first,
   deptName,
   noticeAt,
+  places,
   ops,
   notReady,
 }: {
@@ -34,7 +37,10 @@ export function ShopHome({
   deptName: string;
   /** いまのお知らせを出した時刻（当日の動きの記録から。分からなければ null） */
   noticeAt: number | null;
-  ops: { memo: Memo | null; acked: boolean };
+  /** 場所の呼び方（ピンの id →「知育館 3階・301 教室」）。お客さんに見せる準備の「場所：…」に使う */
+  places: Record<string, string>;
+  /** phase：ページを開いたときの表示の時期（そのあとは「いまの様子」の時刻と設定で決める） */
+  ops: { memo: Memo | null; acked: boolean; phase: Phase };
   notReady?: ReactNode;
 }) {
   const { live, failed, expired } = useStaffLive<ShopLive>();
@@ -43,6 +49,7 @@ export function ShopHome({
   const keep = (next: Shop) => setShop((cur) => (next.updatedAt >= cur.updatedAt ? next : cur));
   // 「いまの様子」のほうが新しければ、そちらを出す（ほかのスマホ・実行委員が変えた分）
   const now = live?.shop && live.at >= shop.updatedAt ? live.shop : liveOf(shop);
+  const placeNames = useMemo(() => new Map(Object.entries(places)), [places]);
 
   // いまのお知らせを出した時刻。お知らせが変わったら、変わったと分かったときの様子の時刻にする
   // （v0.10.0 からは、お知らせを出した時刻がサーバーから届く。それより前のお知らせだけ、ここで見当を付ける）
@@ -51,6 +58,9 @@ export function ShopHome({
   const noticeSince = now.notice ? (now.noticeAt ?? since.at) : null;
 
   const { memo, acked } = live ?? ops;
+  // 表示の時期（実行委員が練習で「当日」にしたら、15 秒ほどでそれに従う）
+  const phase = live ? phaseOf(live.at, live.phase) : ops.phase;
+  const today = phase === "morning" || phase === "during";
 
   return (
     <div className="st-page st-stack">
@@ -81,8 +91,10 @@ export function ShopHome({
         </Banner>
       )}
       <ShopMemo memo={memo} acked={acked} />
+      {phase === "before" && <ShopReady shop={shop} places={placeNames} early />}
       <ShopEditor shop={shop} now={now} noticeAt={noticeSince} onShop={keep} />
       <ShopIntroEditor shop={first} onSaved={keep} />
+      {today && <ShopReady shop={shop} places={placeNames} early={false} />}
     </div>
   );
 }

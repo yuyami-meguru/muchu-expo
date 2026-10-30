@@ -41,6 +41,26 @@
 .sh-draft p { margin: 0; font-size: 0.9rem; font-weight: 700; }
 .sh-unsaved { font-size: 0.8rem; font-weight: 900; color: var(--warn); }
 
+/* お客さんに見せる準備（_components/shop-ready.tsx）。箱と開け閉めは「お店の紹介を書く」（.st-intro）と同じ形。
+   札は ✓（緑）・まだ（黄）・あるとよいもの／場所の未定（灰）。まだの所の右に［書く］ */
+.sh-ready-sum { font-size: 0.85rem; font-weight: 900; color: var(--warn); }
+.sh-ready-sum--ok { color: var(--ok-ink); }
+.sh-ready-sum--wait { color: var(--ink-2); }
+.sh-ready-lead { margin: 0 0 8px; }
+.sh-ready-list { list-style: none; margin: 0; padding: 0; }
+.sh-ready-item { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 4px 0; border-top: 1px dashed var(--line); }
+.sh-ready-item:first-child { border-top: 0; }
+.sh-ready-mark {
+  flex: none; display: inline-grid; place-items: center; min-width: 3.4em; padding: 2px 8px; border-radius: var(--r-pill);
+  background: var(--warn-soft); color: var(--warn); font-size: 0.75rem; font-weight: 900; line-height: 1.6;
+}
+.sh-ready-item[data-done] .sh-ready-mark { background: var(--ok-soft); color: var(--ok-ink); }
+.sh-ready-item[data-nice]:not([data-done]) .sh-ready-mark { background: var(--surface-2); color: var(--ink-2); }
+.sh-ready-text { flex: 1 1 auto; min-width: 0; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.sh-ready-text small { display: block; font-size: 0.8rem; font-weight: 500; color: var(--ink-2); }
+.sh-ready-go { flex: none; }
+.sh-ready-h { margin: 16px 0 4px; font-size: 0.95rem; color: var(--ink-2); }
+
 /* ページのいちばん下：版の番号とログアウト */
 .sh-foot { align-items: center; flex-wrap: wrap; gap: 4px 12px; }
 .sh-foot .sh-version { margin: 0; opacity: 1; color: var(--ink-3); }

@@ -76,6 +76,11 @@ check(
   "お店の人が店名・部門・非公開・並び順を送っても変わらない",
   rn.status === 200 && rn.json?.shop?.name === orig.name && rn.json?.shop?.dept === orig.dept && rn.json?.shop?.hidden === orig.hidden && rn.json?.shop?.order === orig.order,
 );
+const rp = await a.req("PATCH", `/api/staff/shops/${A}`, { placeId: "f3-301", placeNote: "のっとり" });
+check(
+  "お店の人が場所・場所の補足を送っても変わらない（場所は実行委員が決める）",
+  rp.status === 200 && rp.json?.shop?.placeId === orig.placeId && rp.json?.shop?.placeNote === orig.placeNote,
+);
 await a.req("PATCH", `/api/staff/shops/${A}`, { stock: [{ id: itemA, stock: "few" }] });
 const menuNoStock = orig.menu.map(({ id, name, price, note }) => ({ id, name, price, note }));
 const rm = await a.req("PATCH", `/api/staff/shops/${A}`, { menu: [...menuNoStock, { id: "check-item", name: "確認用の品物", price: "100円", note: "" }] });

@@ -1,17 +1,33 @@
 "use client";
 
 // 従業員側の画面から API を呼ぶ。失敗したら、サーバーが返した日本語（error）をそのまま返す。
-export type SendResult<T = Record<string, unknown>> = ({ ok: true } & T) | { ok: false; error: string };
+export type SendResult<T = Record<string, unknown>> =
+  | ({ ok: true } & T)
+  | {
+      ok: false;
+      error: string;
+      /** 返事の番号（401＝ログインが切れた、409＝ほかで変わっていた など）。返事が来なかったときは無い */
+      status?: number;
+      /** 返事を待ちきれずに打ち切った。サーバーには届いて保存されているかもしれない（いまの様子を読み直して確かめる） */
+      unsure?: boolean;
+    };
 
 /** 電波で送れなかったときの文（画面の側で「電波のせいか」を見分けるのにも使う） */
 export const NO_SIGNAL_ERROR = "電波が届かず、送れませんでした（まだ保存されていません）。電波のよい所で、もう一度押してください";
+
+/** 返事を待ちきれずに打ち切ったときの文。届いていることもあるので「保存されていません」とは言わない */
+export const UNSURE_ERROR = "返事が来ませんでした。届いているかもしれないので、いまの様子を読み直して確かめています";
 
 /** 電波が弱いとき、いつまでも「送信中」にならないよう、この時間で打ち切る */
 const TIMEOUT_MS = 10_000;
 
 export async function send<T = Record<string, unknown>>(url: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<SendResult<T>> {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctl.abort();
+  }, TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       method,
@@ -21,10 +37,11 @@ export async function send<T = Record<string, unknown>>(url: string, method: "PO
       signal: ctl.signal,
     });
     const json = (await res.json().catch(() => null)) as ({ ok?: boolean; error?: string } & T) | null;
-    if (!res.ok || !json?.ok) return { ok: false, error: json?.error ?? `うまくいきませんでした（${res.status}）。もう一度ためすか、実行委員に知らせてください` };
+    if (!res.ok || !json?.ok) return { ok: false, error: json?.error ?? `うまくいきませんでした（${res.status}）。少し待って、もう一度ためしてください`, status: res.status };
     return json as { ok: true } & T;
   } catch {
-    return { ok: false, error: NO_SIGNAL_ERROR };
+    // 打ち切ったのは、送ったあとに返事が遅れただけかもしれない（電波で送れなかったのとは分ける）
+    return timedOut ? { ok: false, error: UNSURE_ERROR, unsure: true } : { ok: false, error: NO_SIGNAL_ERROR };
   } finally {
     clearTimeout(timer);
   }

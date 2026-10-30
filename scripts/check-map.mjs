@@ -83,5 +83,17 @@ await admin.req("DELETE", "/api/staff/places/check-pin");
 check("ピンを消したフロアは消せる", (await admin.req("DELETE", "/api/staff/areas/floor-check")).status === 200);
 check("消したフロアは控えに残らない", !(await admin.req("GET", "/api/staff/export")).json.areas.some((a) => a.id === "floor-check"));
 
+// お店の場所（地図のピンの画面の「お店の場所を決める」。選ぶとすぐ PATCH { placeId }）。最後に元に戻す
+const placed = (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId;
+const toRoom = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "f3-301" });
+check("実行委員はお店の場所をフロアの部屋にできる", toRoom.status === 200 && toRoom.json?.shop?.placeId === "f3-301");
+// お客さんのページは読んだ中身を 2 秒だけ使い回すので、少し待ってから見る
+await new Promise((r) => setTimeout(r, 2100));
+check("お店のページに「知育館 3階・301 教室」と出る", (await page("/shops/yakisoba")).includes("知育館 3階・301 教室"));
+const toTbd = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "" });
+check("お店の場所を未定に戻せる", toTbd.status === 200 && toTbd.json?.shop?.placeId === "");
+await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed });
+check("お店の場所を元に戻した", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === placed);
+
 console.log(failed ? `\n${failed} 件 NG` : "\nすべて OK");
 process.exit(failed ? 1 : 0);
