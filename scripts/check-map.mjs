@@ -50,7 +50,17 @@ const m2 = await page("/map?area=f2");
 check("お客さんの地図で 2 階を開ける", m2.includes("知育館 2階") && m2.includes("201 小講義室"));
 check("場所を指して開ける（?place=）", (await page("/map?place=f3-301")).includes("301 教室"));
 const allMaps = (await page("/map?area=f2")) + (await page("/map?area=f3")) + (await page("/map?area=f4"));
-check("見取り図に人の名前（配置図の物品のメモ）が入っていない", !/〇〇|〇〇|〇〇|〇〇|〇〇|〇〇|〇〇|〇〇/.test(allMaps));
+// 人の名前（見取り図のもとのデータの物品メモにあった）がフロアのページに出ていないこと。
+// 名前そのものはリポジトリに入れず、手元だけのファイル .data/private-names.json（.gitignore 済み）から読む
+let privateNames = null;
+try {
+  privateNames = JSON.parse(readFileSync(new URL("../.data/private-names.json", import.meta.url), "utf8")).names ?? [];
+} catch {}
+if (privateNames) check("フロアのページに人の名前が出ていない", !privateNames.some((n) => allMaps.includes(n)));
+else console.log("--  人の名前の確認は、手元の .data/private-names.json が無いので飛ばした");
+// 見取り図のデータは建物の形だけ（物品・メモの欄を取りこんでいない）
+const planSrc = readFileSync(new URL("../src/lib/floor-plans.ts", import.meta.url), "utf8");
+check("見取り図のデータに物品・メモの欄が無い", !/\b(note|memo|items?|owner)\s*:/.test(planSrc));
 
 // フロアの窓口の守り
 check("ログインなしではフロアを作れない", (await anon.req("PUT", "/api/staff/areas/floor-x", { building: "テスト館", floor: "1階", order: 9 })).status === 403);
