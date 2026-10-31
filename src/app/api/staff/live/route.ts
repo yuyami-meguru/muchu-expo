@@ -2,9 +2,12 @@ import type { NextRequest } from "next/server";
 import { fail, guarded, ok } from "@/lib/api";
 import { LOGIN_EXPIRED, getSession } from "@/lib/auth";
 import { loadMemoAck, loadMemoAcks, loadStaffOps } from "@/lib/ops-server";
-import { getShop, loadAll, STAFF_POLL_READ, staffPollBusy, type ReadOpts } from "@/lib/store";
+import { allowHere, getShop, loadAll, STAFF_POLL_READ, staffPollBusy, type ReadOpts } from "@/lib/store";
 import type { AdminLive, ShopLive, StaffLiveShop } from "@/lib/ops";
 import type { Shop } from "@/lib/types";
+
+/** ?fresh=1 は、1 つのお店（実行委員はまとめて 1 つ）につき、このサーバーで 10 秒にこの回数まで */
+const FRESH_LIMIT = 8;
 
 /*
  * 従業員側の画面が読み直す「いまの様子」（CDN にはためない）。
@@ -19,12 +22,14 @@ import type { Shop } from "@/lib/types";
  *    （ほかの人が押した売り切れは、長くて 5 秒＋読み直しの間隔で入る）
  * 答えの時刻（at）は「中身はこれより新しい」と言える時刻：?fresh=1 は読み始めた時刻、ふだんの読み直しは使い回す長さ（STAFF_POLL_READ.content）だけ前。
  * 画面（use-staff-live.ts）は at の新しい答えを使うので、使い回しの答えが、直前に新しく読んだ答えを上書きしない（「○時の様子」も中身より新しく出ない）
+ * ?fresh=1 は使い回さないので、連打されると Upstash の回数が増える。上限（FRESH_LIMIT）を超えた分は、ふだんの読み直しと同じに読む
+ * （押した結果は押したときの答えで画面に出ているので、読み直しが少し古くても困らない。連打が続けば staffPollBusy で使い回しになる）
  */
 export async function GET(req: NextRequest) {
   return guarded(async () => {
     const s = await getSession();
     if (!s) return fail(401, LOGIN_EXPIRED);
-    const fresh = req.nextUrl.searchParams.get("fresh") === "1";
+    const fresh = req.nextUrl.searchParams.get("fresh") === "1" && allowHere(`live-fresh:${s.role === "admin" ? "admin" : s.shop}`, FRESH_LIMIT, 10);
     const at = Date.now() - (fresh ? 0 : STAFF_POLL_READ.content);
     const share = !fresh && staffPollBusy();
     const opts: ReadOpts = fresh ? { fresh: true } : { read: STAFF_POLL_READ };

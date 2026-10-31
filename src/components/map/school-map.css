@@ -102,6 +102,8 @@
 @container (max-width: 420px) {
   .mx-pin-label { max-width: 6.5em; text-wrap: balance; }
 }
+/* どこにも入らなかった名前は、細い札（3 行）にして置き直す（school-map.tsx の placeLabels が data-ln を付ける） */
+.mx-pin[data-ln] .mx-pin-label { max-width: 4.6em; }
 @media screen and (prefers-color-scheme: dark) {
   /* ダークでは名前の札が地図の地と同じ色になるので、ふちを付けて見分ける */
   .mx-pin-label { border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent); }

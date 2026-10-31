@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getSession } from "@/lib/auth";
 import { getShop, loadAll } from "@/lib/store";
 import { adminOnly } from "../../_components/admin-only";
@@ -23,14 +23,31 @@ export async function generateMetadata({ params }: PageProps<"/staff/shops/[id]"
   if (s?.role !== "admin") return { title: "お店を編集" };
   const { id } = await params;
   const shop = await loadShop(id);
-  return { title: shop ? `${shop.name}を編集` : "お店を編集" };
+  return { title: shop ? `${shop.name}を編集` : "お店が見つかりません" };
 }
 
 export default async function StaffShopEditPage({ params, searchParams }: PageProps<"/staff/shops/[id]">) {
   const { id } = await params;
   await adminOnly(`/staff/shops/${id}`);
   const shop = await loadShop(id);
-  if (!shop) notFound();
+  // 消したお店（ほかの人が消した・古いリンク）。お客さん向けの「見つかりません」ではなく、従業員の画面の中で戻り先を出す
+  if (!shop) {
+    return (
+      <div className="st-page st-stack">
+        <PageHeader title="お店を編集" />
+        <EmptyState
+          title="このお店は見つかりません"
+          action={
+            <Button href="/staff/shops" icon="一覧">
+              お店の情報へ戻る
+            </Button>
+          }
+        >
+          ほかの人が消したか、古いリンクかもしれません。「お店の情報」の一覧から選び直してください。
+        </EmptyState>
+      </div>
+    );
+  }
   const { places, areas, depts, shops } = await loadAll();
   const added = (await searchParams).added === "1";
   // 場所ごとの、このお店のほかにいるお店の数（場所を選ぶ欄に「（ほかに 1 店）」と出す）

@@ -47,8 +47,7 @@
 .rd-send[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
 .rd-send[aria-disabled="true"]:active { transform: none; box-shadow: 0 5px 0 var(--title-edge); }
 
-/* 印刷：送る欄は出さない（番組表だけ） */
+/* 印刷：送る欄と「いま放送中か」の濃い箱は出さない（番組表だけ。いまの様子は紙では意味がなく、インクも使うので） */
 @media print {
-  .rd-form { display: none !important; }
-  .rd-now { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .rd-form, .rd-now { display: none !important; }
 }

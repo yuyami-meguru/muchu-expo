@@ -104,6 +104,10 @@
   background: var(--warn-soft); color: var(--ink); border-bottom: 3px solid var(--warn); box-shadow: var(--shadow-pop);
 }
 .sh-alert--info { background: var(--primary-soft); border-bottom-color: var(--primary); }
+/* ログインが切れた（赤）。［くわしく］で、帯の中の次の行に入り直し方を開く */
+.sh-alert--ng { flex-wrap: wrap; background: var(--ng-soft); border-bottom-color: var(--ng); }
+.sh-alert--ng .sh-alert-text { flex: 1 1 0; color: var(--ng-ink); }
+.sh-alert-more { flex: 1 1 100%; margin: 0 0 4px; font-size: 0.85rem; font-weight: 700; line-height: 1.5; }
 .sh-alert-text { flex: 1 1 auto; min-width: 0; margin: 0; font-weight: 900; font-size: 0.95rem; line-height: 1.4; }
 .sh-alert .ui-btn { flex: none; }
 

@@ -23,6 +23,13 @@ function liveOf(s: Shop): StaffLiveShop {
 /** 品物の形（id を並べたもの）。「いまの様子」と画面で比べて、ほかの所で品物が足された・消されたのに気づく */
 const shapeOf = (ids: string[]) => [...ids].sort().join(",");
 
+/** ログインが切れたときの帯（あとから分かることなので、画面に差しこまずに上に重ねる。差しこむと売り切れのボタンが下にずれる） */
+const EXPIRED: ShopAlertItem = {
+  tone: "ng",
+  text: "ログインが切れました。お店の QR を読み直してください",
+  more: "いまは押しても保存されません。QR で入れないときは、実行委員から新しい QR をもらってください。書きかけの紹介は、このスマホに残っています。",
+};
+
 /**
  * お店の人の画面（/staff）。「いまの様子」を 15 秒ごとに読み直して、ほかのスマホや実行委員が変えた内容も出す。
  * 並びは、ページを開いたときの表示の時期で決める（開いているあいだは並べかえない＝押す所がずれない）：
@@ -43,7 +50,7 @@ export function ShopHome({
   deptName: string;
   /** いまのお知らせを出した時刻（当日の動きの記録から。分からなければ null） */
   noticeAt: number | null;
-  /** 場所の呼び方（ピンの id →「知育館 3階・301 教室」）。見出しの下と、お客さんに見せる準備の「場所：…」に使う */
+  /** 場所の呼び方（ピンの id →「知育館 3階・301 教室」）。開催前の見出しの下と、お客さんに見せる準備の「場所：…」に使う */
   places: Record<string, string>;
   /** phase：ページを開いたときの表示の時期（並びはこれで決める。読み込み直すと新しくなる） */
   ops: { memo: Memo | null; acked: boolean; phase: Phase };
@@ -157,7 +164,9 @@ export function ShopHome({
           sub={
             <>
               {deptName}
-              <span className="sh-where">場所：{where}</span>
+              {/* 当日は出さない（お店の人はその場所にいる。文字を大きくした小さいスマホで、売り切れのボタンが下のメニューに隠れないように）。
+                  場所は「お客さんに見せる準備」にも出る */}
+              {layout === "before" && <span className="sh-where">場所：{where}</span>}
             </>
           }
         />
@@ -166,14 +175,9 @@ export function ShopHome({
           {failed && !loggedOut
             ? `電波が弱く、いまの様子を読めていません${live ? `（${clock(live.at)} のまま）` : ""}`
             : live
-              ? `${clock(live.at)} の様子です${tail}`
+              ? `${clock(live.at)} の様子${tail}`
               : "いまの様子を読んでいます…"}
         </p>
-        {loggedOut && (
-          <Banner tone="error" title="ログインが切れました。押しても保存されません">
-            お店の QR をもう一度カメラで読み取ってください（入れないときは、実行委員から新しい QR をもらってください）。書きかけの紹介は、このスマホに残っています。
-          </Banner>
-        )}
         {now.hidden && (
           <Banner tone="warning" title="このお店は、いまお客さんの画面に出ていません（実行委員が表示にするまで）">
             書いた内容は保存されます。
@@ -183,7 +187,7 @@ export function ShopHome({
         <ShopMemo m={memo} today={today} />
       </div>
       {/* 重ねる帯と小窓は、縦に並べる箱（st-stack）の外に（上のあきが付かないように） */}
-      <ShopAlert alert={loggedOut ? null : alert} />
+      <ShopAlert alert={loggedOut ? EXPIRED : alert} />
       <MemoDialog m={memo} open={memoOpen} onClose={closeMemo} today={today} />
     </>
   );

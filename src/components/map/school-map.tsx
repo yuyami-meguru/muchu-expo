@@ -158,10 +158,21 @@ export function SchoolMap({
     const board = boardRef.current;
     if (!board) return;
     let alive = true;
-    const run = () => alive && placeLabels(board);
+    // 細くした名前の札（placeLabels の data-ln）は、地図の幅か字の大きさが変わったら元の太さに戻して、置き直す
+    let size = "";
+    const run = () => {
+      if (!alive) return;
+      const now = `${board.clientWidth}:${getComputedStyle(board).fontSize}`;
+      if (now !== size) {
+        size = now;
+        board.querySelectorAll<HTMLElement>(".mx-pin[data-ln]").forEach((el) => delete el.dataset.ln);
+      }
+      placeLabels(board);
+    };
     run();
     // 地図の大きさ・名前の大きさ（「文字を大きく」・Web フォントが届いたとき）が変わったら、置き直す。
-    // 名前は、どこに置いても・省いても大きさが変わらない作りなので（省くときも visibility）、置き直しで何度も呼ばれることはない
+    // 名前は、どこに置いても・省いても大きさが変わらない作りなので（省くときも visibility）、置き直しで何度も呼ばれることはない。
+    // 大きさが変わるのは、入らない名前を細くするときの 1 回だけ（細くした印は、幅か字の大きさが変わるまで残す）
     const ro = new ResizeObserver(run);
     ro.observe(board);
     board.querySelectorAll(".mx-pin-label").forEach((l) => ro.observe(l));
@@ -258,7 +269,8 @@ const hit = (a: Box, b: Box) => a.l + 1 < b.r && b.l + 1 < a.r && a.t + 1 < b.b 
 /**
  * ピンの名前の置き場所を決める（data-lp：b＝下・r＝右・l＝左・t＝上・x＝省く）。
  * 選んでいるピン → お店・出し物のピン → 設備の順に、下 → 右 → 左 → 上 で、ほかのピンの頭・置いた名前・地図の字・地図の端と重ならない所。
- * 下と上は、地図の端で切れないよう・ほかと重ならないよう横に少しずらす（--ldx）。どこにも入らない名前は省く（選んでいるピンは省かない）
+ * 下と上は、地図の端で切れないよう・ほかと重ならないよう横に少しずらす（--ldx）。どこにも入らない名前は札を細くして（data-ln）もう一度、
+ * それでも入らなければ省く（選んでいるピンは省かない）
  */
 function placeLabels(board: HTMLElement) {
   const els = [...board.querySelectorAll<HTMLElement>(".mx-pin")];
@@ -341,6 +353,9 @@ function placeLabels(board: HTMLElement) {
       !fixed.some((f) => hit(bx, f));
     const best = cands.find((c) => ok(c.box)) ?? (it.on ? cands[0] : null);
     if (!best) {
+      // どこにも入らない名前は、札を細く（3 行に）して置き直す（札の大きさが変わるので、ResizeObserver がもう一度ここを呼ぶ）。
+      // 細くしても入らなければ省く（名前は下の一覧と、押したときの欄で分かる）
+      if (!it.el.dataset.ln) it.el.dataset.ln = "1";
       it.el.dataset.lp = "x";
       continue;
     }
