@@ -16,7 +16,7 @@
  * 選んだ場所の箱は、この箱の中だけで画面に貼りつく（下の「階ごとの案内」に重ならない）
  */
 .mp-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "areas" "map" "here" "places" "legend"; }
-/* 外の地図で建物の「中を見る」があるとき（mp-grid--inside）：スマホでは選んだ場所の欄の下に */
+/* 外の地図で建物の「中を見る」・階を見ているときの「ほかの階」があるとき（mp-grid--inside）：スマホでは選んだ場所の欄の下に */
 .mp-grid--inside { grid-template-areas: "areas" "map" "here" "inside" "places" "legend"; }
 .mp-areas { grid-area: areas; }
 .mp-map { grid-area: map; min-width: 0; }
@@ -29,6 +29,8 @@
   .mp-grid--out { grid-template-areas: "areas areas" "map here" "places here" "legend here"; }
   .mp-grid--inside { grid-template-areas: "areas areas" "map here" "inside here" "places here" "legend here"; }
   .mp-grid--floor { grid-template-areas: "areas areas" "map map" "places here" "legend here"; }
+  /* 階を見ているときの「ほかの階」（mp-insides）は、この階の場所の上に */
+  .mp-grid--floor.mp-grid--inside { grid-template-areas: "areas areas" "map map" "inside here" "places here" "legend here"; }
   .mp-here { position: sticky; top: 84px; max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; }
 }
 /* 上の帯の分の余白は html の scroll-padding（72px）が持つので、ここでは少しだけ */

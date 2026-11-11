@@ -3,10 +3,11 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Sprite, type SpriteName } from "@/components/pixel/sprites";
 import { Banner } from "@/components/ui/banner";
+import { buttonClass } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Switch } from "@/components/ui/field";
 import { allSchedule } from "@/lib/schedule";
-import { SITE_URL } from "@/lib/site";
+import { PAMPHLET_FLOORS, PAMPHLET_URL, SITE_URL } from "@/lib/site";
 import { loadAll } from "@/lib/store";
 import { areaName, deptLookup, NO_DEPT, placeKindOf, type Shop } from "@/lib/types";
 import { EVENT, VENUE } from "@/lib/venue";
@@ -15,7 +16,7 @@ import { PrintButton, PrintGroupButton } from "../qr/qr-tools";
 import { docPageCss, IndexDoc, placeCell, ShopListDoc, TimetableDoc } from "./docs";
 import { FloorGuideSheet, floorSheets } from "./floor-guide";
 import { PaperCheck } from "./paper-check";
-import { asOfText, DOT_DATE, placeReader, publicQr, TONE_HEX } from "./paper";
+import { asOfText, DOT_DATE, pamphletQr, placeReader, publicQr, TONE_HEX } from "./paper";
 import { PrintItem } from "./print-item";
 import "./posters.css";
 import "./floors.css";
@@ -88,6 +89,14 @@ export default async function StaffPostersPage() {
     floorSheets(areas, places, visible).map(async (f) => {
       const path = `/map?area=${encodeURIComponent(f.area.id)}`;
       return { ...f, path, qr: await publicQr(`${SITE_URL}${path}`) };
+    }),
+  );
+  // パンフ 3 ページ目の見取り図に貼る QR（2 階・3 階。GitHub Pages を通って、サイトのその階の地図へ）
+  const pamphlet = await Promise.all(
+    PAMPHLET_FLOORS.map(async (f) => {
+      const url = `${PAMPHLET_URL}/${f.path}/`;
+      const a = areas.find((x) => x.id === f.area);
+      return { ...f, url, name: a ? areaName(a) : f.path.toUpperCase(), ...(await pamphletQr(url)) };
     }),
   );
   // 1 枚目の部門の札（出しているお店・出し物がある部門だけ。運営の部門は出さない）
@@ -171,6 +180,34 @@ export default async function StaffPostersPage() {
           <a href="#pst-floors">フロアの案内（{floors.length} 枚）</a>
           <a href="#pst-docs">受付・本部の控え</a>
         </nav>
+
+        <Card title="パンフに貼る QR（知育館の見取り図）">
+          <p className="pst-pam-lead">
+            パンフレット 3 ページ目の見取り図に、1 つずつ貼る QR です。読み取ると、サイトのその階の地図が開きます（パンフに無い 4 階へは、地図の画面から移れます）。
+          </p>
+          <ul className="pst-pam">
+            {pamphlet.map((p) => (
+              <li key={p.path} className="pst-pam-item">
+                <span className="pst-pam-qr" role="img" aria-label={`${p.name}の地図を開く QR`} dangerouslySetInnerHTML={{ __html: p.svg }} />
+                <div className="pst-pam-body">
+                  <p className="pst-pam-name">{p.name}の地図</p>
+                  <p className="pst-pam-url">{p.url.replace(/^https:\/\//, "")}</p>
+                  <div className="pst-pam-btns">
+                    <a className={buttonClass({ size: "sm" })} href={p.png} download={`qr-${p.path}.png`}>
+                      PNG で保存
+                    </a>
+                    <a className={buttonClass({ size: "sm" })} href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(p.svg)}`} download={`qr-${p.path}.svg`}>
+                      SVG で保存
+                    </a>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="pst-pam-lead">
+            2 cm 角より大きく貼り、まわりの白い余白は切らないでください。QR は GitHub Pages（{PAMPHLET_URL.replace(/^https:\/\//, "")}）を通ってサイトへ移るので、サイトのアドレスが変わってもパンフはそのまま使えます。
+          </p>
+        </Card>
       </div>
 
       <section className="pst-sec pst-sec--posters" id="pst-posters" aria-labelledby="pst-posters-h">

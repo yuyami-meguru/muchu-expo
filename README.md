@@ -27,6 +27,7 @@ AVERIX ハブと同じ作り（Next.js ＋ Vercel）で、
 - `src/lib/floor-plans.ts` 知育館 2〜4 階の見取り図（実行委員の「会場配置図エディタ」の建物の形だけ。物品と人の名前は入れない）と、はじめに入れる部屋の四角
 - `public/sw.js` 電波が切れても一度開いたページを出すサービスワーカー（本番だけ）
 - `docs/` … GitHub Pages。いまは転送のページだけ（`https://yuyami-meguru.github.io/muchu-expo/` → https://encare-dream-expo2026.encourage-school.averix.jp）。QR は `docs/print/qr.svg`（github.io 経由）と `docs/print/qr-site.svg`（新しいアドレスへ直接）
+  - パンフ 3 ページ目（知育館 2 階・3 階の見取り図）の QR：`docs/print/qr-2f`・`qr-3f`（.png・.svg）→ `docs/2f/`・`docs/3f/` の転送 → サイトのその階の地図（`/map?area=f2`・`f3`）。作り直すときは `node scripts/make-floor-qr.mjs`（実行委員の「会場に貼るポスター」からも保存できる）
 
 ## 手元で動かす
 ```

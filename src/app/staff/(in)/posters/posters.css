@@ -21,6 +21,16 @@
   display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px; border-radius: var(--r-pill);
   border: 2px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 900; font-size: 0.9rem; text-decoration: none;
 }
+/* パンフに貼る QR（知育館の見取り図の 2 階・3 階）。QR は白い地のまま（ダークでも読み取れるように） */
+.pst-pam-lead { margin: 0; font-size: 0.875rem; line-height: 1.7; color: var(--ink-2); }
+.pst-pam { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.pst-pam-item { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.pst-pam-qr { flex: none; width: 112px; height: 112px; background: #fff; border-radius: var(--r-sm); }
+.pst-pam-qr svg { display: block; width: 100%; height: 100%; }
+.pst-pam-body { min-width: 0; }
+.pst-pam-name { margin: 0; font-weight: 900; }
+.pst-pam-url { margin: 2px 0 8px; font-size: 0.75rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.pst-pam-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .pst-sec { scroll-margin-top: 72px; }
 /* 印刷では 0 にする（下の @media print の .pst-page > *）。!important にすると印刷でも残り、2 つ目の組の 1 枚目が下にずれて 2 ページに割れる */
 .pst-sec + .pst-sec { margin-top: 48px; }

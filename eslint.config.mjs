@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 手元だけの作業フォルダ（撮影・確認の道具と、その出力。git にも入れない）
+    ".work/**",
   ]),
 ]);
 

@@ -6,3 +6,5 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 .data/
+# 手元だけの作業フォルダ（撮影・確認の道具と、その出力。scratchpad と違って再起動で消えない）
+.work/

@@ -169,6 +169,8 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const inside = buildings
     .filter((b) => !pinned.has(b))
     .map((b) => ({ building: b, floors: tabs.filter((t) => areas.some((a) => a.id === t.id && a.building === b)) }));
+  // 階を見ているときは、同じ建物のほかの階へのボタンも地図の下に出す（パンフの QR は 2 階・3 階だけなので、4 階へも移れると分かるように）
+  const otherFloors = cur ? tabs.filter((t) => t.id !== area && areas.some((a) => a.id === t.id && a.building === cur.building)) : [];
   const nowhere = shops.filter((s) => !s.placeId || !places.some((p) => p.id === s.placeId));
   const usedDepts = depts.filter((d) => shops.some((s) => s.dept === d.id && places.some((p) => p.id === s.placeId)));
   const kindNoteHere = place ? kindNote(place) : "";
@@ -211,7 +213,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const listed = [...withShops, ...facPins];
   return (
     <>
-      <div className={cx("mp-grid", cur ? "mp-grid--floor" : "mp-grid--out", !cur && inside.length > 0 && "mp-grid--inside")}>
+      <div className={cx("mp-grid", cur ? "mp-grid--floor" : "mp-grid--out", ((!cur && inside.length > 0) || otherFloors.length > 0) && "mp-grid--inside")}>
         {/* 外・フロアの切り替え（せまい画面では折り返して、全部のボタンが見えるように） */}
         <nav className="mp-areas" id="mp-areas" aria-label="外・フロアの切り替え">
           {tabs.map((t) => (
@@ -315,6 +317,26 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 同じ建物のほかの階（上のボタンと同じ。地図を見終わったところで、ほかの階へ移れるように） */}
+        {cur && otherFloors.length > 0 && (
+          <div className="mp-insides">
+            <div className="mp-inside">
+              <p className="mp-inside-h">
+                <Icon name="場所" size={18} />
+                {cur.building || "この建物"}のほかの階
+              </p>
+              <div className="mp-inside-btns">
+                {otherFloors.map((t) => (
+                  <button key={t.id} type="button" className="mp-floor-btn" onClick={() => go(t.id, null, { scroll: true, focus: "area" })}>
+                    {t.main}
+                    {t.sub && <small>（{t.sub}）</small>} ▶
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

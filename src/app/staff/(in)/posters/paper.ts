@@ -42,6 +42,16 @@ export async function publicQr(url: string) {
   return QRCode.toString(url, { type: "svg", margin: 2, errorCorrectionLevel: "Q", color: { dark: "#1f2547", light: "#ffffff" } });
 }
 
+/**
+ * パンフに貼る QR（scripts/make-floor-qr.mjs が docs/print に作るものと同じ作り）。デザインの道具に貼るので黒一色で、
+ * まわりの白い余白は QR の決まりどおり 4 マス。SVG と、PNG（984px 角）の data URL
+ */
+export async function pamphletQr(url: string) {
+  const opts = { margin: 4, errorCorrectionLevel: "Q", color: { dark: "#000000", light: "#ffffff" } } as const;
+  const [svg, png] = await Promise.all([QRCode.toString(url, { ...opts, type: "svg" }), QRCode.toDataURL(url, { ...opts, width: 984 })]);
+  return { svg, png };
+}
+
 /** CSS の content: "…" に入れる文字（" と \ と改行を逃がす） */
 export function cssString(s: string) {
   return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ")}"`;
