@@ -3,9 +3,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { cx } from "@/components/ui/cx";
 import { FLOOR_PLANS, FLOOR_VIEW } from "@/lib/floor-plans";
+import { OUT_VIEW } from "@/lib/outside-plan";
 import { PLACE_KINDS, type PlaceKind } from "@/lib/types";
-import { CAMPUS_BUILDINGS, CAMPUS_BUS_STOP, CAMPUS_ROADS } from "./campus-shapes";
 import { FloorLabels, FloorPlanSvg } from "./floor-plan";
+import { OutsideLabels, OutsidePlanSvg } from "./outside-plan";
 import { roomShapeOf, type RoomShape } from "./room-shape";
 import "./school-map.css";
 
@@ -33,19 +34,19 @@ export type MapPin = {
   h?: number;
 };
 
-/** 地図の下の絵：外（学校の建物と道）か、フロア（見取り図。plan が無ければ方眼） */
+/** 地図の下の絵：外（会場マップ。パンフと同じ配置図）か、フロア（見取り図。plan が無ければ方眼） */
 export type MapBase = { kind: "outside" } | { kind: "floor"; plan?: string; name: string };
 
 const KIND_MARK = Object.fromEntries(PLACE_KINDS.map((k) => [k.value, k.mark])) as Record<PlaceKind, string>;
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * 学校の地図とピン。外の絵は OpenStreetMap の建物と道の形（建物の名前はデータに無いので、ピンで付ける）。
- * フロアの絵は見取り図（floor-plans.ts）。部屋はピンでなく四角（w・h のあるピン）で重ね、押すとその部屋を選ぶ。
- * x・y は左上からの割合（0〜100）。ピンの先が x・y を指す（名前はその下。ほかのピン・名前と重なるときは右・左・上へずらし、
+ * 学校の地図とピン。外の絵は会場マップ（パンフレット 2 ページ目と同じ配置図。outside-plan）、フロアの絵は見取り図（floor-plans.ts）。
+ * 部屋はピンでなく四角（w・h のあるピン）で重ね、押すとその部屋を選ぶ。
+ * x・y は左上からの割合（0〜100）。ピンの先が x・y を指す（名前はその下。ほかのピン・名前・地図の字と重なるときは右・左・上へずらし、
  * どこにも入らなければ名前を省く。名前は下の一覧と、押したときの欄で分かる）。重なる順は「部屋 → 選んだ部屋 → ピン → 選んだピン」。
- * フロアの絵は横に長いので、せまい画面では横にスクロールして見る（ページ全体ははみ出さない）。端にぼかしと矢印を出して、横に動かせると分かるように。
- * onPick を渡すと、地図を押した所の x・y を返す（実行委員がピンを置く画面）。
+ * 地図の字を読める大きさに保つため、せまい画面では横にスクロールして見る（ページ全体ははみ出さない）。端にぼかしと矢印を出して、横に動かせると分かるように。
+ * onPick を渡すと、地図を押した所の x・y を返す（実行委員がピンを置く画面）。onBuilding を渡すと、外の地図の建物（知育館）を押せる（中の地図へ）。
  */
 export function SchoolMap({
   pins,
@@ -60,6 +61,7 @@ export function SchoolMap({
   tabbable = true,
   pickOnly = false,
   shapeRooms = true,
+  onBuilding,
 }: {
   pins: MapPin[];
   selected?: string | null;
@@ -78,6 +80,8 @@ export function SchoolMap({
   pickOnly?: boolean;
   /** 部屋の四角を床の形に合わせる（お客さんの地図）。実行委員の画面は、保存してある四角のまま見せるので false */
   shapeRooms?: boolean;
+  /** 外の地図の建物（知育館）を押したとき（その建物の中の地図へ）。無ければ建物は押せない字のまま */
+  onBuilding?: (building: string) => void;
 }) {
   function pick(e: MouseEvent<HTMLDivElement>) {
     if (!onPick) return;
@@ -193,29 +197,30 @@ export function SchoolMap({
   }
 
   const clamp = !onPick;
+  const scrolls = edge.l || edge.r;
   return (
-    <div className={cx("mx-map", onPick && "mx-map--pick", pickOnly && "mx-map--pickonly", floor && "mx-map--floor", className)}>
+    <div className={cx("mx-map", onPick && "mx-map--pick", pickOnly && "mx-map--pickonly", floor ? "mx-map--floor" : "mx-map--out", className)}>
       <div className="mx-map-frame">
-        {/* フロアの見取り図は横に動かせる（キーボードでも、ここを選んで ← → で動かせる） */}
-        <div className="mx-map-scroll" ref={scrollRef} role={floor ? "group" : undefined} aria-label={floor ? `${base.name}の見取り図（横に動かせます）` : undefined}>
+        {/* 見取り図と、せまい画面の外の地図は横に動かせる（キーボードでも、ここを選んで ← → で動かせる） */}
+        <div
+          className="mx-map-scroll"
+          ref={scrollRef}
+          role={floor || scrolls ? "group" : undefined}
+          aria-label={floor ? `${base.name}の見取り図（横に動かせます）` : scrolls ? "外の地図（横に動かせます）" : undefined}
+        >
           <div
             className="mx-map-board"
             ref={boardRef}
-            style={floor && plan ? { aspectRatio: `${FLOOR_VIEW.w} / ${FLOOR_VIEW.h}` } : undefined}
+            style={
+              floor && plan ? { aspectRatio: `${FLOOR_VIEW.w} / ${FLOOR_VIEW.h}` } : !floor ? { aspectRatio: `${OUT_VIEW.w} / ${OUT_VIEW.h}` } : undefined
+            }
             onClick={onPick ? pick : undefined}
             role={onPick ? "presentation" : undefined}
           >
             {!floor ? (
               <>
-                <BaseMap label={label} />
-                {/* バス停の名前は、地図の大きさによらず読める字の大きさで（絵の中の字にしない）。右はしでも切れないように */}
-                <span
-                  className="mx-map-bus"
-                  style={{ left: `min(${CAMPUS_BUS_STOP.x}%, calc(100% - 1.8em - 4px))`, top: `${(CAMPUS_BUS_STOP.y / 70) * 100}%` }}
-                  aria-hidden="true"
-                >
-                  {CAMPUS_BUS_STOP.name}
-                </span>
+                <OutsidePlanSvg label={label} />
+                <OutsideLabels onBuilding={onPick ? undefined : onBuilding} tabbable={tabbable} />
               </>
             ) : plan ? (
               <>
@@ -239,21 +244,21 @@ export function SchoolMap({
             {caption}
           </p>
         )}
-        {floor && edge.l && (
+        {edge.l && (
           <button type="button" className="mx-map-more mx-map-more--l" tabIndex={-1} aria-hidden="true" onClick={() => slide(-1)}>
             <span>←</span>
           </button>
         )}
-        {floor && edge.r && (
+        {edge.r && (
           <button type="button" className="mx-map-more mx-map-more--r" tabIndex={-1} aria-hidden="true" onClick={() => slide(1)}>
             <span>→</span>
           </button>
         )}
       </div>
-      {floor && (edge.l || edge.r) && <p className="mx-map-hint">見取り図は横に動かせます（指で横にずらすか、端の矢印を押してください）。</p>}
+      {scrolls && <p className="mx-map-hint">{floor ? "見取り図" : "地図"}は横に動かせます（指で横にずらすか、端の矢印を押してください）。</p>}
       <p className="mx-map-note">
         {!floor
-          ? "建物の形：© OpenStreetMap contributors（だいたいの形です。くわしい場所は当日の案内をご覧ください）"
+          ? "会場マップ：パンフレットと同じ配置図です（だいたいの位置です。くわしい場所は当日の案内をご覧ください）"
           : plan
             ? "見取り図：建物の案内板をもとにした、だいたいの形です"
             : "このフロアの見取り図はまだありません（四角とピンは、だいたいの位置です）"}
@@ -310,7 +315,7 @@ function placeLabels(board: HTMLElement) {
       },
     ];
   });
-  const fixed = [...board.querySelectorAll(".mx-map-bus, .mx-room-name, .mx-room-mark, .fp-label")].map(rel);
+  const fixed = [...board.querySelectorAll(".op-label, .mx-room-name, .mx-room-mark, .fp-label")].map(rel);
   const placed: Box[] = [];
   const W = B.width;
   const H = B.height;
@@ -461,21 +466,5 @@ function PinMark({ p, on, onSelect, tabbable, clamp }: { p: MapPin; on: boolean;
       </span>
       <span className="mx-pin-label">{p.name}</span>
     </button>
-  );
-}
-
-/** 校内の絵：OpenStreetMap の建物と道の形（campus-shapes.ts）。座標は 0〜100 × 0〜70 */
-function BaseMap({ label }: { label: string }) {
-  return (
-    <svg className="mx-map-svg" viewBox="0 0 100 70" role="img" aria-label={label}>
-      <rect x="0" y="0" width="100" height="70" className="m-ground" />
-      {CAMPUS_ROADS.map((r, i) => (
-        <path key={`r${i}`} d={r.d} className="m-road" style={{ strokeWidth: r.w }} />
-      ))}
-      {CAMPUS_BUILDINGS.map((d, i) => (
-        <path key={`b${i}`} d={d} className="m-bld" />
-      ))}
-      <circle cx={CAMPUS_BUS_STOP.x} cy={CAMPUS_BUS_STOP.y} r="1.2" className="m-bus" />
-    </svg>
   );
 }

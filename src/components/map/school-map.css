@@ -6,32 +6,75 @@
 /* ピンを動かしているあいだ（実行委員）：部屋・ピンを押しても選ばず、押した所を位置にする */
 .mx-map--pickonly .mx-room, .mx-map--pickonly .mx-pin { pointer-events: none; }
 .mx-map-svg { display: block; width: 100%; height: 100%; }
-.mx-map-svg .m-ground { fill: #e6f4fd; }
-.mx-map-svg .m-road { fill: none; stroke: #b9d6ea; stroke-linecap: round; stroke-linejoin: round; }
-.mx-map-svg .m-bus { fill: #5d4fdc; stroke: #fff; stroke-width: 0.4; }
-.mx-map-svg .m-bld { fill: #ffffff; stroke: #1f2547; stroke-width: 0.25; }
-.mx-map-svg .m-yard { fill: #dcf2e4; stroke: #5fbe85; stroke-width: 0.3; stroke-dasharray: 1 0.8; }
-.mx-map-svg .m-field { fill: #c4e8cf; stroke: #5fbe85; stroke-width: 0.3; }
-.mx-map-svg .m-gate { fill: #1f2547; }
-.mx-map-svg .m-txt { font-size: 3.4px; fill: #434a74; text-anchor: middle; font-family: var(--font-display); }
-.mx-map-svg .m-txt--s { font-size: 2.6px; }
-@media screen and (prefers-color-scheme: dark) {
-  .mx-map-svg .m-ground { fill: #142445; }
-  .mx-map-svg .m-road { stroke: #2b4170; }
-  .mx-map-svg .m-bld { fill: #213258; stroke: #a3b0cf; }
-  .mx-map-svg .m-yard { fill: #193a2c; stroke: #3f8f62; }
-  .mx-map-svg .m-field { fill: #1b3a2a; stroke: #3f8f62; }
-  .mx-map-svg .m-gate { fill: #a3b0cf; }
-  .mx-map-svg .m-txt { fill: #bfcbe6; }
+
+/* ───── 外の地図（会場マップ。パンフレット 2 ページ目と同じ配置・色分け） ───── */
+/* 字を読める大きさに保つため、せまい画面では横にスクロールして見る（フロアの見取り図と同じ） */
+.mx-map--out .mx-map-scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: var(--r-card); }
+.mx-map--out .mx-map-board { min-width: 600px; background: var(--op-ground); }
+html.big .mx-map--out .mx-map-board { min-width: 720px; }
+.mx-map {
+  --op-ground: #eef6fe;
+  --op-road: #a9b5c6;
+  --op-trees: #d6edcf;
+  --op-booth: #ffffff; --op-booth-l: #2f3a6b;
+  --op-rest: #e3f4e7; --op-rest-l: #4f9a66;
+  --op-bldg: #f6dee4; --op-bldg-l: #c3909e;
+  --op-other: #ffffff; --op-other-l: #9aa6b8;
+  --op-cafe: #dcebf7; --op-cafe-l: #86a9c6;
+  --op-key: #fff3b0; --op-key-l: #cfae3c;
+  --op-recv: #ffffff; --op-recv-l: #6555e7;
+  --op-fuji: #a9d97c; --op-fuji-l: #4f8f36;
+  --op-fire: #f8d3b6; --op-fire-l: #cf8457;
+  --op-ink: #1f2547; --op-sub: #5b6078; --op-violet: #4c3ec9;
 }
+@media screen and (prefers-color-scheme: dark) {
+  .mx-map {
+    --op-ground: #15233f; --op-road: #3d5079; --op-trees: #1d3a28;
+    --op-booth: #22345c; --op-booth-l: #c9d5f0;
+    --op-rest: #1b3a2a; --op-rest-l: #5fbe85;
+    --op-bldg: #3b2833; --op-bldg-l: #d39fad;
+    --op-other: #1c2a4a; --op-other-l: #7d8db3;
+    --op-cafe: #1f3654; --op-cafe-l: #86a9c6;
+    --op-key: #3d3517; --op-key-l: #d9b84a;
+    --op-recv: #22345c; --op-recv-l: #b4a8ff;
+    --op-fuji: #2c5320; --op-fuji-l: #8fcf62;
+    --op-fire: #4a2e20; --op-fire-l: #e09466;
+    --op-ink: #eef4ff; --op-sub: #a3b0cf; --op-violet: #b4a8ff;
+  }
+}
+.op .op-ground { fill: var(--op-ground); }
+.op .op-road { fill: none; stroke: var(--op-road); stroke-linecap: round; stroke-linejoin: round; }
+.op .op-trees { fill: var(--op-trees); stroke: var(--op-road); stroke-width: 2.2; stroke-linejoin: round; }
+.op .op-box { stroke-width: 2.2; }
+.op .op-booth { fill: var(--op-booth); stroke: var(--op-booth-l); stroke-width: 3.4; }
+.op .op-rest { fill: var(--op-rest); stroke: var(--op-rest-l); stroke-width: 2.6; }
+.op .op-bldg { fill: var(--op-bldg); stroke: var(--op-bldg-l); }
+.op .op-other { fill: var(--op-other); stroke: var(--op-other-l); }
+.op .op-cafe { fill: var(--op-cafe); stroke: var(--op-cafe-l); }
+.op .op-key { fill: var(--op-key); stroke: var(--op-key-l); stroke-width: 2.4; }
+.op .op-recv { fill: var(--op-recv); stroke: var(--op-recv-l); stroke-width: 3.6; }
+.op .op-fuji { fill: var(--op-fuji); stroke: var(--op-fuji-l); stroke-width: 3; }
+.op .op-fire { fill: var(--op-fire); stroke: var(--op-fire-l); stroke-width: 3; }
+.op .op-lead { fill: none; stroke: var(--op-sub); stroke-width: 2; stroke-linecap: round; }
+.op .op-wc { fill: #ffffff; stroke: #9aa6b8; stroke-width: 1.6; }
+/* 会場マップの名前（押せない。字は地図の幅に合わせ、rem で下限を決める。ピンの名前はこれに重ならない所へ） */
+.op-label {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none; text-align: center; white-space: pre;
+  font-family: var(--font-display); font-weight: 400; line-height: 1.2; color: var(--op-ink);
+}
+.op-label--recv, .op-label--go { color: var(--op-violet); }
+.op-label--note { color: var(--op-sub); }
+/* 建物（知育館）の箱：押すと中の地図へ（建物の色分けの .op-bldg とは別の名前） */
+.op-go {
+  position: absolute; z-index: 1; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.op-go:hover { background: color-mix(in srgb, var(--op-key-l) 18%, transparent); }
+.op-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.op-go .op-label--go { text-decoration: underline; text-underline-offset: 0.15em; }
 .mx-map-note { margin: 8px 0 0; font-size: 0.75rem; color: var(--ink-3); }
 /* 横に動かせることの案内（動かせるときだけ出す） */
 .mx-map-hint { margin: 8px 0 0; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
-/* バス停の名前（地図の大きさによらず読める字で。印の真上に 2 行で。地図の右はしでも切れないように） */
-.mx-map-bus {
-  position: absolute; transform: translate(-50%, calc(-100% - 6px)); width: 3.6em; text-align: center; font-size: 0.75rem; font-weight: 900; line-height: 1.25;
-  color: var(--date); background: color-mix(in srgb, var(--surface) 88%, transparent); padding: 1px 2px; border-radius: var(--r-sm); pointer-events: none;
-}
 
 /* いま見ている面の札（地図の左上。「知育館 3階」） */
 .mx-map-cap {
@@ -199,21 +242,21 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
 
 /* 横長のスマホ（高さが低い）：地図が 1 画面に収まるよう、幅を画面の高さで抑える（上下の帯のぶん 120px ほど引く） */
 @media (orientation: landscape) and (max-height: 500px) {
-  .mx-map:not(.mx-map--floor) .mx-map-frame { max-width: calc((100dvh - 120px) * 100 / 70); margin-inline: auto; }
+  .mx-map:not(.mx-map--floor) .mx-map-frame { max-width: calc((100dvh - 120px) * 1012 / 846); margin-inline: auto; }
   .mx-map--floor .mx-map-frame { max-width: max(320px, calc((100dvh - 110px) * 5000 / 2250)); margin-inline: auto; }
 }
 
 /* 印刷：色の印は背景の設定によらず刷る。押すための物（矢印・案内）は刷らない。見取り図は紙の幅に収める */
 @media print {
   .mx-map-board, .mx-map-svg, .mx-pin-dot, .mx-pin-count, .mx-pin-x, .mx-pin-label, .mx-pin--fac .mx-pin-head::after,
-  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-x, .mx-map-cap, .mx-map-bus {
+  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-x, .mx-map-cap {
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
   .mx-map-more, .mx-map-hint { display: none !important; }
   /* ぼかした影は PDF で灰色の四角になるので、紙では付けない（白いふちだけ） */
   .mx-pin-dot, .mx-pin-label, .mx-map-cap, .mx-room--on { box-shadow: none; }
   .mx-pin-label { border: 1px solid #9aa3c0; }
-  .mx-map--floor .mx-map-scroll { overflow: visible; }
-  .mx-map--floor .mx-map-board { min-width: 0; }
+  .mx-map--floor .mx-map-scroll, .mx-map--out .mx-map-scroll { overflow: visible; }
+  .mx-map--floor .mx-map-board, .mx-map--out .mx-map-board { min-width: 0; }
   .mx-map-board { break-inside: avoid; box-shadow: none; }
 }

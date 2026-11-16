@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Checkbox, Select, TextField } from "@/components/ui/field";
+import { OUT_BUILDINGS, OUT_HAS_GATE, outsideSpot } from "@/lib/outside-plan";
 import { areaName, areaOf, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Place, type PlaceKind } from "@/lib/types";
 import { savedAt, send, slug } from "../../_lib/client";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
@@ -43,6 +44,14 @@ const samePlace = (a: Place, b: Place | undefined) =>
   areaOf(a) === areaOf(b) &&
   (a.w ?? 0) === (b.w ?? 0) &&
   (a.h ?? 0) === (b.h ?? 0);
+/**
+ * 外のピンを、会場マップ（v0.14.0 から。パンフと同じ配置図）の上の位置で始める。はじめの仮の位置のままのピンは読みかえた位置にする
+ * （保存すると、その位置が残る）。まだ置き直していないピン（会場マップに無い・場所が決まっていない）は、保存してある位置のまま
+ */
+const onPlan = (p: Place): Place => {
+  const s = outsideSpot(p);
+  return s ? { ...p, ...s } : p;
+};
 
 /**
  * 地図のピンを置く・直す（実行委員だけ）。地図の上のボタンで「外」と建物の中のフロアを切り替える。
@@ -53,9 +62,9 @@ const samePlace = (a: Place, b: Place | undefined) =>
  */
 export function PlacesEditor({ places: initial, areas: initialAreas, counts }: { places: Place[]; areas: Area[]; counts: Record<string, number> }) {
   const router = useRouter();
-  const [places, setPlaces] = useState<Draft[]>(() => initial.map((p) => ({ ...p, key: p.id })));
-  // 保存してある値（変えたかどうか・消すときの名前に使う）
-  const [saved, setSaved] = useState<Record<string, Place>>(() => Object.fromEntries(initial.map((p) => [p.id, p])));
+  const [places, setPlaces] = useState<Draft[]>(() => initial.map((p) => ({ ...onPlan(p), key: p.id })));
+  // 保存してある値（変えたかどうか・消すときの名前に使う）。外のピンの位置は、上の places と同じく会場マップの上の位置
+  const [saved, setSaved] = useState<Record<string, Place>>(() => Object.fromEntries(initial.map((p) => [p.id, onPlan(p)])));
   const [areas, setAreas] = useState<Area[]>(initialAreas);
   const [area, setArea] = useState<string>(OUTSIDE);
   const [sel, setSel] = useState<string | null>(null);
@@ -185,10 +194,15 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
   const curName = cur ? cur.name || "新しいピン" : "";
   const delName = cur ? (cur.isNew ? cur.name : saved[cur.id]?.name) || "新しいピン" : "";
 
-  // 外の地図に、建物（中のフロアへ）と正門（入口・門）のピンがあるか。無いと、お客さんが外の地図で建物と入口を見つけられない
+  // 外の地図に、建物（中のフロアへ）と正門（入口・門）があるか。無いと、お客さんが外の地図で建物と入口を見つけられない。
+  // 会場マップ（パンフと同じ配置図）に描いてある建物（知育館：押すと中の地図へ）と正門は、ピンが無くてよい
   const outside = places.filter((p) => areaOf(p) === OUTSIDE && !p.isNew);
-  const noBuilding = [...new Set(areas.map((a) => a.building))].filter((b) => !outside.some((p) => placeKindOf(p) === "building" && p.name === b));
-  const noGate = !outside.some((p) => placeKindOf(p) === "gate");
+  const noBuilding = [...new Set(areas.map((a) => a.building))].filter(
+    (b) => !OUT_BUILDINGS.has(b) && !outside.some((p) => placeKindOf(p) === "building" && p.name === b),
+  );
+  const noGate = !OUT_HAS_GATE && !outside.some((p) => placeKindOf(p) === "gate");
+  // 前の外の地図（OpenStreetMap の形）の仮の位置のままで、会場マップでは置き場所が決まっていないピン（お客さんの地図には出していない）
+  const unplaced = Object.values(saved).filter((p) => areaOf(p) === OUTSIDE && !outsideSpot(p));
   // 選んでいるピンの注意：建物のピンの名前がフロアの建物の名前と合わない・お店がつながったまま種類を設備にした
   const bldNames = [...new Set(areas.map((a) => a.building))];
   const curKind = cur ? placeKindOf(cur) : "spot";
@@ -197,6 +211,14 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
 
   return (
     <div className="st-stack">
+      {unplaced.length > 0 && (
+        <Banner tone="warning" title={`外の地図に出していないピンがあります（${unplaced.map((p) => `「${p.name}」`).join("")}）`}>
+          <p>
+            外の地図をパンフレットと同じ会場マップに替えました。このピンは前の地図の仮の位置のままなので、お客さんの地図には出していません（下の一覧には出ます）。
+            「外」で選んで、地図で本当の位置を押して［ここに動かす］→［保存］してください。使わないピンは消してください。
+          </p>
+        </Banner>
+      )}
       {(noBuilding.length > 0 || noGate) && (
         <Banner tone="warning" title={`外の地図に${[noBuilding.length ? "建物" : "", noGate ? "正門" : ""].filter(Boolean).join("・")}のピンがありません`}>
           <p>

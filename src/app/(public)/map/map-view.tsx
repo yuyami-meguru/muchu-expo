@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons";
 import { isSelling, LiveShopBadges, shownState } from "@/components/live/live-parts";
 import { useLive, usePhase } from "@/components/live/live-provider";
 import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
+import { outsideSpot } from "@/lib/outside-plan";
 import { cx } from "@/components/ui/cx";
 import { areaName, areaOf, deptLookup, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind } from "@/lib/types";
 
@@ -88,21 +89,23 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
       return isSelling(shownState(phase, st?.state)) && Object.values(st?.stock ?? {}).includes("out");
     });
 
-  function pinOf(p: Place): MapPin & { kind: PlaceKind } {
+  function pinOf(p: Place): MapPin & { kind: PlaceKind; offMap: boolean } {
     const kind = placeKindOf(p);
     const box = p.w && p.h ? { w: p.w, h: p.h } : {};
     const here = shopsAt(p.id);
+    // 外のピンは会場マップの上の位置（はじめの仮の位置のままなら読みかえる。まだ置き直していないピンは地図に出さない＝offMap。下の一覧には出す）
+    const spot = outsideSpot(p);
+    const pos = { x: spot?.x ?? p.x, y: spot?.y ?? p.y, offMap: !spot };
     if (kind !== "spot") {
       const note = kindNote(p);
-      return { id: p.id, name: p.name, x: p.x, y: p.y, kind, count: here.length || undefined, label: note ? `${p.name}（${note}）` : p.name, ...box };
+      return { id: p.id, name: p.name, ...pos, kind, count: here.length || undefined, label: note ? `${p.name}（${note}）` : p.name, ...box };
     }
     const ds = [...new Map(here.map((s) => [dept(s.dept).id, dept(s.dept)])).values()];
     const alert = soldOut(here);
     return {
       id: p.id,
       name: p.name,
-      x: p.x,
-      y: p.y,
+      ...pos,
       kind,
       count: here.length,
       mark: ds.slice(0, 2).map(initialOf).join(""),
@@ -121,8 +124,15 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const withShops = spotPins.filter((p) => p.count);
   const empty = spotPins.filter((p) => !p.count);
   const facPins = pins.filter((p) => p.kind !== "spot");
-  // 横にスクロールする見取り図で、はじめに見せる所：お店のある部屋、無ければ玄関
-  const focusIds = withShops.length ? withShops.map((p) => p.id) : facPins.filter((p) => p.kind === "gate").map((p) => p.id);
+  const onMap = pins.filter((p) => !p.offMap);
+  // 横にスクロールする地図で、はじめに見せる所：お店のある部屋・ピン、無ければ玄関
+  const shopIds = onMap.filter((p) => p.kind === "spot" && p.count).map((p) => p.id);
+  const focusIds = shopIds.length ? shopIds : onMap.filter((p) => p.kind === "gate").map((p) => p.id);
+  /** 外の地図の建物（知育館）を押したら、その建物のはじめの階（玄関のある階）の地図へ */
+  function openBuilding(name: string) {
+    const first = areas.filter((a) => a.building === name).sort((a, b) => a.order - b.order)[0];
+    if (first) go(first.id, null, { focus: "area" });
+  }
 
   /**
    * 面・場所を選ぶ。URL も書きかえる（サーバーには聞かない）。
@@ -234,9 +244,10 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
 
         <div className="mp-map">
           <SchoolMap
-            pins={pins}
+            pins={onMap}
             selected={sel}
             onSelect={(id) => go(area, id, { focus: "here" })}
+            onBuilding={openBuilding}
             base={base}
             label={cur ? `${areaName(cur)}の地図` : "会場の地図（外）"}
             caption={cur ? areaName(cur) : "外"}
