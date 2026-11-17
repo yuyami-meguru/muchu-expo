@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { radioShown, RADIO_SHOP } from "@/lib/radio-shop";
 import { loadAll } from "@/lib/store";
 import { AccessMap } from "@/components/access/map-buttons";
 import { MapView } from "./map-view";
@@ -25,6 +26,9 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
     .filter((s) => !s.hidden)
     .map((s) => ({ id: s.id, name: s.name, dept: s.dept, placeId: s.placeId, placeNote: s.placeNote, catch: s.catch, about: aboutOf(s.description) }));
   // 「外」と「知育館の中（2階・3階・4階）」のように、建物ごとの階を並べて説明する
+  // 校内ラジオを隠しているあいだ（radio-shop.ts）は、ラジオの場所（放送ブース）も、ほかにお店・出し物が無ければ一覧に出さない
+  const radioPlace = radioShown(shops) ? undefined : shops.find((s) => s.id === RADIO_SHOP)?.placeId;
+  const shownPlaces = radioPlace && !visible.some((s) => s.placeId === radioPlace) ? places.filter((p) => p.id !== radioPlace) : places;
   const inside = [...new Set(areas.map((a) => a.building))]
     .map((b) => `${b}の中（${areas.filter((a) => a.building === b).map((a) => a.floor).join("・")}）`)
     .join("、");
@@ -41,7 +45,7 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
           一覧で見る（階ごとの案内）↓
         </a>
       </header>
-      <MapView shops={visible} places={places} areas={areas} depts={depts.filter((d) => visible.some((s) => s.dept === d.id))} />
+      <MapView shops={visible} places={shownPlaces} areas={areas} depts={depts.filter((d) => visible.some((s) => s.dept === d.id))} />
       <section className="mp-access" aria-labelledby="mp-access-h">
         <h2 id="mp-access-h">会場への行き方</h2>
         <AccessMap />

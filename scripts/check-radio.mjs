@@ -55,10 +55,12 @@ check("隠しているあいだは、放送中にしても「放送中」が出�
 check("隠しているあいだは、ラジオのページが「見つかりません」", (await page("/radio")).includes("ページが見つかりません"));
 check("隠しているあいだは、ホームにラジオへの入口・案内・札が無い", !(await page("/")).includes('href="/radio"'));
 check("隠しているあいだは、ラジオのお店のページも見つからない", (await page("/shops/radio")).includes("ページが見つかりません"));
+check("隠しているあいだは、マップの一覧に放送ブースが無い", !(await page("/map")).includes("放送ブース"));
 check("隠しているあいだは、メッセージを受け付けない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: `隠しているあいだ ${Date.now()}` })).status === 403);
 check("実行委員はラジオのお店を出せる", (await admin.req("PATCH", "/api/staff/shops/radio", { hidden: false })).status === 200);
 check("出すと、ラジオのページが開く", (await page("/radio")).includes("番組表"));
 check("出すと、ホームにラジオの入口がある", (await page("/")).includes('href="/radio"'));
+check("出すと、マップに放送ブースが戻る", (await page("/map")).includes("放送ブース"));
 const count = async () => (await admin.req("GET", "/api/staff/radio")).json?.messages?.length ?? -1;
 
 check("ログインなしでは状態を変えられない（ログインの案内）", (await anon.req("PUT", "/api/staff/radio", { onAir: true })).status === 401);
