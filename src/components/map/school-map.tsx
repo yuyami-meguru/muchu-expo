@@ -32,6 +32,11 @@ export type MapPin = {
   /** 部屋の四角の幅と高さ（割合）。あれば、ピンでなく四角で描く（x・y が真ん中） */
   w?: number;
   h?: number;
+  /**
+   * その場所のお店・出し物（名前・部門の頭文字・部門の色のクラス）。あれば、部屋の四角の中と、ピンの名前の札に名前を出す
+   * （何があるかが地図を見ただけで分かるように。無ければ、部屋は頭文字と数、ピンは場所の名前）
+   */
+  items?: { name: string; mark: string; tone?: string }[];
 };
 
 /** 地図の下の絵：外（会場マップ。パンフと同じ配置図）か、フロア（見取り図。plan が無ければ方眼） */
@@ -157,7 +162,9 @@ export function SchoolMap({
   }, [selected, planKey, focusKey]);
 
   // ピンの名前を、ほかのピン・名前・地図の端と重ならない所へ（せまい画面の外の地図で、名前がピンに隠れないように）
-  const sig = pins.map((p) => `${p.id}:${p.x}:${p.y}:${p.name}:${p.count ?? ""}:${p.alert ? 1 : 0}:${p.w ?? ""}`).join("|");
+  const sig = pins
+    .map((p) => `${p.id}:${p.x}:${p.y}:${p.name}:${p.count ?? ""}:${p.alert ? 1 : 0}:${p.w ?? ""}:${(p.items ?? []).map((i) => i.name).join("/")}`)
+    .join("|");
   useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board) return;
@@ -171,6 +178,7 @@ export function SchoolMap({
         size = now;
         board.querySelectorAll<HTMLElement>(".mx-pin[data-ln]").forEach((el) => delete el.dataset.ln);
       }
+      fitRooms(board);
       placeLabels(board);
     };
     run();
@@ -315,7 +323,7 @@ function placeLabels(board: HTMLElement) {
       },
     ];
   });
-  const fixed = [...board.querySelectorAll(".op-label, .mx-room-name, .mx-room-mark, .fp-label")].map(rel);
+  const fixed = [...board.querySelectorAll(".op-label, .op-hit, .mx-room-name, .mx-room-mark, .mx-room-item, .mx-room-more, .fp-label")].map(rel);
   const placed: Box[] = [];
   const W = B.width;
   const H = B.height;
@@ -370,7 +378,29 @@ function placeLabels(board: HTMLElement) {
   }
 }
 
-/** 部屋の四角（押すとその部屋を選ぶ）。中に部屋の名前、お店があれば部門の頭文字と数、売り切れは ×。床の形に切った部屋は SVG で形を描く */
+/**
+ * 部屋の中のお店・出し物の名前：入りきらなければ下から省いて「ほか N 件」に（1 件目は省かない。1 件目の名前は 2 行まで）。
+ * 地図の幅・字の大きさ・字の形が変わるたびに、置き直しといっしょに測り直す
+ */
+function fitRooms(board: HTMLElement) {
+  for (const box of board.querySelectorAll<HTMLElement>(".mx-room-items")) {
+    const items = [...box.querySelectorAll<HTMLElement>(".mx-room-item")];
+    const more = box.querySelector<HTMLElement>(".mx-room-more");
+    for (const el of items) el.hidden = false;
+    if (more) more.hidden = true;
+    let shown = items.length;
+    while (shown > 1 && box.scrollHeight > box.clientHeight + 1) {
+      shown -= 1;
+      items[shown].hidden = true;
+      if (more) {
+        more.hidden = false;
+        more.textContent = `ほか ${items.length - shown} 件`;
+      }
+    }
+  }
+}
+
+/** 部屋の四角（押すとその部屋を選ぶ）。中に部屋の名前と、お店・出し物の名前（部門の頭文字つき。無ければ頭文字と数）、売り切れは ×。床の形に切った部屋は SVG で形を描く */
 function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean; onSelect?: (id: string) => void; shape?: RoomShape; tabbable: boolean }) {
   const w = p.w ?? 0;
   const h = p.h ?? 0;
@@ -408,11 +438,23 @@ function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean;
         style={lab ? { top: `${lab.top}%`, height: `${lab.bottom - lab.top}%`, left: `${lab.left}%`, width: `${lab.right - lab.left}%` } : undefined}
       >
         <span className="mx-room-name">{p.name}</span>
-        {!!p.count && (
-          <span className="mx-room-mark" aria-hidden="true">
-            {p.mark}
-            <span className="mx-room-n">{p.count}</span>
+        {p.items?.length ? (
+          <span className="mx-room-items" aria-hidden="true">
+            {p.items.map((it, i) => (
+              <span key={i} className={cx("mx-room-item", it.tone)}>
+                <span className="mx-room-item-mark">{it.mark}</span>
+                <span className="mx-room-item-name">{it.name}</span>
+              </span>
+            ))}
+            <span className="mx-room-more" hidden />
           </span>
+        ) : (
+          !!p.count && (
+            <span className="mx-room-mark" aria-hidden="true">
+              {p.mark}
+              <span className="mx-room-n">{p.count}</span>
+            </span>
+          )
         )}
       </span>
       {p.alert && (
@@ -464,7 +506,21 @@ function PinMark({ p, on, onSelect, tabbable, clamp }: { p: MapPin; on: boolean;
         {showN && <span className="mx-pin-count">{p.count}</span>}
         {p.alert && <span className="mx-pin-x">×</span>}
       </span>
-      <span className="mx-pin-label">{p.name}</span>
+      {/* 名前の札：お店・出し物があれば、その名前（2 件まで。ほかは「ほか N 件」）。無ければ場所の名前 */}
+      <span className="mx-pin-label">
+        {!fac && p.items?.length ? (
+          <>
+            {p.items.slice(0, 2).map((it, i) => (
+              <span key={i} className="mx-pin-item">
+                {it.name}
+              </span>
+            ))}
+            {p.items.length > 2 && <span className="mx-pin-item mx-pin-more">ほか {p.items.length - 2} 件</span>}
+          </>
+        ) : (
+          p.name
+        )}
+      </span>
     </button>
   );
 }

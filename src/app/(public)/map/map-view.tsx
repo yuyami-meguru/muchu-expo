@@ -112,7 +112,12 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
       multi: ds.length > 1,
       tone: ds.length === 1 ? `tone-${ds[0].color}` : undefined,
       alert,
-      label: `${p.name}（${here.length ? `お店・出し物 ${here.length} 件` : before ? "お店・出し物は未定" : "お店・出し物なし"}${alert ? "・売り切れあり" : ""}）`,
+      // 地図の上に、その場所のお店・出し物の名前を出す（部屋の四角の中・ピンの名前の札）
+      items: here.map((s) => {
+        const d = dept(s.dept);
+        return { name: s.name, mark: initialOf(d), tone: `tone-${d.color}` };
+      }),
+      label: `${p.name}（${here.length ? here.map((s) => s.name).join("、") : before ? "お店・出し物は未定" : "お店・出し物なし"}${alert ? "・売り切れあり" : ""}）`,
       ...box,
     };
   }
@@ -409,7 +414,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
                   <dt>
                     <span className="mp-swatch mp-swatch--has" aria-hidden="true" />
                   </dt>
-                  <dd>色の付いた部屋：お店・出し物がある部屋（色は部門）</dd>
+                  <dd>色の付いた部屋：お店・出し物がある部屋（色は部門。中にお店・出し物の名前が出ます）</dd>
                 </div>
                 <div>
                   <dt>
@@ -439,7 +444,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
                   2
                 </span>
               </dt>
-              <dd>数字はその場所のお店・出し物の数</dd>
+              <dd>数字はその場所のお店・出し物の数（ピンの横の札には、お店・出し物の名前が出ます）</dd>
             </div>
             {!before && (
               <div>

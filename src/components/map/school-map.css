@@ -64,6 +64,8 @@ html.big .mx-map--out .mx-map-board { min-width: 720px; }
 }
 .op-label--recv, .op-label--go { color: var(--op-violet); }
 .op-label--note { color: var(--op-sub); }
+/* トイレ・バス停の印の所（見えない。ピンの名前の札がよける） */
+.op-hit { position: absolute; pointer-events: none; }
 /* 建物（知育館）の箱：押すと中の地図へ（建物の色分けの .op-bldg とは別の名前） */
 .op-go {
   position: absolute; z-index: 1; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer;
@@ -147,6 +149,10 @@ html.big .mx-map--out .mx-map-board { min-width: 720px; }
 }
 /* どこにも入らなかった名前は、細い札（3 行）にして置き直す（school-map.tsx の placeLabels が data-ln を付ける） */
 .mx-pin[data-ln] .mx-pin-label { max-width: 4.6em; }
+/* 名前の札にお店・出し物の名前を並べるとき：1 件ずつ行を分け、細い線で区切る */
+.mx-pin-item { display: block; }
+.mx-pin-item + .mx-pin-item { margin-top: 2px; padding-top: 2px; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.mx-pin-more { font-weight: 700; color: var(--ink-2); }
 @media screen and (prefers-color-scheme: dark) {
   /* ダークでは名前の札が地図の地と同じ色になるので、ふちを付けて見分ける */
   .mx-pin-label { border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent); }
@@ -235,6 +241,15 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
 }
 .mx-room--multi .mx-room-mark { background: var(--ink); color: var(--bg); }
 .mx-room-n { padding-left: 4px; border-left: 1px solid currentColor; }
+/* 部屋の中のお店・出し物の名前（部門の頭文字つき。色だけで部門を分けない）。入りきらない分は「ほか N 件」（school-map.tsx の fitRooms） */
+.mx-room-items { display: flex; flex-direction: column; gap: 3px; width: 100%; min-height: 0; flex: 0 1 auto; overflow: hidden; padding: 0 3px; }
+.mx-room-item { display: flex; align-items: flex-start; gap: 4px; min-width: 0; font-size: max(0.7rem, 1.15cqi); font-weight: 700; line-height: 1.3; text-align: left; color: var(--ink); }
+.mx-room-item[hidden], .mx-room-more[hidden] { display: none; }
+.mx-room-item-mark {
+  flex: none; padding: 0 3px; border-radius: 3px; background: var(--c, var(--ink)); color: var(--on-primary); font-size: 0.85em; font-weight: 900; line-height: 1.5;
+}
+.mx-room-item-name { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: auto-phrase; }
+.mx-room-more { flex: none; font-size: max(0.65rem, 1.05cqi); font-weight: 700; line-height: 1.3; color: var(--ink-2); text-align: center; }
 .mx-room-x {
   position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%;
   background: var(--ng); color: var(--on-primary); font-size: 0.75rem; font-weight: 900; line-height: 18px; text-align: center;
@@ -249,7 +264,7 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
 /* 印刷：色の印は背景の設定によらず刷る。押すための物（矢印・案内）は刷らない。見取り図は紙の幅に収める */
 @media print {
   .mx-map-board, .mx-map-svg, .mx-pin-dot, .mx-pin-count, .mx-pin-x, .mx-pin-label, .mx-pin--fac .mx-pin-head::after,
-  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-x, .mx-map-cap {
+  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-item-mark, .mx-room-x, .mx-map-cap {
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
   .mx-map-more, .mx-map-hint { display: none !important; }

@@ -190,6 +190,18 @@ export function OutsideLabels({ onBuilding, tabbable = true }: { onBuilding?: (b
       <span className="op-label op-label--note" style={{ left: pctX(OUT_NOTE.x), top: pctY(OUT_NOTE.y), fontSize: fontOf(OUT_NOTE.size) }} aria-hidden="true">
         {OUT_NOTE.label}
       </span>
+      {/* トイレとバス停の印の所（見えない）。ピンの名前の札がこの上に重ならないように（school-map.tsx の placeLabels がよける） */}
+      {[
+        ...OUT_WC.map((t) => ({ x: t.x, y: t.y, w: 40 * (t.s ?? 1), h: 30 * (t.s ?? 1) })),
+        { x: OUT_BUS.x, y: OUT_BUS.y, w: OUT_BUS.w, h: OUT_BUS.w * 2 },
+      ].map((r) => (
+        <span
+          key={`h${r.x}`}
+          className="op-hit"
+          style={{ left: pctX(r.x), top: pctY(r.y), width: `${((r.w / OUT_VIEW.w) * 100).toFixed(3)}%`, height: `${((r.h / OUT_VIEW.h) * 100).toFixed(3)}%` }}
+          aria-hidden="true"
+        />
+      ))}
     </>
   );
 }
