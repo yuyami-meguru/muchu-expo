@@ -6,6 +6,8 @@ import { z } from "zod";
  * このファイルは画面とサーバーの両方で使う（server-only の物は入れない）。
  */
 
+export { RADIO_SHOP, radioShown } from "./radio-shop";
+
 export type ProgramRow = { time: string; text: string };
 export type RadioState = { onAir: boolean; now: string; program: ProgramRow[]; msgOpen: boolean; updatedAt: number };
 

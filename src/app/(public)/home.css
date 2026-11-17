@@ -119,6 +119,9 @@
 .hm-doors { display: grid; gap: 14px; }
 @media (min-width: 600px) { .hm-doors { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .hm-doors { grid-template-columns: repeat(4, 1fr); } }
+/* 校内ラジオを隠しているときは入口が 3 つ：2 列の幅では 3 つ目を横いっぱいに、広い画面は 3 列 */
+@media (min-width: 600px) { .hm-doors--3 > :last-child { grid-column: 1 / -1; } }
+@media (min-width: 1024px) { .hm-doors--3 { grid-template-columns: repeat(3, 1fr); } .hm-doors--3 > :last-child { grid-column: auto; } }
 .hm-door {
   display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; padding: 18px 20px; border-radius: var(--r-card);
   background: var(--surface); box-shadow: 0 5px 0 var(--c); border: 3px solid var(--c); text-decoration: none; color: var(--ink);

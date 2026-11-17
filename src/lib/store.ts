@@ -7,6 +7,7 @@ import { unstable_rethrow } from "next/navigation";
 import { SEED } from "./seed";
 import { FLOOR_SEED } from "./floor-plans";
 import { LIVE_TIMING, parsePhaseMode, phaseOf } from "./ops";
+import { RADIO_SHOP } from "./radio-shop";
 import { PLACE_KINDS, TONES, type Area, type Dept, type Kind, type MenuItem, type News, type Place, type Shop, type ShopState, type SiteData, type Stock } from "./types";
 
 /*
@@ -585,6 +586,22 @@ async function windowOf(opts: ReadOpts): Promise<ReadWindow> {
   return (await staffViewer()) ? STAFF_PAGE_READ : publicRead();
 }
 
+/** v0.16.0 の「校内ラジオを 1 度だけ隠す」を、このサーバーの中でもう試したか（読み込みのたびに Redis を呼ばないように） */
+let radioFixTried = false;
+
+/** お店の JSON を「非表示」にしたもの（読めなければ null）。もう非表示なら、そのまま */
+function hiddenShopJson(raw: string): { json: string; changed: boolean; name: string } | null {
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!o || typeof o !== "object") return null;
+    const name = typeof o.name === "string" ? o.name : RADIO_SHOP;
+    if (o.hidden === true) return { json: raw, changed: false, name };
+    return { json: JSON.stringify({ ...o, hidden: true, updatedAt: Date.now() }), changed: true, name };
+  } catch {
+    return null;
+  }
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -612,6 +629,21 @@ async function loadRaw(): Promise<Raw> {
     } else {
       const f = seedFloors();
       r = { ...r, area: f.area!, place: { ...r.place, ...f.place } };
+    }
+  }
+  // v0.16.0（2026-11-17）：校内ラジオ（お店・出し物の radio）を 1 度だけ「お客さんの画面に出さない」にする（ユーザーの希望）。
+  // ラジオのページ・ホームの入口・「放送中」の札も、これに合わせて消える（radio-shop.ts）。目印 muchu:fix:radio-hidden が立つので、
+  // あとで実行委員が［お客さんの画面に出す］を押せば、もう隠さない。変更の記録にも残す
+  if (!radioFixTried && storeReady() && r.shop[RADIO_SHOP]) {
+    radioFixTried = true;
+    const h = hiddenShopJson(r.shop[RADIO_SHOP]);
+    if (h && (await b.seedOnce("fix:radio-hidden", { shop: { [RADIO_SHOP]: h.json } })) && h.changed) {
+      r = await b.readAll();
+      try {
+        await addLog([{ at: Date.now(), by: "admin", shop: RADIO_SHOP, shopName: h.name, field: "お客さんの画面", before: "表示中", after: "非表示（サイトの更新 v0.16.0 で）" }]);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
     }
   }
   return r;

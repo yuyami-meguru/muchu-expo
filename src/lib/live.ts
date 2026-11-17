@@ -1,5 +1,6 @@
 import type { SiteAlert, PhaseMode } from "./ops";
 import type { RadioLive } from "./radio";
+import { radioShown } from "./radio-shop";
 import type { News, ShopState, SiteData, Stock } from "./types";
 
 // 15 秒ごとに配る「いまの様子」の形（/api/status）。画面の側（LiveProvider）とサーバーで同じものを使う。
@@ -39,7 +40,8 @@ export function liveOf(data: SiteData, radio?: RadioLive, ops?: LiveOps): Live {
     at: Date.now(),
     shops,
     news: data.news,
-    ...(radio ? { radio } : {}),
+    // 校内ラジオを隠しているあいだは、放送中にしても札を出さない（radio.ts の radioShown）
+    ...(radio ? { radio: radioShown(data.shops) ? radio : { onAir: false, now: "" } } : {}),
     ...(ops
       ? {
           alert: ops.alert.on ? { level: ops.alert.level, text: ops.alert.text, at: ops.alert.at } : null,

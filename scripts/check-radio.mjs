@@ -1,10 +1,12 @@
 // 校内ラジオの守りを確かめる（手元の next dev に向けて実行）。 npm run check:radio
-// テストのあと、ラジオの状態は元に戻す（ON AIR はオフ）。テストで送ったメッセージ（4 通）は残る（実行委員の画面で消せる）
+// テストのあと、ラジオの状態は元に戻す（ON AIR はオフ）。ラジオのお店の表示・非表示も元に戻す。
+// テストで送ったメッセージ（4 通）は残る（実行委員の画面で消せる）
 import { readFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:3470";
 const PASS = process.env.ADMIN_PASSPHRASE ?? "dev-pass";
-const data = JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8"));
+const DATA = new URL("../.data/dev.json", import.meta.url);
+const data = JSON.parse(readFileSync(DATA, "utf8"));
 const SHOP = Object.keys(data.key)[0];
 
 let failed = 0;
@@ -40,6 +42,23 @@ await shop.req("POST", "/api/staff/join", { shop: SHOP, key: data.key[SHOP] });
 
 const before = (await admin.req("GET", "/api/staff/radio")).json?.state;
 check("実行委員は状態を読める", !!before);
+
+// v0.16.0：ラジオのお店（radio）を隠しているあいだは、ラジオのページ・ホームの入口・下の案内・「放送中」の札・メッセージが止まる
+await anon.req("GET", "/api/status"); // 1 度読む（はじめの読み込みで、ラジオのお店を 1 度だけ隠す処理が走る）
+const now = JSON.parse(readFileSync(DATA, "utf8"));
+const radioWasHidden = JSON.parse(now.shop?.radio ?? "{}").hidden === true;
+check("ラジオのお店を 1 度だけ隠した目印がある", now.flags?.["fix:radio-hidden"] === true);
+const page = async (path) => (await fetch(BASE + path)).text();
+check("実行委員はラジオのお店を隠せる", (await admin.req("PATCH", "/api/staff/shops/radio", { hidden: true })).status === 200);
+await admin.req("PUT", "/api/staff/radio", { onAir: true, now: "隠しているあいだの放送", msgOpen: true });
+check("隠しているあいだは、放送中にしても「放送中」が出ない", (await anon.req("GET", "/api/status")).json?.radio?.onAir === false);
+check("隠しているあいだは、ラジオのページが「見つかりません」", (await page("/radio")).includes("ページが見つかりません"));
+check("隠しているあいだは、ホームにラジオへの入口・案内・札が無い", !(await page("/")).includes('href="/radio"'));
+check("隠しているあいだは、ラジオのお店のページも見つからない", (await page("/shops/radio")).includes("ページが見つかりません"));
+check("隠しているあいだは、メッセージを受け付けない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: `隠しているあいだ ${Date.now()}` })).status === 403);
+check("実行委員はラジオのお店を出せる", (await admin.req("PATCH", "/api/staff/shops/radio", { hidden: false })).status === 200);
+check("出すと、ラジオのページが開く", (await page("/radio")).includes("番組表"));
+check("出すと、ホームにラジオの入口がある", (await page("/")).includes('href="/radio"'));
 const count = async () => (await admin.req("GET", "/api/staff/radio")).json?.messages?.length ?? -1;
 
 check("ログインなしでは状態を変えられない（ログインの案内）", (await anon.req("PUT", "/api/staff/radio", { onAir: true })).status === 401);
@@ -93,6 +112,7 @@ check("確認の言葉がないと消せない", (await admin.req("DELETE", "/ap
 const back = await admin.req("PUT", "/api/staff/radio", { onAir: false, now: before.now, program: before.program, msgOpen: before.msgOpen });
 check("状態を元に戻す（ON AIR はオフ）", back.status === 200 && back.json.state.onAir === false);
 check("戻したあと、いまの様子は放送していない", (await anon.req("GET", "/api/status")).json?.radio?.onAir === false);
+check("ラジオのお店の表示・非表示を元に戻す", (await admin.req("PATCH", "/api/staff/shops/radio", { hidden: radioWasHidden })).status === 200);
 
 console.log(failed ? `\n${failed} 件 NG` : "\nすべて OK");
 process.exit(failed ? 1 : 0);

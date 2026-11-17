@@ -51,6 +51,11 @@ export const PUBLIC_FOOTER: FooterColumn[] = [
   },
 ];
 
+/** いちばん下の案内。校内ラジオを隠しているとき（radio-shop.ts）は「校内ラジオ」を外す */
+export function publicFooter(radio: boolean): FooterColumn[] {
+  return radio ? PUBLIC_FOOTER : PUBLIC_FOOTER.map((c) => ({ ...c, links: c.links.filter((l) => l.href !== "/radio") }));
+}
+
 /* ───── 従業員側（お店の人・実行委員） ───── */
 /** 実行委員・先生（合言葉でログイン） */
 export const ADMIN_GROUPS: NavGroup[] = [

@@ -138,6 +138,8 @@ export const SEED_SHOPS: Shop[] = [
     dept: "unei",
     kind: "see",
     order: 90,
+    // 校内ラジオは、はじめは隠しておく（2026-11-17 ユーザーの希望。radio-shop.ts）
+    hidden: true,
     name: "校内ラジオ",
     catch: "午前と午後に生放送（予定）",
     description: "実行委員が会場全体に向けて放送します。お店や発表のお知らせ、クイズやゲーム。会場をまわると答えがわかる問題も出るかも？ 放送のない時間は、会場を盛り上げる音楽を流します。",

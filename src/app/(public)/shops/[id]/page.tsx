@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 import { LiveNotice, LiveShopBadges, LiveStock } from "@/components/live/live-parts";
 import { MiniFloorMap } from "@/components/map/mini-floor-map";
 import { canEditShop, getSession } from "@/lib/auth";
+import { RADIO_SHOP } from "@/lib/radio-shop";
 import { getShop, loadAll } from "@/lib/store";
 import { deptLookup, KIND_LABEL, type Kind, placeLabeler } from "@/lib/types";
 import { ByPhase } from "../../_components/in-phase";
@@ -121,7 +122,7 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
           {/* 建物の中の場所なら、小さな見取り図でその部屋に色を付ける（外の場所・見取り図の無い階では何も出ない）。押すとマップ */}
           <MiniFloorMap place={place} areas={areas} href={place ? `/map?place=${place.id}` : undefined} />
 
-          {s.id === "radio" && (
+          {s.id === RADIO_SHOP && !s.hidden && (
             <Link href="/radio" className="sd-radio">
               <span aria-hidden="true">▶ </span>番組表を見る・メッセージを送る
             </Link>

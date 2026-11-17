@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PUBLIC_FOOTER, PUBLIC_NAV, PublicShell } from "@/components/shell";
+import { PUBLIC_NAV, PublicShell, publicFooter } from "@/components/shell";
 import { NotFoundBody } from "./(public)/_components/not-found-body";
 // お客さん側の枠の見た目（「文字を大きく」のボタンなど）は (public) の CSS にあるので、ここでも読む
 import "./(public)/public.css";
@@ -12,7 +12,8 @@ export const metadata: Metadata = { title: "ページが見つかりません" }
  */
 export default function NotFound() {
   return (
-    <PublicShell items={PUBLIC_NAV} footer={PUBLIC_FOOTER}>
+    // ここでは保存先を読まないので、校内ラジオを出しているかは分からない → 下の案内に「校内ラジオ」は出さない
+    <PublicShell items={PUBLIC_NAV} footer={publicFooter(false)}>
       <div style={{ minHeight: "60vh", display: "grid", placeItems: "center", padding: "40px 16px", textAlign: "center" }}>
         <NotFoundBody />
       </div>

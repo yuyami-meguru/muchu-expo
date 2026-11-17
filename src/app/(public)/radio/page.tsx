@@ -1,32 +1,35 @@
 import type { Metadata } from "next";
 import { Sprite } from "@/components/pixel/sprites";
-import { radioLive } from "@/lib/radio";
+import { RADIO_SHOP, radioLive } from "@/lib/radio";
 import { loadRadio } from "@/lib/radio-server";
 import { loadAll } from "@/lib/store";
+import PublicNotFound from "../not-found";
 import { MessageForm } from "./message-form";
 import { RadioNow } from "./radio-now";
 import "./radio.css";
 
-export const metadata: Metadata = { title: "校内ラジオ" };
+const NOT_FOUND_META: Metadata = { title: "ページが見つかりません", robots: { index: false, follow: false } };
 
-/** 校内ラジオのお店（お店・出し物の一覧にもある。id は radio） */
-const RADIO_SHOP = "radio";
+/** 校内ラジオのお店（お店・出し物の一覧にもある。id は radio）。非表示なら undefined */
+const radioShop = async () => (await loadAll()).shops.find((s) => s.id === RADIO_SHOP && !s.hidden);
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    return (await radioShop()) ? { title: "校内ラジオ" } : NOT_FOUND_META;
+  } catch {
+    return { title: "校内ラジオ" };
+  }
+}
 
 /**
  * 校内ラジオ：いま放送中か・番組表・ラジオへのメッセージ。
- * 番組表がまだ空のときは、ラジオのお店の「当日の流れ」を出す（タイムテーブル・お店のページと食いちがわないように）
+ * 番組表がまだ空のときは、ラジオのお店の「当日の流れ」を出す（タイムテーブル・お店のページと食いちがわないように）。
+ * 校内ラジオを隠しているあいだ（ラジオのお店が非表示。radio-shop.ts）は「ページが見つかりません」
  */
 export default async function RadioPage() {
-  const radio = await loadRadio();
-  let program = radio.program;
-  if (!program.length) {
-    try {
-      const shop = (await loadAll()).shops.find((s) => s.id === RADIO_SHOP && !s.hidden);
-      program = shop?.schedule ?? [];
-    } catch (e) {
-      console.error("ラジオのお店を読めませんでした", e);
-    }
-  }
+  const [radio, shop] = await Promise.all([loadRadio(), radioShop()]);
+  if (!shop) return <PublicNotFound />;
+  const program = radio.program.length ? radio.program : (shop.schedule ?? []);
   return (
     <div className="rd-wrap">
       <header className="rd-head">

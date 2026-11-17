@@ -7,6 +7,7 @@ import { getSetting, loadAll } from "@/lib/store";
 import { AWARD_KEY, parseAward } from "./award/award-data";
 import { EVENT, VENUE } from "@/lib/venue";
 import { allSchedule } from "@/lib/schedule";
+import { radioShown } from "@/lib/radio-shop";
 import { Countdown } from "./_components/countdown";
 import { DayStrip, HeroCta, HeroSection } from "./_components/hero-parts";
 import { HomeTop } from "./_components/home-top";
@@ -26,6 +27,8 @@ export default async function HomePage() {
   const [{ shops, depts, places, areas }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
   const award = parseAward(awardRaw);
   const visible = shops.filter((s) => !s.hidden);
+  // 校内ラジオを隠しているあいだは、入口のカードを出さない（radio-shop.ts）
+  const radioOn = radioShown(shops);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));
   const { timed } = allSchedule(shops, depts, { places, areas });
   const marquee = visible.flatMap((s) => (s.menu.length ? s.menu.map((m) => m.name) : [s.name])).slice(0, 14);
@@ -112,7 +115,7 @@ export default async function HomePage() {
 
       {/* 入口のカード */}
       <section className="hm-sec hm-sec--alt" aria-label="見たいものを選ぶ">
-        <div className="hm-wrap hm-doors">
+        <div className={radioOn ? "hm-wrap hm-doors" : "hm-wrap hm-doors hm-doors--3"}>
           <Link href="/shops" className="hm-door tone-green">
             <Sprite name="cube" size={40} />
             <span className="hm-door-t">お店・出し物</span>
@@ -128,11 +131,13 @@ export default async function HomePage() {
             <span className="hm-door-t">ご来場の方へ</span>
             <span className="hm-door-s">無料送迎バス・駐車場・行き方・困ったときは</span>
           </Link>
-          <Link href="/radio" className="hm-door tone-orange">
-            <Sprite name="guitar" size={44} />
-            <span className="hm-door-t">校内ラジオ</span>
-            <span className="hm-door-s">番組表を見る・メッセージを送る</span>
-          </Link>
+          {radioOn && (
+            <Link href="/radio" className="hm-door tone-orange">
+              <Sprite name="guitar" size={44} />
+              <span className="hm-door-t">校内ラジオ</span>
+              <span className="hm-door-s">番組表を見る・メッセージを送る</span>
+            </Link>
+          )}
         </div>
       </section>
 

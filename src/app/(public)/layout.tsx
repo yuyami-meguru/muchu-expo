@@ -3,9 +3,10 @@ import { SiteAlertBar } from "@/components/live/live-parts";
 import { LiveProvider } from "@/components/live/live-provider";
 import { SignalBanner } from "@/components/live/signal-banner";
 import { SwRegister } from "@/components/live/sw-register";
-import { PUBLIC_FOOTER, PUBLIC_NAV, PublicShell } from "@/components/shell";
+import { PUBLIC_NAV, PublicShell, publicFooter } from "@/components/shell";
 import { EMPTY_LIVE, liveOf, type Live } from "@/lib/live";
 import { loadPublicOps } from "@/lib/ops-server";
+import { radioShown } from "@/lib/radio-shop";
 import { loadAll } from "@/lib/store";
 import { NavPending } from "./_components/nav-pending";
 import "./public.css";
@@ -19,9 +20,12 @@ export const dynamic = "force-dynamic";
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   // 保存先が一時的に読めなくても、枠（ご案内・地図など）は出す。いまの様子は読めしだい画面の側で入る
   let initial: Live = EMPTY_LIVE;
+  // 校内ラジオを出しているか（読めないときは出さない）。いちばん下の案内の「校内ラジオ」に使う
+  let radioOn = false;
   try {
     const [data, { ops, radio }] = await Promise.all([loadAll(), loadPublicOps()]);
     initial = liveOf(data, radio, ops);
+    radioOn = radioShown(data.shops);
   } catch (e) {
     console.error("いまの様子を読めませんでした", e);
   }
@@ -33,7 +37,7 @@ export default async function PublicLayout({ children }: { children: React.React
       </Suspense>
       <PublicShell
         items={PUBLIC_NAV}
-        footer={PUBLIC_FOOTER}
+        footer={publicFooter(radioOn)}
         top={
           <>
             <SiteAlertBar />
