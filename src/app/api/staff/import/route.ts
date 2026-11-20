@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { guarded, needAdmin, ok, readBody, zId } from "@/lib/api";
+import { isMapPlace, isMapPlaceId } from "@/lib/outside-plan";
 import { deleteArea, deleteDept, deletePlace, deleteShop, loadAll, saveArea, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
 
 /*
@@ -39,7 +40,7 @@ const shopSchema = z.object({
 });
 const placeSchema = z.object({
   id: zId,
-  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate"]).optional(),
+  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate", "bus", "parking"]).optional(),
   area: zId.optional(),
   w: z.number().min(0).max(100).optional(),
   h: z.number().min(0).max(100).optional(),
@@ -74,7 +75,8 @@ export async function POST(req: NextRequest) {
 
     for (const d of depts) await saveDept(d);
     for (const a of areas ?? []) await saveArea(a);
-    for (const p of places) await savePlace(p);
+    // 会場マップの場所（大食堂・受付など。保存しない決まった場所）は、控えにあっても書かない
+    for (const p of places) if (!isMapPlaceId(p.id)) await savePlace(p);
     for (const shop of shops) await saveShop(shop);
     if (!b.data.keepLive) {
       const changes: Record<string, LivePatch> = Object.fromEntries(
@@ -96,7 +98,8 @@ export async function POST(req: NextRequest) {
       removed.depts++;
     }
     for (const x of now.places) {
-      if (keep.place.has(x.id)) continue;
+      // 会場マップの場所は消さない（消すと、そこにあるお店が「未定」に戻ってしまう）
+      if (keep.place.has(x.id) || isMapPlace(x)) continue;
       await deletePlace(x.id);
       removed.places++;
     }

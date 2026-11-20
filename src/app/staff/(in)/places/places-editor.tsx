@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Checkbox, Select, TextField } from "@/components/ui/field";
-import { OUT_BUILDINGS, OUT_HAS_GATE, outsideSpot } from "@/lib/outside-plan";
+import { isMapPlace, OUT_BUILDINGS, OUT_HAS_GATE, OUT_PLACES, outBoxRect, outsideSpot } from "@/lib/outside-plan";
 import { areaName, areaOf, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Place, type PlaceKind } from "@/lib/types";
 import { savedAt, send, slug } from "../../_lib/client";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
@@ -60,8 +60,11 @@ const onPlan = (p: Place): Place => {
  * フロアの部屋は「四角で描く」にすると、幅と高さのある四角になる（お客さんの地図では、押すとその部屋のお店が出る）。
  * パソコンでは、地図と選んだピンの欄を横に並べる（places.css）。
  */
-export function PlacesEditor({ places: initial, areas: initialAreas, counts }: { places: Place[]; areas: Area[]; counts: Record<string, number> }) {
+export function PlacesEditor({ places: all, areas: initialAreas, counts }: { places: Place[]; areas: Area[]; counts: Record<string, number> }) {
   const router = useRouter();
+  // 会場マップの場所（大食堂・受付など。地図に描いてある決まった場所）は、ここでは動かさない・消さない（外の地図に枠として見せるだけ）
+  const fixed = OUT_PLACES.filter((m) => all.some((p) => p.id === m.id));
+  const initial = all.filter((p) => !isMapPlace(p));
   const [places, setPlaces] = useState<Draft[]>(() => initial.map((p) => ({ ...onPlan(p), key: p.id })));
   // 保存してある値（変えたかどうか・消すときの名前に使う）。外のピンの位置は、上の places と同じく会場マップの上の位置
   const [saved, setSaved] = useState<Record<string, Place>>(() => Object.fromEntries(initial.map((p) => [p.id, onPlan(p)])));
@@ -178,6 +181,16 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
   }
 
   const inArea = places.filter((p) => areaOf(p) === area);
+  // 外の地図：会場マップの場所は、描いてある枠を押せる四角に（押すと、決まった場所だと知らせる。お店の数は右上に）
+  const fixedPins: MapPin[] =
+    area === OUTSIDE
+      ? fixed.flatMap((p) =>
+          (p.boxes ?? []).flatMap((b, i) => {
+            const r = outBoxRect(b);
+            return r ? [{ id: `map:${p.id}`, name: p.name, ...r, plan: true, part: i, count: counts[p.id] || undefined, mark: counts[p.id] ? "店" : undefined, label: p.name }] : [];
+          }),
+        )
+      : [];
   const pins: MapPin[] = inArea.map((p) => {
     const k = kindOf(p);
     return {
@@ -190,7 +203,18 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
       ...(isBox(p) ? { w: p.w, h: p.h } : {}),
     };
   });
+  pins.unshift(...fixedPins);
   if (spot) pins.push({ id: "__spot", name: cur ? "ここ？" : "ここに足す？", x: spot.x, y: spot.y, tone: "st-pin-spot" });
+  /** 会場マップの場所を押したとき（動かせないことと、お店の場所の決め方を知らせる） */
+  function showFixed(id: string) {
+    const p = fixed.find((x) => `map:${x.id}` === id);
+    if (!p) return;
+    setSel(null);
+    setSpot(null);
+    setError("");
+    const n = counts[p.id] ?? 0;
+    setMsg(`「${p.name}」は会場マップの場所です（地図に描いてある決まった場所なので、動かしたり消したりはしません）。${n ? `お店・出し物が ${n} 件あります。` : ""}お店をここにするときは、いちばん下の「お店の場所を決める」か、お店の情報の「場所」で選びます`);
+  }
   const curName = cur ? cur.name || "新しいピン" : "";
   const delName = cur ? (cur.isNew ? cur.name : saved[cur.id]?.name) || "新しいピン" : "";
 
@@ -211,6 +235,14 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
 
   return (
     <div className="st-stack">
+      {area === OUTSIDE && fixed.length > 0 && (
+        <Banner tone="info" title="外の場所は、会場マップに描いてある枠です（ピンを置かなくてよい）">
+          <p>
+            {fixed.map((p) => p.name).join("・")}は、地図に描いてある決まった場所です。動かす必要はありません（動かしたり消したりはできません）。
+            お店・出し物をそこにするときは、いちばん下の「お店の場所を決める」か、お店の情報の「場所」で選んでください。ピンを足すのは、会場マップに無い場所だけです。
+          </p>
+        </Banner>
+      )}
       {unplaced.length > 0 && (
         <Banner tone="warning" title={`外の地図に出していないピンがあります（${unplaced.map((p) => `「${p.name}」`).join("")}）`}>
           <p>
@@ -238,7 +270,7 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
             {[{ id: OUTSIDE, name: "外" }, ...areas.map((a) => ({ id: a.id, name: areaName(a) }))].map((t) => (
               <Button key={t.id} size="sm" variant={area === t.id ? "primary" : "secondary"} aria-pressed={area === t.id} onClick={() => switchArea(t.id)}>
                 {t.name}
-                <span className="st-area-n">{places.filter((p) => areaOf(p) === t.id).length}</span>
+                <span className="st-area-n">{places.filter((p) => areaOf(p) === t.id).length + (t.id === OUTSIDE ? fixed.length : 0)}</span>
               </Button>
             ))}
           </div>
@@ -250,7 +282,7 @@ export function PlacesEditor({ places: initial, areas: initialAreas, counts }: {
             caption={areaLabel(area)}
             shapeRooms={false}
             pickOnly={!!cur}
-            onSelect={(id) => id !== "__spot" && choose(id)}
+            onSelect={(id) => (id.startsWith("map:") ? showFixed(id) : id !== "__spot" && choose(id))}
             onPick={(x, y) => {
               setSpot({ x, y });
               setMsg("");

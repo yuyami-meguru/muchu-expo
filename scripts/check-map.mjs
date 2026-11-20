@@ -111,6 +111,26 @@ await admin.req("DELETE", "/api/staff/places/check-unlink");
 await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed });
 check("お店の場所をもう一度元に戻した", (await admin.req("PATCH", "/api/staff/shops/yakisoba", {})).json.shop.placeId === placed);
 
+// v0.17.0：外の場所は会場マップの枠（大食堂・受付など。保存しない決まった場所）
+const out = await page("/map");
+check("外の地図に会場マップの場所（大食堂・受付・トイレ・バス停）がある", ["out-shokudo", "out-recv", "out-wc", "out-bus"].every((id) => out.includes(`data-pin="${id}"`)));
+check("大食堂に「体験・休憩」と出る", out.includes("体験・休憩"));
+check("知育館の前の「体験」の箱は無い（体験は大食堂の中）", !/class="op-label[^"]*"[^>]*>体験</.test(out));
+check("場所を指して開ける（?place=out-shokudo）", (await page("/map?place=out-shokudo")).includes("体験・休憩ができます"));
+const now = JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8"));
+const placeOf = (id) => (now.shop[id] ? JSON.parse(now.shop[id]).placeId : "");
+check("体験のお店（射的・押し花）は大食堂", placeOf("shateki") === "out-shokudo" && placeOf("oshibana") === "out-shokudo", `${placeOf("shateki")} ${placeOf("oshibana")}`);
+check("前の仮の外のピン（tent-food・tent-chiiku）は無い", !now.place["tent-food"] && !now.place["tent-chiiku"]);
+check("会場マップの場所は実行委員でも動かせない", (await admin.req("PUT", "/api/staff/places/out-recv", { name: "受付", x: 10, y: 10, note: "" })).status === 400);
+check("会場マップの場所は消せない", (await admin.req("DELETE", "/api/staff/places/out-shokudo")).status === 400);
+check("「out-」で始まるピンは作れない", (await admin.req("PUT", "/api/staff/places/out-test", { name: "x", x: 10, y: 10, note: "" })).status === 400);
+const ex2 = (await admin.req("GET", "/api/staff/export")).json;
+check("控えに会場マップの場所は入らない", !ex2.places.some((p) => p.id.startsWith("out-")));
+check("お店の場所の選び方に大食堂がある", (await admin.req("GET", "/staff/shops/shateki")).status === 200 && (await (await fetch(BASE + "/staff/shops/shateki", { headers: { cookie: admin.cookie } })).text()).includes("外・大食堂"));
+const moved = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "out-cafe" });
+check("お店の場所を会場マップの場所（カフェ）にできる", moved.json?.shop?.placeId === "out-cafe");
+check("その場所に戻せる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed })).json?.shop?.placeId === placed);
+
 // フォントを先に読む印（<link rel="preload" as="font">）がたくさんあると、遅い回線で最初の表示が何十秒も遅れる（R8）。
 // 字の形は表示のあとに読めばよいので、HTML と Link ヘッダーの as="font" は 0 か、ごく少ないこと
 for (const path of ["/", "/shops", "/map?area=f3", "/staff/login"]) {

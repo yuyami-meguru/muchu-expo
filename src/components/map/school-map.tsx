@@ -37,6 +37,13 @@ export type MapPin = {
    * （何があるかが地図を見ただけで分かるように。無ければ、部屋は頭文字と数、ピンは場所の名前）
    */
   items?: { name: string; mark: string; tone?: string }[];
+  /**
+   * 会場マップに描いてある枠そのもの（外の地図の「大食堂」「受付」など。v0.17.0）。描いてある枠と名前の上に、透明な四角を重ねて押せるようにする
+   * （名前は地図の字のまま。お店・出し物があれば右上に頭文字と数、選ぶと太い枠）
+   */
+  plan?: boolean;
+  /** 1 つの場所に枠がいくつもあるとき（トイレ 3 か所など）の何番目か。0 だけを Tab・読み上げの対象にする */
+  part?: number;
 };
 
 /** 地図の下の絵：外（会場マップ。パンフと同じ配置図）か、フロア（見取り図。plan が無ければ方眼） */
@@ -240,7 +247,7 @@ export function SchoolMap({
             )}
             {pins.map((p) =>
               p.w && p.h ? (
-                <RoomBox key={p.id} p={p} on={selected === p.id} onSelect={onSelect} shape={shapes.get(p.id)} tabbable={tabbable} />
+                <RoomBox key={`${p.id}:${p.part ?? 0}`} p={p} on={selected === p.id} onSelect={onSelect} shape={shapes.get(p.id)} tabbable={tabbable && !p.part} />
               ) : (
                 <PinMark key={p.id} p={p} on={selected === p.id} onSelect={onSelect} tabbable={tabbable} clamp={clamp} />
               ),
@@ -405,6 +412,37 @@ function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean;
   const w = p.w ?? 0;
   const h = p.h ?? 0;
   const lab = shape?.label;
+  // 会場マップの枠：名前は地図に描いてあるので出さない。お店・出し物があれば右上に頭文字と数（売り切れは ×）
+  if (p.plan) {
+    return (
+      <button
+        type="button"
+        data-pin={p.id}
+        className={cx("mx-room", "mx-room--plan", p.tone, !!p.count && "mx-room--has", p.multi && "mx-room--multi", on && "mx-room--on", p.alert && "mx-room--alert")}
+        style={{ left: `${p.x - w / 2}%`, top: `${p.y - h / 2}%`, width: `${w}%`, height: `${h}%` }}
+        aria-pressed={on}
+        aria-label={p.label}
+        tabIndex={tabbable ? undefined : -1}
+        aria-hidden={tabbable ? undefined : true}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect?.(p.id);
+        }}
+      >
+        {!!p.count && !p.part && (
+          <span className="mx-room-badge" aria-hidden="true">
+            {p.mark}
+            <span className="mx-room-n">{p.count}</span>
+          </span>
+        )}
+        {p.alert && !p.part && (
+          <span className="mx-room-x" aria-hidden="true">
+            ×
+          </span>
+        )}
+      </button>
+    );
+  }
   return (
     <button
       type="button"

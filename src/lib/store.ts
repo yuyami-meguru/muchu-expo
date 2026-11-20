@@ -8,6 +8,7 @@ import { SEED } from "./seed";
 import { FLOOR_SEED } from "./floor-plans";
 import { LIVE_TIMING, parsePhaseMode, phaseOf } from "./ops";
 import { RADIO_SHOP } from "./radio-shop";
+import { isMapPlaceId, OUT_PLACES } from "./outside-plan";
 import { PLACE_KINDS, TONES, type Area, type Dept, type Kind, type MenuItem, type News, type Place, type Shop, type ShopState, type SiteData, type Stock } from "./types";
 
 /*
@@ -68,6 +69,8 @@ interface Backend {
   getMany(keys: string[]): Promise<(string | null)[]>;
   /** はじめのデータを入れる（flag がまだなら）。入れたら true */
   seedOnce(flag: string, raw: Partial<Raw>): Promise<boolean>;
+  /** 目印を立てる（まだ立っていなければ）。立てたら true（1 度だけの直しに使う） */
+  flagOnce(flag: string): Promise<boolean>;
   incr(key: string, ttlSec: number): Promise<number>;
   /** 数えた回数を読むだけ（増やさない） */
   count(key: string): Promise<number>;
@@ -157,6 +160,9 @@ class RedisBackend implements Backend {
     if (flag === "seeded") p.set("muchu:seeded:dept", String(Date.now()), { nx: true });
     await p.exec();
     return true;
+  }
+  async flagOnce(flag: string) {
+    return (await this.r.set(`muchu:${flag}`, String(Date.now()), { nx: true })) === "OK";
   }
   async incr(key: string, ttlSec: number) {
     const p = this.r.pipeline();
@@ -266,6 +272,14 @@ class FileBackend implements Backend {
     this.save();
     return true;
   }
+  async flagOnce(flag: string) {
+    if (!this.writable) throw new StoreNotReady();
+    const d = this.load();
+    if (d.flags![flag]) return false;
+    d.flags![flag] = true;
+    this.save();
+    return true;
+  }
   async incr(key: string, ttlSec: number) {
     const now = Date.now();
     const c = this.counters.get(key);
@@ -305,14 +319,14 @@ class FileBackend implements Backend {
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-// （V11：readTables を足した。手元の中身は .data/dev.json から読み直すので消えない）
-const g = globalThis as unknown as { __muchuBackendV11?: Backend };
+// （V11：readTables を足した。V17：flagOnce を足した。手元の中身は .data/dev.json から読み直すので消えない）
+const g = globalThis as unknown as { __muchuBackendV17?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV11) {
+  if (!g.__muchuBackendV17) {
     const env = redisEnv();
-    g.__muchuBackendV11 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV17 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV11;
+  return g.__muchuBackendV17;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -602,6 +616,38 @@ function hiddenShopJson(raw: string): { json: string; changed: boolean; name: st
   }
 }
 
+/** v0.17.0 の「外のお店を会場マップの場所へ移す」を、このサーバーの中でもう試したか */
+let outFixTried = false;
+/** 前の仮の外のピン → 会場マップの場所（体験は知育館の前から大食堂の中に変わった＝2026-11-20 ユーザー） */
+const OUT_MOVES: Record<string, string> = { "tent-food": "out-yakisoba", "tent-chiiku": "out-shokudo" };
+
+/**
+ * 外のお店を会場マップの場所へ移す直し（無ければ null）：仮のピン 2 つにあったお店は会場マップの場所へ（体験は大食堂。
+ * 「知育館のそば」と書いた場所の補足は合わなくなるので消す）、場所が未定のエンカレ茶屋は茶屋の枠へ。仮のピンは消す
+ */
+function outPlacesFix(r: Raw): { shop: Record<string, string>; dropPlaces: string[]; log: LogEntry[] } | null {
+  const at = Date.now();
+  const nameOf = (id: string) => OUT_PLACES.find((p) => p.id === id)?.name ?? id;
+  const shop: Record<string, string> = {};
+  const log: LogEntry[] = [];
+  for (const [sid, v] of Object.entries(r.shop)) {
+    const o = objOf(v);
+    if (!o) continue;
+    const from = str(o.placeId);
+    const to = OUT_MOVES[from] ?? (sid === "chaya" && (!from || !r.place[from]) ? "out-chaya" : "");
+    if (!to) continue;
+    const name = str(o.name) || sid;
+    const note = str(o.placeNote);
+    const dropNote = from === "tent-chiiku" && note.includes("知育館");
+    shop[sid] = JSON.stringify({ ...o, placeId: to, ...(dropNote ? { placeNote: "" } : {}), updatedAt: at });
+    const after = `${nameOf(to)}（会場マップの場所。サイトの更新 v0.17.0 で）`;
+    log.push({ at, by: "admin", shop: sid, shopName: name, field: "場所", before: from ? str(objOf(r.place[from] ?? "")?.name) || from : "未定", after });
+    if (dropNote) log.push({ at, by: "admin", shop: sid, shopName: name, field: "場所の補足", before: note, after: "" });
+  }
+  const dropPlaces = Object.keys(OUT_MOVES).filter((id) => r.place[id]);
+  return Object.keys(shop).length || dropPlaces.length ? { shop, dropPlaces, log } : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -641,6 +687,23 @@ async function loadRaw(): Promise<Raw> {
       r = await b.readAll();
       try {
         await addLog([{ at: Date.now(), by: "admin", shop: RADIO_SHOP, shopName: h.name, field: "お客さんの画面", before: "表示中", after: "非表示（サイトの更新 v0.16.0 で）" }]);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.17.0（2026-11-20）：外の場所を会場マップの枠に（outside-plan.ts の OUT_PLACES）。前の仮の外のピンにあったお店を
+  // 会場マップの場所へ 1 度だけ移し、仮のピンを消す（outPlacesFix）。目印 muchu:fix:out-places があるので、そのあと実行委員が
+  // お店の場所を変えれば、それに従う。変更の記録にも残す
+  if (!outFixTried && storeReady()) {
+    outFixTried = true;
+    const fix = outPlacesFix(r);
+    if (fix && (await b.flagOnce("fix:out-places"))) {
+      if (Object.keys(fix.shop).length) await b.hset("shop", fix.shop);
+      if (fix.dropPlaces.length) await b.hdel("place", fix.dropPlaces);
+      r = await b.readAll();
+      try {
+        if (fix.log.length) await addLog(fix.log);
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }
@@ -744,8 +807,9 @@ function siteData(r: Raw): SiteData {
     shops: parseTable(r.shop, asShop)
       .map((s) => withLive(s, live.get(s.id)))
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja") || byId(a, b)),
+    // 会場マップの場所（outside-plan.ts の OUT_PLACES。保存しない決まった場所）も足す（同じ id の保存した場所は使わない）。
     // 同じ名前のピン（各階のトイレなど）は、外 → フロアの id の順（f2・f3・f4）
-    places: parseTable(r.place, asPlace).sort(
+    places: [...parseTable(r.place, asPlace).filter((p) => !isMapPlaceId(p.id)), ...OUT_PLACES].sort(
       (a, b) => a.name.localeCompare(b.name, "ja", { numeric: true }) || (a.area ?? "").localeCompare(b.area ?? "", "ja", { numeric: true }) || byId(a, b),
     ),
     areas: parseTable(r.area, asArea).sort(

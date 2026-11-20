@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { needAdmin } from "@/lib/api";
+import { isMapPlace } from "@/lib/outside-plan";
 import { loadAll } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,8 @@ export async function GET() {
       delete c.noticeAt;
       return c;
     }),
-    places,
+    // 会場マップの場所（大食堂・受付など）は保存していない決まった場所なので、控えに入れない
+    places: places.filter((p) => !isMapPlace(p)),
     areas,
     news,
   };

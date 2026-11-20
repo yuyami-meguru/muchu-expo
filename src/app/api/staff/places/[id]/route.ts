@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 import { fail, guarded, needAdmin, ok, placeBody, readBody, sameOrigin, zId } from "@/lib/api";
+import { isMapPlaceId } from "@/lib/outside-plan";
 import { addLog, deletePlace, loadAll, savePlace } from "@/lib/store";
 import { OUTSIDE, placeLabeler, type Place } from "@/lib/types";
+
+/** 会場マップの場所（outside-plan.ts の OUT_PLACES）は地図に描いてある決まった場所なので、ここでは作る・直す・消すをしない（「out-」で始まる id も） */
+const MAP_PLACE_FIXED = "会場マップの場所（大食堂・受付など）は、地図に描いてある決まった場所なので、動かしたり消したりできません";
 
 /** 地図のピンを作る・直す（実行委員だけ）。消すとき（DELETE）は、そのピンを場所にしていたお店を「未定」に戻し、unlinked（お店の id）を返す。area はどの面か（外か、フロアの id）。w・h がどちらも 0 より大きければ部屋の四角 */
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/staff/places/[id]">) {
@@ -10,6 +14,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/staff/places
     if (no) return no;
     const { id } = await ctx.params;
     if (!zId.safeParse(id).success) return fail(400, "英字の名前は、小文字の a〜z・数字・「-」だけにしてください");
+    if (isMapPlaceId(id)) return fail(400, MAP_PLACE_FIXED);
     const b = await readBody(req, placeBody);
     if ("error" in b) return b.error;
     const { area, w, h, ...rest } = b.data;
@@ -28,6 +33,7 @@ export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/staff/pla
     const no = await needAdmin();
     if (no) return no;
     const { id } = await ctx.params;
+    if (isMapPlaceId(id)) return fail(400, MAP_PLACE_FIXED);
     // 記録に出す名前だけに使う（使い回しの読みでよい）
     const before = await loadAll();
     const pin = before.places.find((p) => p.id === id);

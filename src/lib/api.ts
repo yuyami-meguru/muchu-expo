@@ -199,7 +199,7 @@ export const adminShopPatch = shopPatch.extend({
 });
 
 export const placeBody = z.object({
-  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate"]).default("spot"),
+  kind: z.enum(["spot", "building", "info", "toilet", "aid", "rest", "gate", "bus", "parking"]).default("spot"),
   /** どの面か（外は "outside"） */
   area: z.union([zId, z.literal("outside")]).default("outside"),
   /** 部屋の四角の幅と高さ（割合）。どちらも 0 ならピン */

@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { cx } from "@/components/ui/cx";
 import { OUT_BOXES, OUT_BUS, OUT_FIRE, OUT_NOTE, OUT_ROADS, OUT_TREES, OUT_VIEW, OUT_WC } from "@/lib/outside-plan";
 
@@ -135,6 +136,8 @@ const pctX = (v: number) => `${(((v - OUT_VIEW.x) / OUT_VIEW.w) * 100).toFixed(3
 const pctY = (v: number) => `${(((v - OUT_VIEW.y) / OUT_VIEW.h) * 100).toFixed(3)}%`;
 /** 字の大きさ：パンフと同じ割合（地図の幅に合わせる）。せまい画面でも rem の下限より小さくしない（「文字を大きく」でも大きくなる） */
 const fontOf = (size: number) => `max(0.7rem, ${((size / OUT_VIEW.w) * 100).toFixed(3)}cqi)`;
+/** 名前の下に添える字の大きさ（パンフの単位） */
+const SUB_SIZE = 13;
 
 /**
  * 会場マップの名前（押せない字。ピンの名前はこれに重ならない所へ置く＝school-map.tsx の placeLabels）。
@@ -179,9 +182,17 @@ export function OutsideLabels({ onBuilding, tabbable = true }: { onBuilding?: (b
           );
         }
         return (
-          <span key={`l${i}`} className={cx("op-label", b.k === "recv" && "op-label--recv")} style={{ left: pctX(cxv), top: pctY(cyv), fontSize: fontOf(size) }} aria-hidden="true">
-            {b.label}
-          </span>
+          <Fragment key={`l${i}`}>
+            <span className={cx("op-label", b.k === "recv" && "op-label--recv")} style={{ left: pctX(cxv), top: pctY(cyv), fontSize: fontOf(size) }} aria-hidden="true">
+              {b.label}
+            </span>
+            {/* 名前の下に小さく添える字（大食堂の「体験・休憩」） */}
+            {b.sub && (
+              <span className="op-label op-label--sub" style={{ left: pctX(cxv), top: pctY(cyv + size / 2 + SUB_SIZE / 2 + 3), fontSize: fontOf(SUB_SIZE) }} aria-hidden="true">
+                {b.sub}
+              </span>
+            )}
+          </Fragment>
         );
       })}
       <span className="op-label" style={{ left: pctX(OUT_FIRE.cx), top: pctY(OUT_FIRE.cy), fontSize: fontOf(OUT_FIRE.size) }} aria-hidden="true">

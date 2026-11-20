@@ -78,7 +78,7 @@ export type Shop = {
 };
 
 /** ピンの種類。お店・出し物の場所のほかに、来た人が探す設備（トイレ・受付など）と、外の地図の建物（中のフロアへ）も置ける */
-export type PlaceKind = "spot" | "building" | "info" | "toilet" | "aid" | "rest" | "gate";
+export type PlaceKind = "spot" | "building" | "info" | "toilet" | "aid" | "rest" | "gate" | "bus" | "parking";
 export const PLACE_KINDS: { value: PlaceKind; label: string; mark: string }[] = [
   { value: "spot", label: "お店・出し物の場所", mark: "" },
   { value: "building", label: "建物（中のフロアへ）", mark: "建" },
@@ -87,6 +87,9 @@ export const PLACE_KINDS: { value: PlaceKind; label: string; mark: string }[] = 
   { value: "aid", label: "救護", mark: "＋" },
   { value: "rest", label: "休憩所", mark: "休" },
   { value: "gate", label: "入口・門", mark: "門" },
+  // v0.17.0 から（会場マップのバス停・駐車場も、押せる場所にした）
+  { value: "bus", label: "バス停", mark: "停" },
+  { value: "parking", label: "駐車場", mark: "P" },
 ];
 export const placeKindOf = (p: Pick<Place, "kind">): PlaceKind => p.kind ?? "spot";
 
@@ -94,7 +97,22 @@ export const placeKindOf = (p: Pick<Place, "kind">): PlaceKind => p.kind ?? "spo
  * 地図のピン。x・y は地図の左上からの割合（0〜100）。kind が無い古いピンは「お店・出し物の場所」。
  * area はどの面にあるか（無ければ「外」）。w・h があれば、ピンでなく部屋の四角（x・y が真ん中、幅と高さも割合）で描く
  */
-export type Place = { id: string; name: string; x: number; y: number; note: string; kind?: PlaceKind; area?: string; w?: number; h?: number };
+export type Place = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  note: string;
+  kind?: PlaceKind;
+  area?: string;
+  w?: number;
+  h?: number;
+  /**
+   * 会場マップの場所（outside-plan.ts の OUT_PLACES。保存しない決まった場所）だけにある：地図に描いてある枠の id。
+   * 地図ではピンでなく、その枠（いくつもあれば全部）を押せるようにする。実行委員は動かせない・消せない
+   */
+  boxes?: string[];
+};
 
 /** 外の地図（学校の建物と道の形）。保存しない決まった面 */
 export const OUTSIDE = "outside";

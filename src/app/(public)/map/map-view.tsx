@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons";
 import { isSelling, LiveShopBadges, shownState } from "@/components/live/live-parts";
 import { useLive, usePhase } from "@/components/live/live-provider";
 import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
-import { outsideSpot } from "@/lib/outside-plan";
+import { outBoxRect, outsideSpot } from "@/lib/outside-plan";
 import { cx } from "@/components/ui/cx";
 import { areaName, areaOf, deptLookup, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind } from "@/lib/types";
 
@@ -89,9 +89,10 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
       return isSelling(shownState(phase, st?.state)) && Object.values(st?.stock ?? {}).includes("out");
     });
 
-  function pinOf(p: Place): MapPin & { kind: PlaceKind; offMap: boolean } {
+  function pinOf(p: Place): MapPin & { kind: PlaceKind; offMap: boolean; boxes?: string[] } {
     const kind = placeKindOf(p);
-    const box = p.w && p.h ? { w: p.w, h: p.h } : {};
+    // 会場マップの場所（大食堂・受付など）は、地図に描いてある枠（boxes）を押せる四角にする（partsOf）
+    const box = p.w && p.h ? { w: p.w, h: p.h } : p.boxes?.length ? { boxes: p.boxes } : {};
     const here = shopsAt(p.id);
     // 外のピンは会場マップの上の位置（はじめの仮の位置のままなら読みかえる。まだ置き直していないピンは地図に出さない＝offMap。下の一覧には出す）
     const spot = outsideSpot(p);
@@ -129,7 +130,15 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const withShops = spotPins.filter((p) => p.count);
   const empty = spotPins.filter((p) => !p.count);
   const facPins = pins.filter((p) => p.kind !== "spot");
-  const onMap = pins.filter((p) => !p.offMap);
+  /** 地図に置く物：会場マップの場所は、描いてある枠ごとに 1 つの四角（トイレ 3 か所なら 3 つ。どれを押しても同じ場所を選ぶ） */
+  const partsOf = (p: (typeof pins)[number]): MapPin[] =>
+    p.boxes?.length
+      ? p.boxes.flatMap((b, i) => {
+          const r = outBoxRect(b);
+          return r ? [{ ...p, ...r, plan: true, part: i }] : [];
+        })
+      : [p];
+  const onMap = pins.filter((p) => !p.offMap).flatMap(partsOf);
   // 横にスクロールする地図で、はじめに見せる所：お店のある部屋・ピン、無ければ玄関
   const shopIds = onMap.filter((p) => p.kind === "spot" && p.count).map((p) => p.id);
   const focusIds = shopIds.length ? shopIds : onMap.filter((p) => p.kind === "gate").map((p) => p.id);
@@ -192,7 +201,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
 
   /** 何も選んでいないときの案内（時期と、この面にお店があるかで言い分ける） */
   const prompt = !cur
-    ? "地図のピンか、下の「外の場所」を押すと、そこのお店・出し物が出ます。"
+    ? "地図に描いてある場所（大食堂・受付など）か、下の「外の場所」を押すと、そこのお店・出し物や案内が出ます。"
     : !inArea.length
       ? "この階には、まだ場所の印がありません。"
       : withShops.length
@@ -430,13 +439,21 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
                 </div>
               </>
             )}
+            {!cur && (
+              <div>
+                <dt>
+                  <span className="mp-swatch mp-swatch--on" aria-hidden="true" />
+                </dt>
+                <dd>外の地図は、描いてある場所（大食堂・受付・トイレ・バス停など）を押すと、そこのお店・出し物や案内が出ます（太い枠：いま選んでいる場所）</dd>
+              </div>
+            )}
             <div>
               <dt>
                 <span className="mp-glyph mp-glyph--fac" aria-hidden="true">
                   <span>WC</span>
                 </span>
               </dt>
-              <dd>トイレ・受付・救護・建物などの設備（四角い印）</dd>
+              <dd>トイレ・受付・救護・休憩所・バス停などの設備（下の一覧の四角い印）</dd>
             </div>
             <div>
               <dt>

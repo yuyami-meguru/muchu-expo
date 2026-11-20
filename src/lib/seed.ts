@@ -30,8 +30,7 @@ export const SEED_DEPTS: Dept[] = [
 ];
 
 export const SEED_PLACES: Place[] = [
-  { id: "tent-chiiku", name: "知育館そばのテント", x: 72, y: 30, note: "射的・くじ引き・押し花しおり" },
-  { id: "tent-food", name: "屋外テント（食べ物）", x: 48, y: 62, note: "焼きそば・唐揚げ（予定）" },
+  // 外のテント（体験・食べ物）は、v0.17.0 から会場マップの場所（outside-plan.ts の OUT_PLACES：out-shokudo・out-yakisoba）
   { id: "classroom", name: "知育館の教室", x: 24, y: 36, note: "喫茶・発表・展示" },
   { id: "radio", name: "放送ブース", x: 36, y: 74, note: "場所は決まりしだいお知らせします" },
 ];
@@ -47,7 +46,7 @@ export const SEED_SHOPS: Shop[] = [
     catch: "竹の鉄砲で、ねらって当てよう！",
     description:
       "学校の竹林で取った竹で、輪ゴム鉄砲を手作りしました。高得点の人にはお菓子、そのほかの人にも生徒が3Dプリンターなどでつくったオリジナルグッズの景品があります。参加賞は駄菓子です。",
-    placeId: "tent-chiiku",
+    placeId: "out-shokudo",
     menu: [item("shateki", "射的"), item("kuji", "くじ引き")],
   },
   {
@@ -59,7 +58,7 @@ export const SEED_SHOPS: Shop[] = [
     name: "押し花しおりづくり",
     catch: "生徒が育てた花で、自分だけのしおりを",
     description: "夏から生徒が種をまいて育てた花（キク・パンジー・コスモス・ジニア・ビオラ）を押し花にして、しおりをつくれます。",
-    placeId: "tent-chiiku",
+    placeId: "out-shokudo",
     menu: [item("shiori", "押し花しおり")],
   },
   {
@@ -69,6 +68,7 @@ export const SEED_SHOPS: Shop[] = [
     kind: "eat",
     order: 30,
     name: "エンカレ茶屋",
+    placeId: "out-chaya",
     catch: "エンカレの桜のさくら茶で、ほっとひと息",
     description: "エンカレの桜を使ったさくら茶と緑茶、焼き団子、焼き芋（大学芋・塩バター味）。",
     menu: [item("sakura", "さくら茶"), item("ryokucha", "緑茶"), item("dango", "焼き団子"), item("daigaku", "大学芋"), item("shiobata", "焼き芋 塩バター味")],
@@ -82,7 +82,7 @@ export const SEED_SHOPS: Shop[] = [
     name: "焼きそば",
     catch: "鉄板で焼きたて",
     description: "鉄板で焼きたての焼きそば。青のり・マヨネーズのトッピングも。",
-    placeId: "tent-food",
+    placeId: "out-yakisoba",
     menu: [item("yakisoba", "焼きそば", "400円前後（予定）", "青のり・マヨ")],
   },
   {
@@ -94,7 +94,7 @@ export const SEED_SHOPS: Shop[] = [
     name: "唐揚げ",
     catch: "揚げたてにオーロラソースとレモン",
     description: "揚げたての唐揚げに、オーロラソースとレモンを添えて。",
-    placeId: "tent-food",
+    placeId: "out-yakisoba",
     menu: [item("karaage", "唐揚げ")],
   },
   {
