@@ -648,6 +648,27 @@ function outPlacesFix(r: Raw): { shop: Record<string, string>; dropPlaces: strin
   return Object.keys(shop).length || dropPlaces.length ? { shop, dropPlaces, log } : null;
 }
 
+/** v0.18.0 の「2 階の部屋の四角を新しい見取り図に合わせる」を、このサーバーの中でもう試したか */
+let f2FixTried = false;
+/**
+ * 知育館 2 階の見取り図の直し（2026-11-20 ユーザーの修正版）：202 の下の帯は廊下に、倉庫が無くなって玄関ホールが右へ広がった。
+ * 部屋の四角（202・玄関ホール）が、はじめの位置（FLOOR_SEED の前の値）のままなら、新しい形に合わせる。実行委員が動かした四角はそのまま
+ */
+const F2_FIX: Record<string, { from: number[]; to: number[] }> = {
+  "f2-202": { from: [27.3, 64.1, 12.6, 34.2], to: [27.3, 58.8, 12.6, 23.6] },
+  "f2-genkan": { from: [62.8, 64.1, 29.3, 34.2], to: [66.5, 64.1, 36.7, 34.2] },
+};
+function f2PlanFix(r: Raw): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const [id, f] of Object.entries(F2_FIX)) {
+    const o = objOf(r.place[id] ?? "");
+    if (!o || ![o.x, o.y, o.w, o.h].every((v, i) => v === f.from[i])) continue;
+    const [x, y, w, h] = f.to;
+    out[id] = JSON.stringify({ ...o, x, y, w, h });
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -707,6 +728,15 @@ async function loadRaw(): Promise<Raw> {
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }
+    }
+  }
+  // v0.18.0（2026-11-20）：知育館 2 階の見取り図をユーザーの修正版に（floor-plans.ts）。部屋の四角を 1 度だけ合わせる（f2PlanFix。目印 muchu:fix:f2-plan）
+  if (!f2FixTried && storeReady()) {
+    f2FixTried = true;
+    const fix = f2PlanFix(r);
+    if (fix && (await b.flagOnce("fix:f2-plan"))) {
+      await b.hset("place", fix);
+      r = await b.readAll();
     }
   }
   return r;
