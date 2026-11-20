@@ -38,7 +38,7 @@ export const OUT_BOXES: readonly OutBox[] = [
   { id: "iriguchi", k: "other", x1: 688, y1: 240, x2: 760, y2: 280, label: "入口", size: 15 },
   // v0.17.0（2026-11-20）：体験が知育館の前から大食堂の中に変わった（ユーザー）。大食堂で体験・休憩ができるので、
   // お店・出し物の色にして「体験・休憩」を添える（知育館の前の「体験」の箱は消した）
-  { id: "shokudo", k: "booth", x1: 763, y1: 219, x2: 936, y2: 280, label: "大食堂", sub: "体験・休憩", dy: -9 },
+  { id: "shokudo", k: "booth", x1: 763, y1: 219, x2: 936, y2: 280, label: "大食堂", sub: "体験・休憩" },
   { id: "yakisoba", k: "booth", x1: 305, y1: 286, x2: 490, y2: 343, label: "焼きそば", size: 20 },
   { id: "marche", k: "booth", x1: 571, y1: 287, x2: 724, y2: 345, label: "エンカレ\nマルシェ", size: 18 },
   { id: "cafe", k: "cafe", x1: 763, y1: 303, x2: 872, y2: 340, label: "カフェ", size: 17 },

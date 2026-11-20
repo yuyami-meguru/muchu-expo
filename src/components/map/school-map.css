@@ -63,8 +63,8 @@ html.big .mx-map--out .mx-map-board { min-width: 720px; }
   font-family: var(--font-display); font-weight: 400; line-height: 1.2; color: var(--op-ink);
 }
 .op-label--recv, .op-label--go { color: var(--op-violet); }
-/* 名前の下に小さく添える字（大食堂の「体験・休憩」） */
-.op-label--sub { font-weight: 700; }
+/* 名前の下に小さく添える字（大食堂の「体験・休憩」。同じ札の 2 行目） */
+.op-label-sub { font-size: 0.85em; font-weight: 700; }
 .op-label--note { color: var(--op-sub); }
 /* トイレ・バス停の印の所（見えない。ピンの名前の札がよける） */
 .op-hit { position: absolute; pointer-events: none; }
