@@ -131,6 +131,20 @@ const moved = await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: "
 check("お店の場所を会場マップの場所（カフェ）にできる", moved.json?.shop?.placeId === "out-cafe");
 check("その場所に戻せる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed })).json?.shop?.placeId === placed);
 
+// v0.21.0：クラフトセンターの下のテント（地域部門）と、11/20 の打ち合わせの 1 度だけの直し
+check("外の地図にクラフトセンターの下のテントがある", out.includes('data-pin="out-tent-craft"') && out.includes("テント（クラフトセンターの下）"));
+check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
+for (const id of ["classroom", "radio"]) {
+  if (!now.place[id]) continue;
+  const p = JSON.parse(now.place[id]);
+  if (p.area) continue;
+  const used = Object.values(now.shop).some((x) => {
+    const s = JSON.parse(x);
+    return !s.hidden && s.placeId === id;
+  });
+  check(`会場マップに置き場所の無い前のピン「${p.name}」は、お店が${used ? "あれば一覧に出る" : "無ければ一覧に出ない"}`, out.includes(`>${p.name}<`) === used);
+}
+
 // フォントを先に読む印（<link rel="preload" as="font">）がたくさんあると、遅い回線で最初の表示が何十秒も遅れる（R8）。
 // 字の形は表示のあとに読めばよいので、HTML と Link ヘッダーの as="font" は 0 か、ごく少ないこと
 for (const path of ["/", "/shops", "/map?area=f3", "/staff/login"]) {

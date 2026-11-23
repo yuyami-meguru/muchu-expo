@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { radioShown, RADIO_SHOP } from "@/lib/radio-shop";
+import { outsideSpot } from "@/lib/outside-plan";
 import { loadAll } from "@/lib/store";
 import { AccessMap } from "@/components/access/map-buttons";
 import { MapView } from "./map-view";
@@ -28,7 +29,10 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
   // 「外」と「知育館の中（2階・3階・4階）」のように、建物ごとの階を並べて説明する
   // 校内ラジオを隠しているあいだ（radio-shop.ts）は、ラジオの場所（放送ブース）も、ほかにお店・出し物が無ければ一覧に出さない
   const radioPlace = radioShown(shops) ? undefined : shops.find((s) => s.id === RADIO_SHOP)?.placeId;
-  const shownPlaces = radioPlace && !visible.some((s) => s.placeId === radioPlace) ? places.filter((p) => p.id !== radioPlace) : places;
+  // v0.21.0：会場マップに置き場所の無い前の外のピン（「校舎の教室」など。outsideSpot が null）も、お店・出し物が無ければ一覧に出さない
+  // （「未定」と並ぶだけで、お客さんには探しようがないので）。実行委員が置き直したピン・お店のあるピンは出す
+  const used = (id: string) => visible.some((s) => s.placeId === id);
+  const shownPlaces = places.filter((p) => used(p.id) || (p.id !== radioPlace && outsideSpot(p) !== null));
   const inside = [...new Set(areas.map((a) => a.building))]
     .map((b) => `${b}の中（${areas.filter((a) => a.building === b).map((a) => a.floor).join("・")}）`)
     .join("、");

@@ -669,6 +669,70 @@ function f2PlanFix(r: Raw): Record<string, string> | null {
   return Object.keys(out).length ? out : null;
 }
 
+/** v0.21.0 の「11/20 の打ち合わせの内容を入れる」を、このサーバーの中でもう試したか */
+let minutesFixTried = false;
+/** 打ち合わせで決まった値段（v0.21.0） */
+const YAKISOBA_PRICE = { from: "400円前後（予定）", to: "300円" };
+const CHAYA_SET = { name: "セット（団子 1 個・飲み物・金平糖）", price: "300円" };
+/** 打ち合わせで決まった時間（お店の「当日の流れ」が空のときだけ入れる） */
+const MINUTES_SCHEDULE: Record<string, { time: string; text: string }[]> = {
+  shateki: [{ time: "10:00〜12:00", text: "射的・くじ引き" }],
+  oshibana: [{ time: "12:00〜14:00", text: "押し花しおりづくり" }],
+};
+/** 地域のつくり手を紹介の場所（会場マップのテント。outside-plan.ts） */
+const CHIIKI_PLACE = "out-tent-craft";
+
+/**
+ * 11/20 の打ち合わせ（ユーザーが貼った議事録）で決まったことを、お店の情報に 1 度だけ入れる直し（無ければ null）。
+ * お店の人・実行委員がもう書きかえた欄はさわらない（はじめの値か空のときだけ）：
+ * 焼きそばの値段（400円前後（予定）→ 300円）、エンカレ茶屋のメニューの先頭にセット 300 円（セットがまだ無ければ。ほかの品はそのまま）、
+ * 地域のつくり手を紹介の場所（未定なら、クラフトセンターの下のテント）、射的 10:00〜12:00・押し花しおりづくり 12:00〜14:00（当日の流れが空なら）
+ */
+function minutesFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } | null {
+  const at = Date.now();
+  const why = "（11/20 の打ち合わせ。サイトの更新 v0.21.0 で）";
+  const shop: Record<string, string> = {};
+  const log: LogEntry[] = [];
+  const edit = (sid: string, f: (o: Record<string, unknown>, add: (field: string, before: string, after: string) => void) => Record<string, unknown> | null) => {
+    const o = objOf(r.shop[sid] ?? "");
+    if (!o) return;
+    const shopName = str(o.name) || sid;
+    const next = f(o, (field, before, after) => log.push({ at, by: "admin", shop: sid, shopName, field, before, after: `${after}${why}` }));
+    if (next) shop[sid] = JSON.stringify({ ...o, ...next, updatedAt: at });
+  };
+  const menuOf = (o: Record<string, unknown>) => (Array.isArray(o.menu) ? (o.menu as unknown[]) : []).filter((m): m is Record<string, unknown> => !!m && typeof m === "object");
+
+  edit("yakisoba", (o, add) => {
+    const menu = menuOf(o);
+    const i = menu.findIndex((m) => str(m.name) === "焼きそば" && str(m.price) === YAKISOBA_PRICE.from);
+    if (i < 0) return null;
+    add("メニュー（焼きそばの値段）", YAKISOBA_PRICE.from, YAKISOBA_PRICE.to);
+    return { menu: menu.map((m, j) => (j === i ? { ...m, price: YAKISOBA_PRICE.to } : m)) };
+  });
+  edit("chaya", (o, add) => {
+    const menu = menuOf(o);
+    if (menu.some((m) => str(m.name).includes("セット"))) return null;
+    const ids = new Set(menu.map((m) => str(m.id)));
+    let id = "set";
+    for (let n = 2; ids.has(id); n++) id = `set-${n}`;
+    add("メニュー", "", `${CHAYA_SET.name} ${CHAYA_SET.price} を先頭に追加`);
+    return { menu: [{ id, name: CHAYA_SET.name, price: CHAYA_SET.price, note: "", stock: "on" }, ...menu] };
+  });
+  edit("chiiki", (o, add) => {
+    if (str(o.placeId)) return null;
+    add("場所", "未定", "テント（クラフトセンターの下）");
+    return { placeId: CHIIKI_PLACE };
+  });
+  for (const [sid, rows] of Object.entries(MINUTES_SCHEDULE)) {
+    edit(sid, (o, add) => {
+      if (Array.isArray(o.schedule) && o.schedule.length) return null;
+      add("当日の流れ", "", rows.map((x) => `${x.time} ${x.text}`).join("、"));
+      return { schedule: rows };
+    });
+  }
+  return Object.keys(shop).length ? { shop, log } : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -737,6 +801,21 @@ async function loadRaw(): Promise<Raw> {
     if (fix && (await b.flagOnce("fix:f2-plan"))) {
       await b.hset("place", fix);
       r = await b.readAll();
+    }
+  }
+  // v0.21.0（2026-11-24）：11/20 の打ち合わせで決まった値段・場所・時間を、お店の情報に 1 度だけ入れる（minutesFix。目印 muchu:fix:minutes-1120）。
+  // はじめの値・空の欄だけ直すので、お店の人・実行委員が書いた所は残る。そのあとは実行委員・お店の人の変更に従う。変更の記録にも残す
+  if (!minutesFixTried && storeReady()) {
+    minutesFixTried = true;
+    const fix = minutesFix(r);
+    if (fix && (await b.flagOnce("fix:minutes-1120"))) {
+      await b.hset("shop", fix.shop);
+      r = await b.readAll();
+      try {
+        if (fix.log.length) await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
     }
   }
   return r;

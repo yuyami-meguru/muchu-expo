@@ -43,6 +43,9 @@ export const OUT_BOXES: readonly OutBox[] = [
   { id: "marche", k: "booth", x1: 571, y1: 287, x2: 724, y2: 345, label: "エンカレ\nマルシェ", size: 18 },
   { id: "cafe", k: "cafe", x1: 763, y1: 303, x2: 872, y2: 340, label: "カフェ", size: 17 },
   { id: "craft", k: "other", x1: 948, y1: 265, x2: 1050, y2: 385, label: "クラフト\nセンター・\n音楽室", size: 15 },
+  // v0.21.0（2026-11-20 ユーザー）：クラフトセンターの下の道に、端に寄せてテントが増えた（道の線の左・藤棚との間に縦長 1 つ）。
+  // 地域部門（地域のつくり手を紹介）のテント。パンフの会場マップ（build.mjs の mapSvg）にも同じ位置で入っている
+  { id: "tent-craft", k: "booth", x1: 910, y1: 398, x2: 950, y2: 528, label: "テ\nン\nト", size: 15 },
   { id: "shoshokudo", k: "bldg", x1: 82, y1: 354, x2: 188, y2: 555, label: "小食堂" },
   { id: "chaya", k: "booth", x1: 197, y1: 356, x2: 286, y2: 538, label: "茶屋", size: 22 },
   { id: "rest-w", k: "rest", x1: 317, y1: 420, x2: 392, y2: 535, label: "休憩" },
@@ -112,6 +115,7 @@ const MAP_PLACES: { id: string; name: string; kind: PlaceKind; boxes: string[]; 
   { id: "out-marche", name: "エンカレマルシェ", kind: "spot", boxes: ["marche"] },
   { id: "out-cafe", name: "カフェ", kind: "spot", boxes: ["cafe"] },
   { id: "out-chaya", name: "茶屋", kind: "spot", boxes: ["chaya"] },
+  { id: "out-tent-craft", name: "テント（クラフトセンターの下）", kind: "spot", boxes: ["tent-craft"] },
   { id: "out-fire", name: "ファイヤーサークル", kind: "spot", boxes: ["fire"] },
   { id: "out-fuji", name: "藤棚", kind: "spot", boxes: ["fuji"] },
   { id: "out-recv", name: "受付", kind: "info", boxes: ["recv"] },
