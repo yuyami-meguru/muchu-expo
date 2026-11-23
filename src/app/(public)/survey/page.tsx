@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Sprite } from "@/components/pixel/sprites";
+import { getSession } from "@/lib/auth";
 import { getSetting, loadAll, surveyOpen } from "@/lib/store";
 import { AWARD_DEPT, AWARD_KEY, parseAward } from "../award/award-data";
 import { deptLookup } from "@/lib/types";
@@ -15,7 +16,9 @@ export const metadata: Metadata = { title: "アンケート" };
  * 開催前は答えようがないので、問いは出さずに「当日からお願いします」（送る API でも断る。練習で表示の時期を「当日」にしたときは出る）
  */
 export default async function SurveyPage() {
-  const [{ shops, depts }, open, awardRaw] = await Promise.all([loadAll(), surveyOpen(), getSetting(AWARD_KEY)]);
+  const [{ shops, depts }, open, awardRaw, session] = await Promise.all([loadAll(), surveyOpen(), getSetting(AWARD_KEY), getSession()]);
+  // 実行委員としてログインしている人は、開催前・受付を止めているあいだも下見できる（送っても保存しない）
+  const preview = session?.role === "admin";
   const dept = deptLookup(depts);
   const choices = shops
     .filter((s) => !s.hidden)
@@ -24,6 +27,7 @@ export default async function SurveyPage() {
   const awards = parseAward(awardRaw).awards.map((x) => ({ id: x.id, name: x.name, note: x.note }));
   const kojin = choices.filter((c) => shops.find((s) => s.id === c.id)?.dept === AWARD_DEPT);
   const form = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} />;
+  const previewForm = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} preview />;
   return (
     <div className="sv-wrap">
       <header className="sv-head">
@@ -35,6 +39,9 @@ export default async function SurveyPage() {
       </header>
       <ByPhase
         before={
+          preview ? (
+            previewForm
+          ) : (
           <div className="sv-closed">
             <p>アンケートは、当日（11/28）からお願いします。</p>
             <p className="sv-closed-sub">会場でお楽しみいただいたあとに、このページから答えられます。</p>
@@ -43,9 +50,10 @@ export default async function SurveyPage() {
               <Link href="/info">ご来場の方へ（行き方・送迎バス）</Link>
             </p>
           </div>
+          )
         }
-        day={open ? form : <p className="sv-closed">いまはアンケートを受け付けていません。</p>}
-        after={open ? form : <p className="sv-closed">アンケートの受付は終わりました。たくさんのご回答、ありがとうございました。</p>}
+        day={open ? form : preview ? previewForm : <p className="sv-closed">いまはアンケートを受け付けていません。</p>}
+        after={open ? form : preview ? previewForm : <p className="sv-closed">アンケートの受付は終わりました。たくさんのご回答、ありがとうございました。</p>}
       />
     </div>
   );

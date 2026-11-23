@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { phaseOf } from "@/lib/ops";
 import { getSetting, listSurvey, loadAll, storeReady, surveyOpen } from "@/lib/store";
@@ -88,7 +89,16 @@ export default async function SurveyResultsPage() {
 
   return (
     <div className="st-page st-page--wide st-stack sr">
-      <PageHeader title="アンケートの集計" sub="来てくれた人のアンケートの結果です。実行委員と先生だけが見られます" />
+      <PageHeader
+        title="アンケートの集計"
+        sub="来てくれた人のアンケートの結果です。実行委員と先生だけが見られます"
+        actions={
+          // 実行委員は、開催前でもお客さんのアンケートの問いを下見できる（送っても保存しない。v0.20.0）
+          <Button href="/survey" size="sm" icon="外へ">
+            アンケートを下見する
+          </Button>
+        }
+      />
 
       <div className="sr-top">
         <div className="sr-stat">

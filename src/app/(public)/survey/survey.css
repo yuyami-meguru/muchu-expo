@@ -79,3 +79,6 @@
 .sv-award-t strong { font-size: 1rem; }
 .sv-award-t small { font-size: 0.85rem; color: var(--ink-2); font-weight: 700; }
 .sv-award select { width: 100%; min-height: 44px; padding: 8px 10px; border-radius: var(--r-sm); border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 1rem; }
+
+/* 実行委員の下見（v0.20.0）の知らせ */
+.sv-preview { margin: 0 0 12px; padding: 12px 14px; border-radius: var(--r-md); background: var(--warn-soft, #fff4d6); border: 2px solid var(--warn, #d9a400); color: var(--ink); font-size: 0.95rem; }

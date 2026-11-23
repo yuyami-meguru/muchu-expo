@@ -48,6 +48,11 @@ await admin.req("PUT", "/api/staff/survey", { open: true });
 check("実行委員は表示の時期を「開催前」にできる", (await admin.req("PUT", "/api/staff/phase", { mode: "before" })).status === 200);
 const early = await anon.req("POST", "/api/survey", { who: "保護者", impression: "開催前のテスト" });
 check("開催前はアンケートを受け付けない（409・当日からの案内）", early.status === 409 && /11\/28/.test(early.json?.error ?? ""), early.json?.error);
+// v0.20.0：開催前でも、実行委員は問いを下見できる（お客さんには「当日から」。下見では送っても保存しない＝API は開催前を断る）
+const pvAnon = await anon.req("GET", "/survey");
+const pvAdmin = await admin.req("GET", "/survey");
+check("開催前のお客さんには問いを出さない", pvAnon.text.includes("当日（11/28）からお願いします") && !pvAnon.text.includes("実行委員の下見です"));
+check("開催前でも実行委員は下見できる（賞ごとの投票の問いもある）", pvAdmin.text.includes("実行委員の下見です") && pvAdmin.text.includes("夢中アワードの投票"));
 check("表示の時期を「当日（開催中）」にする", (await admin.req("PUT", "/api/staff/phase", { mode: "during" })).status === 200);
 const before = await rows();
 

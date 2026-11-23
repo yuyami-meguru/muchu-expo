@@ -67,7 +67,21 @@ function noEnter(e: KeyboardEvent<HTMLInputElement>) {
   e.currentTarget.blur();
 }
 
-export function SurveyForm({ shops, awards = [], candidates = [] }: { shops: Choice[]; awards?: AwardChoice[]; candidates?: Choice[] }) {
+/**
+ * preview：実行委員の下見（v0.20.0）。開催前・受付を止めているあいだも問いを全部見られるが、送っても保存しない
+ * （送る API も開催前は断るので、本番のデータに試しの回答は入らない）
+ */
+export function SurveyForm({
+  shops,
+  awards = [],
+  candidates = [],
+  preview = false,
+}: {
+  shops: Choice[];
+  awards?: AwardChoice[];
+  candidates?: Choice[];
+  preview?: boolean;
+}) {
   const [a, setA] = useState<Answers>(EMPTY);
   const [website, setWebsite] = useState("");
   const [sending, setSending] = useState(false);
@@ -125,6 +139,10 @@ export function SurveyForm({ shops, awards = [], candidates = [] }: { shops: Cho
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (sending) return;
+    if (preview) {
+      setError("下見なので送りません（保存もしません）。当日は、お客さんがこのボタンで送ります。");
+      return;
+    }
     setError("");
     setSending(true);
     // AbortSignal.timeout は古い iPhone に無いので、自分で 20 秒で止める
@@ -190,6 +208,11 @@ export function SurveyForm({ shops, awards = [], candidates = [] }: { shops: Cho
   return (
     <>
       <div className="sv-top" ref={topRef} tabIndex={-1}>
+        {preview && (
+          <p className="sv-preview" role="note">
+            <strong>実行委員の下見です。</strong>お客さんには、11/28（土）の当日から、この問いが出ます。下見では、送っても保存しません。
+          </p>
+        )}
         <p className="sv-lead">
           エンカレ夢中万博にお越しいただき、ありがとうございます。よりよい行事にするために、アンケートへのご協力をお願いします。
           <br />
