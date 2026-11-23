@@ -34,16 +34,35 @@ export default async function AwardPage() {
           <h1 className="aw-h1 px-title">{a.title}</h1>
           <p className="aw-teaser">{a.teaser || "発表をお楽しみに！"}</p>
           <p className="aw-sub">生徒たちの「夢中」の中から、心に残ったものを表彰します。発表されたら、このページに出ます。</p>
-          <p className="aw-links">
-            <Link href="/shops">お店・出し物を見る</Link>
-            {/* アンケートは当日から（開催前は答えようがないので誘わない） */}
-            <InPhase only={["morning", "during", "after"]}>
-              <IfSurveyOpen>
-                <Link href="/survey">アンケートで「印象に残ったもの」を教える</Link>
-              </IfSurveyOpen>
-            </InPhase>
-          </p>
         </header>
+        {/* 発表前も、どんな賞があるか（名前と基準）は見せる。受賞は見せない */}
+        {a.awards.length > 0 && (
+          <section className="aw-pre" aria-labelledby="aw-pre-h">
+            <h2 id="aw-pre-h" className="aw-pre-h">
+              {a.awards.length} つの賞
+            </h2>
+            <ul className="aw-pre-list">
+              {a.awards.map((aw) => (
+                <li key={aw.id} className="aw-pre-card">
+                  <Sprite name="trophy" size={40} />
+                  <div>
+                    <h3 className="aw-name">{aw.name}</h3>
+                    {aw.note && <p className="aw-note">{aw.note}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <p className="aw-links">
+          <Link href="/shops">お店・出し物を見る</Link>
+          {/* アンケートは当日から（開催前は答えようがないので誘わない） */}
+          <InPhase only={["morning", "during", "after"]}>
+            <IfSurveyOpen>
+              <Link href="/survey">アンケートで、それぞれの賞にふさわしい展示に投票する</Link>
+            </IfSurveyOpen>
+          </InPhase>
+        </p>
       </div>
     );
   }

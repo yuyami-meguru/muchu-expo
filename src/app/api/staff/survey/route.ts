@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { fail, guarded, needAdmin, ok, readBody, sameOrigin } from "@/lib/api";
-import { clearSurvey, listSurvey, loadAll, setSurveyOpen } from "@/lib/store";
+import { clearSurvey, getSetting, listSurvey, loadAll, setSurveyOpen } from "@/lib/store";
+import { AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
 import { toCsv, type SurveyAnswer } from "@/lib/survey";
 
 /* アンケートの集計の窓口（実行委員・先生だけ） */
@@ -16,11 +17,12 @@ export async function GET() {
   return guarded(async () => {
     const no = await adminOr403();
     if (no) return no;
-    const { shops } = await loadAll();
+    const [{ shops }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
     const names = Object.fromEntries(shops.map((s) => [s.id, s.name]));
+    const awardNames = Object.fromEntries(parseAward(awardRaw).awards.map((x) => [x.id, x.name]));
     const answers = (await listSurvey()) as SurveyAnswer[];
     const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace(/[-:T]/g, "");
-    return new NextResponse(toCsv(answers.slice().reverse(), names), {
+    return new NextResponse(toCsv(answers.slice().reverse(), names, awardNames), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="muchu-survey-${jst}.csv"`,

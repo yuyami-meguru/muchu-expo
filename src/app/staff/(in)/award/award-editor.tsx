@@ -11,7 +11,8 @@ import { noteAuth } from "../_components/session-signal";
 import { failMsg } from "../ops-result";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
 
-type ShopChoice = { id: string; name: string; dept: string; color: string };
+/** target：賞の対象（個人発表・展示）のお店 */
+type ShopChoice = { id: string; name: string; dept: string; color: string; target?: boolean };
 
 /** 夢中アワードの編集。全部まとめて「保存」で送る */
 export function AwardEditor({
@@ -21,8 +22,13 @@ export function AwardEditor({
   devCounts,
   total,
   ready,
+  awardVotes = {},
+  awardVotesAll = {},
 }: {
   initial: AwardSetting;
+  /** アンケートの夢中アワードの投票（賞の id → お店の id → 数）。同じ端末の回答を 1 つに数えた数と、回答の数 */
+  awardVotes?: Record<string, Record<string, number>>;
+  awardVotesAll?: Record<string, Record<string, number>>;
   shops: ShopChoice[];
   /** アンケートの「印象に残った」の数（お店 id → 数） */
   counts: Record<string, number>;
@@ -78,7 +84,8 @@ export function AwardEditor({
     if (bad >= 0) return setError(`${bad + 1} つ目の賞の名前を入れてください`);
     setPending(true);
     setError("");
-    const r = noteAuth(await send<{ award: AwardSetting }>("/api/staff/award", "PUT", next));
+    // v: 2 ＝ v0.19.0 からの画面で保存した（4 つの賞への読みかえはしない）
+    const r = noteAuth(await send<{ award: AwardSetting }>("/api/staff/award", "PUT", { ...next, v: 2 }));
     setPending(false);
     if (!r.ok) return setError(failMsg("保存", r, "少し待ってから、もう一度［保存する］を押してください（同じ内容なら 2 回押しても大丈夫です）"));
     setA(r.award);
@@ -133,6 +140,11 @@ export function AwardEditor({
 
         {a.awards.map((aw, i) => {
           const chosen = new Set(aw.winners.map((w) => w.shop));
+          // この賞のアンケートの票（端末で 1 票に数えた数の多い順）。候補は賞の対象（個人の展示）が先
+          const av = awardVotes[aw.id] ?? {};
+          const avAll = awardVotesAll[aw.id] ?? {};
+          const byVotes = [...shops].sort((x, y) => Number(!!y.target) - Number(!!x.target) || (av[y.id] ?? 0) - (av[x.id] ?? 0) || (avAll[y.id] ?? 0) - (avAll[x.id] ?? 0));
+          const top = byVotes.filter((s) => (avAll[s.id] ?? 0) > 0).sort((x, y) => (av[y.id] ?? 0) - (av[x.id] ?? 0)).slice(0, 5);
           return (
             <section key={aw.id} className="aw-ed-card">
               <div className="aw-ed-head">
@@ -149,6 +161,23 @@ export function AwardEditor({
               <div className="aw-ed-grid">
                 <TextField label="賞の名前" value={aw.name} maxLength={20} placeholder="例：夢中大賞" onChange={(e) => setAward(i, { name: e.target.value })} />
                 <TextField label="ひとこと（なくてもよい）" value={aw.note} maxLength={60} placeholder="例：いちばん心に残った出し物" onChange={(e) => setAward(i, { note: e.target.value })} />
+              </div>
+              <div className="aw-ed-votes">
+                <h3>アンケートの投票（この賞）</h3>
+                {top.length ? (
+                  <ol>
+                    {top.map((s) => (
+                      <li key={s.id}>
+                        <span>{s.name}</span>
+                        <span className="aw-ed-votes-n">
+                          {av[s.id] ?? 0} 票{(av[s.id] ?? 0) !== (avAll[s.id] ?? 0) ? `（回答 ${avAll[s.id] ?? 0}）` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="st-muted">まだ投票はありません（当日のアンケートで、お客さんが選べます）</p>
+                )}
               </div>
               <h3>受賞するお店</h3>
               {aw.winners.length === 0 && <p className="st-muted">まだ選んでいません</p>}
@@ -181,11 +210,11 @@ export function AwardEditor({
                   onChange={(e) => e.target.value && setAward(i, { winners: [...aw.winners, { shop: e.target.value, comment: "" }] })}
                 >
                   <option value="">選んでください</option>
-                  {ranking
+                  {byVotes
                     .filter((s) => !chosen.has(s.id))
                     .map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.dept} ・ {s.name}（アンケート {votes(s.id)}）
+                        {s.dept} ・ {s.name}（この賞 {av[s.id] ?? 0} 票・印象 {votes(s.id)}）
                       </option>
                     ))}
                 </select>

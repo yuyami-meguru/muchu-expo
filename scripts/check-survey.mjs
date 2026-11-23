@@ -83,6 +83,29 @@ check("ないお店は印象に残ったものから外す", !csv.text.split("\r
 check("見えない欄の送りつけは表に無い", !csv.text.includes("http://spam"));
 check("集計の画面は実行委員だけ", (await shop.req("GET", "/staff/survey")).status === 307);
 
+// v0.19.0：夢中アワードの投票（賞ごとに 1 つ。いまある賞の、個人の展示だけ）
+const KOJIN = Object.values(data.shop).map((v) => JSON.parse(v)).find((s) => s.dept === "kojin" && !s.hidden);
+const awMark = `アワードのテスト ${Date.now()}`;
+check(
+  "賞ごとの投票を送れる（ない賞・ないお店・同じ賞の 2 票目は捨てる）",
+  (
+    await anon.req("POST", "/api/survey", {
+      impression: awMark,
+      award: [
+        { a: "unique", s: KOJIN?.id ?? SHOP },
+        { a: "unique", s: SHOP },
+        { a: "nai-award", s: KOJIN?.id ?? SHOP },
+        { a: "dream", s: "nai-shop" },
+      ],
+    })
+  ).status === 200,
+);
+check("投票だけでも答えたことになる", (await anon.req("POST", "/api/survey", { award: [{ a: "charming", s: KOJIN?.id ?? SHOP }] })).status === 200);
+const awRow = (await admin.req("GET", "/api/staff/survey")).text.split("\r\n").find((l) => l.includes(awMark)) ?? "";
+check("表（CSV）に賞ごとの投票が出る", awRow.includes(`ユニークアワード：${KOJIN?.name ?? ""}`) && !awRow.includes("nai-") && awRow.split("ユニークアワード").length === 2, awRow.slice(0, 120));
+check("アンケートの画面に賞ごとの投票の問いがある", (await (await fetch(BASE + "/survey")).text()).includes("夢中アワードの投票"));
+check("集計の画面に賞ごとの票がある", (await admin.req("GET", "/staff/survey")).text.includes("夢中アワードの投票（賞ごと）"));
+
 check("お店の人は受付を止められない", (await shop.req("PUT", "/api/staff/survey", { open: false })).status === 403);
 check("実行委員は受付を止められる", (await admin.req("PUT", "/api/staff/survey", { open: false })).status === 200);
 check("止めているあいだは送れない", (await anon.req("POST", "/api/survey", { who: "保護者" })).status === 403);

@@ -483,3 +483,10 @@ a.st-list-row:hover { background: var(--surface-2); }
 .rda-fresh { display: inline-flex; align-items: center; min-height: 44px; color: var(--footer-accent); font-weight: 900; }
 /* お店の編集の「場所」：選んでいる場所に、ほかのお店もいるとき */
 .st-place-share { margin: 0 0 8px; font-weight: 700; }
+
+/* 夢中アワード：賞ごとのアンケートの投票（v0.19.0） */
+.aw-ed-votes { margin: 4px 0 8px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.aw-ed-votes h3 { margin: 0 0 6px; font-size: 0.95rem; }
+.aw-ed-votes ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; }
+.aw-ed-votes li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.9rem; }
+.aw-ed-votes-n { font-weight: 800; white-space: nowrap; }

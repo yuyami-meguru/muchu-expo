@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/card";
 import { phaseOf } from "@/lib/ops";
-import { listSurvey, loadAll, storeReady, surveyOpen } from "@/lib/store";
-import { summarize, type SurveyAnswer } from "@/lib/survey";
+import { getSetting, listSurvey, loadAll, storeReady, surveyOpen } from "@/lib/store";
+import { awardCounts, summarize, type SurveyAnswer } from "@/lib/survey";
+import { AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
 import { adminOnly } from "../_components/admin-only";
 import { loadAdminOps, serverNow } from "../_components/staff-settings";
 import { SurveyTools } from "./survey-tools";
@@ -68,12 +69,20 @@ function Texts({ items, empty }: { items: { at: number; text: string; who?: stri
  */
 export default async function SurveyResultsPage() {
   await adminOnly("/staff/survey");
-  const [{ shops }, raw, open, ops] = await Promise.all([loadAll({ fresh: true }), listSurvey(), surveyOpen(), loadAdminOps()]);
+  const [{ shops }, raw, open, ops, awardRaw] = await Promise.all([loadAll({ fresh: true }), listSurvey(), surveyOpen(), loadAdminOps(), getSetting(AWARD_KEY)]);
   const answers = raw as SurveyAnswer[];
   const names = Object.fromEntries(shops.filter((s) => !s.hidden).map((s) => [s.id, s.name]));
   const s = summarize(answers, names);
   const answeredWho = s.total - s.whoBlank;
   const favAlt = Object.fromEntries(s.favByDevice.map((r) => [r.label, r.n]));
+  // 夢中アワードの投票（賞ごと）：回答の数と、同じ端末の回答を 1 つに数えた数
+  const awards = parseAward(awardRaw).awards;
+  const av = awardCounts(answers);
+  const avDev = awardCounts(answers, true);
+  const voteRows = (id: string) =>
+    Object.entries(av[id] ?? {})
+      .map(([shop, n]) => ({ label: names[shop] ?? `（消えたお店：${shop}）`, n, dev: avDev[id]?.[shop] ?? n }))
+      .sort((x, y) => y.dev - x.dev || y.n - x.n);
   // 開催前は、受付をオンにしていても、お客さんは答えられない（11/28 の当日から。練習で表示の時期を「当日」にしたときは答えられる）
   const before = phaseOf(serverNow(), ops.phase) === "before";
 
@@ -144,9 +153,37 @@ export default async function SurveyResultsPage() {
             <Texts items={s.favText} empty="なし" />
           </section>
 
+          {awards.length > 0 && (
+            <section className="sr-card sr-wide">
+              <h2>
+                <span className="sr-no">5</span>夢中アワードの投票（賞ごと）
+              </h2>
+              <p className="sr-sub">多い順は、同じ端末から何度答えても 1 票に数えた数（「端末で」）。受賞は「夢中アワード」の画面で選びます</p>
+              <div className="sr-awards">
+                {awards.map((w) => {
+                  const rows = voteRows(w.id);
+                  const voters = rows.reduce((n, r) => n + r.n, 0);
+                  return (
+                    <div key={w.id} className="sr-award">
+                      <h3>
+                        {w.name}
+                        {w.note && <small>{w.note}</small>}
+                      </h3>
+                      {rows.length ? (
+                        <Bars rows={rows} total={voters} label={`${w.name}の投票`} alt={Object.fromEntries(rows.map((r) => [r.label, r.dev]))} />
+                      ) : (
+                        <p className="sr-empty">まだ投票はありません</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           <section className="sr-card sr-wide">
             <h2>
-              <span className="sr-no">5</span>ご感想（{s.impression.length} 件・新しい順）
+              <span className="sr-no">{awards.length > 0 ? 6 : 5}</span>ご感想（{s.impression.length} 件・新しい順）
             </h2>
             <Texts items={s.impression} empty="まだありません" />
           </section>

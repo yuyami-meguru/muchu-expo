@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/card";
 import { getSetting, listSurvey, loadAll, storeReady } from "@/lib/store";
-import { favCounts, type SurveyAnswer } from "@/lib/survey";
+import { awardCounts, favCounts, type SurveyAnswer } from "@/lib/survey";
 import { deptLookup } from "@/lib/types";
-import { AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
+import { AWARD_DEPT, AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
 import { adminOnly } from "../_components/admin-only";
 import { AwardEditor } from "./award-editor";
 
@@ -25,12 +25,17 @@ export default async function StaffAwardPage() {
   const byDevice = favCounts(list, true);
   const counts = Object.fromEntries(visible.map((s) => [s.id, all[s.id] ?? 0]));
   const devCounts = Object.fromEntries(visible.map((s) => [s.id, byDevice[s.id] ?? 0]));
+  // 夢中アワードの投票（賞ごと。同じ端末の回答を 1 つに数えた数と、回答の数）
+  const awardVotes = awardCounts(list, true);
+  const awardVotesAll = awardCounts(list);
   return (
     <div className="st-page st-page--wide st-stack">
       <PageHeader title="夢中アワード" sub="賞の名前・数・受賞するお店は、あとから自由に変えられます。「発表」のスイッチをオンにするまで、お客さんには見えません" />
       <AwardEditor
         initial={parseAward(raw)}
-        shops={visible.map((s) => ({ id: s.id, name: s.name, dept: dept(s.dept).short, color: dept(s.dept).color }))}
+        shops={visible.map((s) => ({ id: s.id, name: s.name, dept: dept(s.dept).short, color: dept(s.dept).color, target: s.dept === AWARD_DEPT }))}
+        awardVotes={awardVotes}
+        awardVotesAll={awardVotesAll}
         counts={counts}
         devCounts={devCounts}
         total={list.length}

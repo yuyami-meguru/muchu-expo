@@ -62,7 +62,8 @@ check("ないお店は受賞から外す", winners.length === 1 && winners[0] ==
 
 let page = await anon.req("GET", "/award");
 check("発表オフのあいだは講評が出ない", page.status === 200 && !page.text.includes(mark));
-check("発表オフのあいだは賞の名前も出ない", !page.text.includes("テスト大賞"));
+// v0.19.0 から、発表前も賞の名前（と基準）は出す（受賞のお店と講評は出さない）
+check("発表オフのあいだも賞の名前は出る（受賞は出ない）", page.text.includes("テスト大賞") && !page.text.includes(mark));
 check("発表オフのあいだは発表前の文が出る", page.text.includes("14:00 ごろ発表します"));
 
 check("発表をオンにできる", (await admin.req("PUT", "/api/staff/award", award(true))).status === 200);

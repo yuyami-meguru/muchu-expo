@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Sprite } from "@/components/pixel/sprites";
-import { loadAll, surveyOpen } from "@/lib/store";
+import { getSetting, loadAll, surveyOpen } from "@/lib/store";
+import { AWARD_DEPT, AWARD_KEY, parseAward } from "../award/award-data";
 import { deptLookup } from "@/lib/types";
 import { ByPhase } from "../_components/in-phase";
 import { SurveyForm } from "./survey-form";
@@ -14,12 +15,15 @@ export const metadata: Metadata = { title: "アンケート" };
  * 開催前は答えようがないので、問いは出さずに「当日からお願いします」（送る API でも断る。練習で表示の時期を「当日」にしたときは出る）
  */
 export default async function SurveyPage() {
-  const [{ shops, depts }, open] = await Promise.all([loadAll(), surveyOpen()]);
+  const [{ shops, depts }, open, awardRaw] = await Promise.all([loadAll(), surveyOpen(), getSetting(AWARD_KEY)]);
   const dept = deptLookup(depts);
   const choices = shops
     .filter((s) => !s.hidden)
     .map((s) => ({ id: s.id, name: s.name, dept: dept(s.dept).short, color: dept(s.dept).color }));
-  const form = <SurveyForm shops={choices} />;
+  // 夢中アワードの投票：賞（名前と基準）と、対象の個人の展示（無ければ全部のお店）
+  const awards = parseAward(awardRaw).awards.map((x) => ({ id: x.id, name: x.name, note: x.note }));
+  const kojin = choices.filter((c) => shops.find((s) => s.id === c.id)?.dept === AWARD_DEPT);
+  const form = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} />;
   return (
     <div className="sv-wrap">
       <header className="sv-head">

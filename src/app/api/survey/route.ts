@@ -3,6 +3,7 @@ import { clientIp, fail, guarded, ok, readBody } from "@/lib/api";
 import { parsePhaseMode, phaseOf } from "@/lib/ops";
 import { addSurvey, allow, allowHere, getSetting, loadAll, surveyOpen } from "@/lib/store";
 import { isEmptyAnswer, SURVEY_LABELS, surveyBody, type SurveyAnswer } from "@/lib/survey";
+import { AWARD_DEPT, AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
 
 // お客さんのアンケートの回答。ログインはいらない。
 // 回数の上限は「つなぎ先（IP）」ごとに 10 分 600 回。会場の Wi-Fi は全員が同じ IP になることがあるので大きめにし、
@@ -25,9 +26,15 @@ export async function POST(req: NextRequest) {
     if (phaseOf(Date.now(), parsePhaseMode(await getSetting("phase"))) === "before") return fail(409, "アンケートは 11/28（土）の当日からお願いします");
     if (!(await surveyOpen())) return fail(403, "アンケートの受付は終わりました。ありがとうございました");
     if (!(await allow(bucket, LIMIT, 600))) return fail(429, TOO_MANY);
-    const { shops } = await loadAll();
+    const [{ shops }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
     const ids = new Set(shops.filter((s) => !s.hidden).map((s) => s.id));
-    const answer: SurveyAnswer = { ...a, fav: [...new Set(a.fav)].filter((id) => ids.has(id)), ...(device ? { device } : {}), at: Date.now(), v: 1 };
+    // 夢中アワードの投票：いまある賞の、対象の部門（個人）の展示だけ。1 つの賞に 1 票（あとの物は捨てる）
+    const awardIds = new Set(parseAward(awardRaw).awards.map((x) => x.id));
+    const target = new Set(shops.filter((s) => !s.hidden && s.dept === AWARD_DEPT).map((s) => s.id));
+    const candidates = target.size ? target : ids;
+    const votedFor = new Set<string>();
+    const award = a.award.filter((v) => awardIds.has(v.a) && candidates.has(v.s) && !votedFor.has(v.a) && votedFor.add(v.a));
+    const answer: SurveyAnswer = { ...a, fav: [...new Set(a.fav)].filter((id) => ids.has(id)), award, ...(device ? { device } : {}), at: Date.now(), v: 1 };
     await addSurvey(JSON.stringify(answer));
     return ok();
   });

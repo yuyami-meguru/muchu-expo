@@ -70,3 +70,12 @@
 .sv-closed p { margin: 0 0 8px; }
 .sv-closed .sv-closed-sub { font-weight: 500; color: var(--ink-2); }
 .sv-chips--shops .sv-chip > span { display: flex; width: 100%; }
+
+/* 夢中アワードの投票（v0.19.0）：賞ごとに 1 行。名前と基準、その下に選ぶ欄 */
+.sv-awards { display: grid; gap: 12px; margin-top: 10px; }
+@media (min-width: 560px) { .sv-awards { grid-template-columns: 1fr 1fr; } }
+.sv-award { display: grid; gap: 6px; padding: 12px; border-radius: var(--r-lg); background: var(--surface-2); border: 2px solid var(--line); }
+.sv-award-t { display: grid; gap: 2px; }
+.sv-award-t strong { font-size: 1rem; }
+.sv-award-t small { font-size: 0.85rem; color: var(--ink-2); font-weight: 700; }
+.sv-award select { width: 100%; min-height: 44px; padding: 8px 10px; border-radius: var(--r-sm); border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 1rem; }

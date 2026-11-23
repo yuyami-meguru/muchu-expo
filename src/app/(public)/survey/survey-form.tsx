@@ -7,9 +7,21 @@ import { HOW, HOW_LABEL, TRANSPORT, WHO, WHO_GROUPS } from "@/lib/survey";
 import { deviceId } from "../_components/device";
 
 type Choice = { id: string; name: string; dept: string; color: string };
-type Answers = { who: string; how: string[]; howOther: string; transport: string[]; transportOther: string; fav: string[]; favText: string; impression: string };
+type AwardChoice = { id: string; name: string; note: string };
+/** award は夢中アワードの投票（賞の id → 選んだ展示のお店の id。選ばない賞は入れない） */
+type Answers = {
+  who: string;
+  how: string[];
+  howOther: string;
+  transport: string[];
+  transportOther: string;
+  fav: string[];
+  favText: string;
+  award: Record<string, string>;
+  impression: string;
+};
 
-const EMPTY: Answers = { who: "", how: [], howOther: "", transport: [], transportOther: "", fav: [], favText: "", impression: "" };
+const EMPTY: Answers = { who: "", how: [], howOther: "", transport: [], transportOther: "", fav: [], favText: "", award: {}, impression: "" };
 const DONE_KEY = "muchu-survey-done";
 /** 書きかけの回答（このタブの中だけ。ほかのページへ行って戻っても消えない） */
 const DRAFT_KEY = "muchu-survey-draft";
@@ -17,11 +29,12 @@ const DRAFT_KEY = "muchu-survey-draft";
 const SEND_MS = 20_000;
 const NET_ERROR = "電波が弱くて送れませんでした。書いた内容は消えていません。電波のよい所で、もう一度［アンケートを送る］を押してください。";
 
-const isBlank = (a: Answers) => !a.who && !a.how.length && !a.howOther && !a.transport.length && !a.transportOther && !a.fav.length && !a.favText && !a.impression;
+const isBlank = (a: Answers) =>
+  !a.who && !a.how.length && !a.howOther && !a.transport.length && !a.transportOther && !a.fav.length && !a.favText && !Object.keys(a.award).length && !a.impression;
 const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** 下書きを読む（形のちがうもの・いまは無い選択肢は捨てる） */
-function readDraft(raw: string | null, shopIds: Set<string>): Answers | null {
+function readDraft(raw: string | null, shopIds: Set<string>, awardIds: Set<string>): Answers | null {
   if (!raw) return null;
   try {
     const v = JSON.parse(raw) as Partial<Record<keyof Answers, unknown>>;
@@ -35,6 +48,10 @@ function readDraft(raw: string | null, shopIds: Set<string>): Answers | null {
       transportOther: str(v.transportOther, 40),
       fav: list(v.fav, (s) => shopIds.has(s)),
       favText: str(v.favText, 300),
+      award:
+        v.award && typeof v.award === "object"
+          ? Object.fromEntries(Object.entries(v.award as Record<string, unknown>).filter(([k, s]) => awardIds.has(k) && typeof s === "string" && shopIds.has(s)) as [string, string][])
+          : {},
       impression: str(v.impression, 1000),
     };
     return isBlank(a) ? null : a;
@@ -50,7 +67,7 @@ function noEnter(e: KeyboardEvent<HTMLInputElement>) {
   e.currentTarget.blur();
 }
 
-export function SurveyForm({ shops }: { shops: Choice[] }) {
+export function SurveyForm({ shops, awards = [], candidates = [] }: { shops: Choice[]; awards?: AwardChoice[]; candidates?: Choice[] }) {
   const [a, setA] = useState<Answers>(EMPTY);
   const [website, setWebsite] = useState("");
   const [sending, setSending] = useState(false);
@@ -71,7 +88,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
       // 覚えられない端末でも答えられる
     }
     try {
-      const d = readDraft(sessionStorage.getItem(DRAFT_KEY), new Set(shops.map((s) => s.id)));
+      const d = readDraft(sessionStorage.getItem(DRAFT_KEY), new Set(shops.map((s) => s.id)), new Set(awards.map((w) => w.id)));
       if (d) {
         setA(d);
         setRestored(true);
@@ -80,7 +97,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
       // 読めなくても、はじめから答えられる
     }
     setReady(true);
-  }, [shops]);
+  }, [shops, awards]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // 書いている内容を残す（送れたら消す）
@@ -117,7 +134,7 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
       const r = await fetch("/api/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...a, website, device: deviceId() }),
+        body: JSON.stringify({ ...a, award: Object.entries(a.award).map(([k, s]) => ({ a: k, s })), website, device: deviceId() }),
         signal: ctl.signal,
       });
       const j = (await r.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
@@ -283,9 +300,49 @@ export function SurveyForm({ shops }: { shops: Choice[] }) {
           </label>
         </fieldset>
 
+        {awards.length > 0 && candidates.length > 0 && (
+          <fieldset className="sv-q" aria-describedby="sv-q5-hint">
+            <legend>
+              <span className="sv-no">5</span>夢中アワードの投票（個人の展示）
+            </legend>
+            <p className="sv-hint" id="sv-q5-hint">
+              それぞれの賞に、ふさわしいと思う展示を 1 つずつ選んでください。選ばない賞があっても大丈夫です。
+            </p>
+            <div className="sv-awards">
+              {awards.map((w) => (
+                <label key={w.id} className="sv-award">
+                  <span className="sv-award-t">
+                    <strong>{w.name}</strong>
+                    {w.note && <small>{w.note}</small>}
+                  </span>
+                  <select
+                    value={a.award[w.id] ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setA((cur) => {
+                        const next = { ...cur.award };
+                        if (v) next[w.id] = v;
+                        else delete next[w.id];
+                        return { ...cur, award: next };
+                      });
+                    }}
+                  >
+                    <option value="">選ばない</option>
+                    {candidates.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
         <fieldset className="sv-q">
           <legend>
-            <span className="sv-no">5</span>最後に、エンカレ夢中万博のご感想をお願いします
+            <span className="sv-no">{awards.length > 0 && candidates.length > 0 ? 6 : 5}</span>最後に、エンカレ夢中万博のご感想をお願いします
           </legend>
           <label className="sv-text">
             <span className="sr-only">ご感想</span>

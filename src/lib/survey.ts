@@ -38,6 +38,14 @@ export const surveyBody = z.object({
   /** 印象に残ったお店・出し物（お店の id） */
   fav: z.array(z.string().regex(/^[a-z0-9-]{1,40}$/)).max(20).default([]),
   favText: t(300).default(""),
+  /**
+   * 夢中アワードの投票（v0.19.0）：賞の id（award-data.ts）と、その賞にふさわしいと思う展示（お店の id）。1 つの賞に 1 つ。
+   * 選ばなかった賞は入れない
+   */
+  award: z
+    .array(z.object({ a: z.string().regex(/^[a-z0-9-]{1,40}$/), s: z.string().regex(/^[a-z0-9-]{1,40}$/) }))
+    .max(10)
+    .default([]),
   impression: t(1000).default(""),
   /** いたずら対策の見えない欄。人は入れない */
   website: t(100).default(""),
@@ -61,11 +69,33 @@ export const SURVEY_LABELS: Record<string, string> = {
   transportOther: "来た方法（その他）",
   fav: "印象に残ったお店・出し物",
   favText: "印象に残ったもの",
+  award: "夢中アワードの投票",
   impression: "感想",
 };
 
 export function isEmptyAnswer(a: SurveyInput) {
-  return !a.who && !a.how.length && !a.howOther && !a.transport.length && !a.transportOther && !a.fav.length && !a.favText && !a.impression;
+  return !a.who && !a.how.length && !a.howOther && !a.transport.length && !a.transportOther && !a.fav.length && !a.favText && !a.award.length && !a.impression;
+}
+
+/**
+ * 夢中アワードの票（賞の id → お店の id → 数）。byDevice なら、同じ端末が何回答えても、1 つの賞の 1 つの展示には 1 票
+ * （古い回答には award が無い）
+ */
+export function awardCounts(answers: Pick<SurveyAnswer, "award" | "device">[], byDevice = false): Record<string, Record<string, number>> {
+  const out: Record<string, Record<string, number>> = {};
+  const seen = new Set<string>();
+  for (const x of answers) {
+    for (const v of x.award ?? []) {
+      if (byDevice && x.device) {
+        const k = `${x.device}\n${v.a}\n${v.s}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+      }
+      const m = (out[v.a] ??= {});
+      m[v.s] = (m[v.s] ?? 0) + 1;
+    }
+  }
+  return out;
 }
 
 const count = (items: string[], keys: readonly string[]) => {
@@ -143,13 +173,25 @@ export function summarize(answers: SurveyAnswer[], shopNames: Record<string, str
 }
 
 /** 先生に渡す表（CSV。Excel で開けるように頭に BOM を付ける） */
-export function toCsv(answers: SurveyAnswer[], shopNames: Record<string, string>) {
+export function toCsv(answers: SurveyAnswer[], shopNames: Record<string, string>, awardNames: Record<string, string> = {}) {
   // = + - @ で始まる文は、Excel が式として動かさないよう前に ' を付ける
   const esc = (raw: string) => {
     const v = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
     return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
   };
-  const head = ["回答の日時", "あなたについて", "知ったきっかけ", "きっかけ（その他）", "交通手段", "交通手段（その他）", "印象に残ったお店・出し物", "印象に残ったもの（記入）", "感想", "端末の印（同じ端末の回答は同じ印）"];
+  const head = [
+    "回答の日時",
+    "あなたについて",
+    "知ったきっかけ",
+    "きっかけ（その他）",
+    "交通手段",
+    "交通手段（その他）",
+    "印象に残ったお店・出し物",
+    "印象に残ったもの（記入）",
+    "夢中アワードの投票",
+    "感想",
+    "端末の印（同じ端末の回答は同じ印）",
+  ];
   const rows = answers.map((a) => [
     new Date(a.at + 9 * 3600e3).toISOString().slice(0, 16).replace("T", " "),
     a.who,
@@ -159,6 +201,7 @@ export function toCsv(answers: SurveyAnswer[], shopNames: Record<string, string>
     a.transportOther,
     (a.fav ?? []).map((id) => shopNames[id] ?? id).join("・"),
     a.favText,
+    (a.award ?? []).map((v) => `${awardNames[v.a] ?? v.a}：${shopNames[v.s] ?? v.s}`).join(" ／ "),
     a.impression,
     a.device ?? "",
   ]);
