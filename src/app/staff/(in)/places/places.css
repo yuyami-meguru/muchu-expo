@@ -11,3 +11,21 @@
   .pe-side .st-form-grid { grid-template-columns: minmax(0, 1fr); }
   .pe-side .st-span2 { grid-column: auto; }
 }
+
+/* 会場マップの配置を直す画面（layout-editor.tsx）。枠の上に透明なボタンを重ね、ドラッグで動かす。選んだ枠の右下の角で大きさ */
+.le-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.le-board { user-select: none; -webkit-user-select: none; }
+.le-item {
+  position: absolute; z-index: 2; padding: 0; margin: 0; border: 2px dashed transparent; border-radius: 4px; background: transparent;
+  cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.le-item--tap { border-color: color-mix(in srgb, var(--primary) 28%, transparent); }
+.le-item:hover { border-color: color-mix(in srgb, var(--primary) 70%, transparent); background: color-mix(in srgb, var(--primary) 8%, transparent); }
+.le-item--on { z-index: 3; border: 3px solid var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); cursor: move; }
+.le-item:focus-visible { outline: 3px dashed var(--primary); outline-offset: 2px; }
+.le-handle {
+  position: absolute; right: -10px; bottom: -10px; width: 20px; height: 20px; border-radius: 5px; background: var(--primary);
+  border: 2px solid var(--surface); box-shadow: var(--shadow-card); cursor: nwse-resize; touch-action: none;
+}
+.le-nudge { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; }
+.le-map .mx-map-board { overflow: visible; }

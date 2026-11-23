@@ -145,6 +145,24 @@ for (const id of ["classroom", "radio"]) {
   check(`会場マップに置き場所の無い前のピン「${p.name}」は、お店が${used ? "あれば一覧に出る" : "無ければ一覧に出ない"}`, out.includes(`>${p.name}<`) === used);
 }
 
+// v0.22.0：会場マップの配置をドラッグで直す（PUT /api/staff/outmap。実行委員だけ）
+const lay0 = (await admin.req("GET", "/api/staff/export")).json?.outLayout;
+check("控えに外の会場マップの配置が入る（テントもある）", Array.isArray(lay0?.items) && lay0.items.some((i) => i.id === "tent-craft"));
+check("配置の保存は、ログインしていないと断る", [401, 403].includes((await anon.req("PUT", "/api/staff/outmap", { layout: lay0 })).status));
+check("配置の保存は、お店の人には断る", [401, 403].includes((await shop.req("PUT", "/api/staff/outmap", { layout: lay0 })).status));
+if (lay0?.items) {
+  const movedLay = { items: lay0.items.map((i) => (i.id === "tent-craft" ? { ...i, x1: i.x1 - 40, x2: i.x2 - 40 } : i)) };
+  const put = await admin.req("PUT", "/api/staff/outmap", { layout: movedLay });
+  check("実行委員は配置を保存できる", put.status === 200, String(put.status));
+  const tx = movedLay.items.find((i) => i.id === "tent-craft").x1;
+  check("お客さんの地図が、保存した配置で描かれる", (await page("/map")).includes(`x="${tx}" y="398"`));
+  const dup = { items: [...lay0.items, { ...lay0.items[0] }] };
+  check("同じ id の枠が 2 つある配置は断る", (await admin.req("PUT", "/api/staff/outmap", { layout: dup })).status === 400);
+  check("小さすぎる枠は断る", (await admin.req("PUT", "/api/staff/outmap", { layout: { items: [{ ...lay0.items[1], x2: lay0.items[1].x1 + 2 }] } })).status === 400);
+  check("配置をもとに戻せる", (await admin.req("PUT", "/api/staff/outmap", { layout: lay0 })).status === 200);
+  check("戻したあと、テントはもとの位置", (await page("/map")).includes(`x="${lay0.items.find((i) => i.id === "tent-craft").x1}" y="398"`));
+}
+
 // フォントを先に読む印（<link rel="preload" as="font">）がたくさんあると、遅い回線で最初の表示が何十秒も遅れる（R8）。
 // 字の形は表示のあとに読めばよいので、HTML と Link ヘッダーの as="font" は 0 か、ごく少ないこと
 for (const path of ["/", "/shops", "/map?area=f3", "/staff/login"]) {

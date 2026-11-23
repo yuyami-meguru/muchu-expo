@@ -292,3 +292,16 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
   .mx-map--floor .mx-map-board, .mx-map--out .mx-map-board { min-width: 0; }
   .mx-map-board { break-inside: avoid; box-shadow: none; }
 }
+
+/* ───── 実行委員がピン・部屋の四角をドラッグで動かすつまみ（v0.22.0。school-map.tsx の DragGrip） ───── */
+.mx-grip { position: absolute; z-index: 8; touch-action: none; cursor: move; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.mx-grip--box { border: 3px dashed var(--primary); border-radius: 4px; background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.mx-grip--pin {
+  width: 48px; height: 48px; transform: translate(-50%, -42px); border: 3px dashed var(--primary); border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.mx-grip-size {
+  position: absolute; right: -12px; bottom: -12px; width: 24px; height: 24px; border-radius: 6px; background: var(--primary);
+  border: 2px solid var(--surface); box-shadow: var(--shadow-card); cursor: nwse-resize; touch-action: none;
+}
+@media print { .mx-grip { display: none; } }

@@ -1,3 +1,4 @@
+import type { OutLayout } from "./outside-plan";
 // 夢中万博のデータの形。保存先（Upstash Redis）にはこの形の JSON をそのまま入れる。
 
 /** 部門の色（色見本から選ぶ。CSS の .tone-○○ と同じ名前） */
@@ -163,7 +164,8 @@ export function placeOptions(places: Place[], areas: Area[]): PlaceOption[] {
 /** 実行委員からのお知らせ（トップに出す） */
 export type News = { id: string; text: string; at: number; pinned: boolean };
 
-export type SiteData = { depts: Dept[]; shops: Shop[]; places: Place[]; areas: Area[]; news: News[] };
+/** outLayout は外の会場マップの配置（outside-plan.ts。保存が無ければはじめの配置） */
+export type SiteData = { depts: Dept[]; shops: Shop[]; places: Place[]; areas: Area[]; news: News[]; outLayout: OutLayout };
 
 /** 部門が見つからないとき（消した部門のお店など） */
 export const NO_DEPT: Dept = { id: "", name: "未分類", short: "未分類", tagline: "", color: "brown", order: 9999 };

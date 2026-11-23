@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { cx } from "@/components/ui/cx";
 import { FLOOR_PLANS, FLOOR_VIEW } from "@/lib/floor-plans";
-import { OUT_VIEW } from "@/lib/outside-plan";
+import { OUT_VIEW, type OutLayout } from "@/lib/outside-plan";
 import { PLACE_KINDS, type PlaceKind } from "@/lib/types";
 import { FloorLabels, FloorPlanSvg } from "./floor-plan";
 import { OutsideLabels, OutsidePlanSvg } from "./outside-plan";
@@ -74,6 +74,8 @@ export function SchoolMap({
   pickOnly = false,
   shapeRooms = true,
   onBuilding,
+  outLayout,
+  drag,
 }: {
   pins: MapPin[];
   selected?: string | null;
@@ -94,6 +96,13 @@ export function SchoolMap({
   shapeRooms?: boolean;
   /** 外の地図の建物（知育館）を押したとき（その建物の中の地図へ）。無ければ建物は押せない字のまま */
   onBuilding?: (building: string) => void;
+  /** 外の会場マップの配置（無ければはじめの配置） */
+  outLayout?: OutLayout;
+  /**
+   * 実行委員がピン・部屋の四角をドラッグで動かす（v0.22.0。ユーザー「配置をマップ上で自由に」）。id の物の上に動かすつまみを重ね、
+   * 部屋の四角は右下の角で大きさも変えられる。動かすたびに onChange（x・y は割合、部屋は w・h も）
+   */
+  drag?: { id: string; onChange: (p: DragPatch) => void };
 }) {
   function pick(e: MouseEvent<HTMLDivElement>) {
     if (!onPick) return;
@@ -234,8 +243,8 @@ export function SchoolMap({
           >
             {!floor ? (
               <>
-                <OutsidePlanSvg label={label} />
-                <OutsideLabels onBuilding={onPick ? undefined : onBuilding} tabbable={tabbable} />
+                <OutsidePlanSvg label={label} layout={outLayout} />
+                <OutsideLabels layout={outLayout} onBuilding={onPick ? undefined : onBuilding} tabbable={tabbable} />
               </>
             ) : plan ? (
               <>
@@ -252,6 +261,7 @@ export function SchoolMap({
                 <PinMark key={p.id} p={p} on={selected === p.id} onSelect={onSelect} tabbable={tabbable} clamp={clamp} />
               ),
             )}
+            {drag && <DragGrip pin={pins.find((p) => p.id === drag.id && !p.part)} boardRef={boardRef} onChange={drag.onChange} />}
           </div>
         </div>
         {caption && (
@@ -560,5 +570,73 @@ function PinMark({ p, on, onSelect, tabbable, clamp }: { p: MapPin; on: boolean;
         )}
       </span>
     </button>
+  );
+}
+
+/** ドラッグで変える値（x・y は地図の割合。部屋の四角は w・h も） */
+export type DragPatch = { x: number; y: number; w?: number; h?: number };
+/** 部屋の四角の小さすぎない大きさ（割合） */
+const GRIP_MIN = 3;
+const r1 = (v: number) => Math.round(v * 10) / 10;
+
+/**
+ * 選んだピン・部屋の四角を指やマウスで動かすつまみ（実行委員の「地図のピン」。v0.22.0）。
+ * ピンは頭の所をつかんで動かす。部屋の四角は中をつかんで動かし、右下の角で大きさを変える（左上はそのまま）。
+ * 画面の読み上げ・キーボードでは、横の欄の［← 左］などのボタンで動かす（このつまみは読み上げない）
+ */
+function DragGrip({ pin, boardRef, onChange }: { pin: MapPin | undefined; boardRef: RefObject<HTMLDivElement | null>; onChange: (p: DragPatch) => void }) {
+  const st = useRef<{ mode: "move" | "size"; px: number; py: number; x: number; y: number; w: number; h: number; bw: number; bh: number; moved: boolean } | null>(null);
+  if (!pin) return null;
+  const box = !!pin.w && !!pin.h;
+  const w = pin.w ?? 0;
+  const h = pin.h ?? 0;
+  function begin(e: PointerEvent<HTMLElement>, mode: "move" | "size") {
+    if (e.button !== 0 || !pin) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const r = boardRef.current?.getBoundingClientRect();
+    if (!r?.width || !r.height) return;
+    st.current = { mode, px: e.clientX, py: e.clientY, x: pin.x, y: pin.y, w, h, bw: r.width, bh: r.height, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function moveTo(e: PointerEvent<HTMLElement>) {
+    const s = st.current;
+    if (!s) return;
+    if (!s.moved && Math.hypot(e.clientX - s.px, e.clientY - s.py) < 3) return;
+    s.moved = true;
+    const dx = ((e.clientX - s.px) / s.bw) * 100;
+    const dy = ((e.clientY - s.py) / s.bh) * 100;
+    if (s.mode === "size") {
+      const left = s.x - s.w / 2;
+      const top = s.y - s.h / 2;
+      const nw = Math.min(100 - left, Math.max(GRIP_MIN, s.w + dx));
+      const nh = Math.min(100 - top, Math.max(GRIP_MIN, s.h + dy));
+      onChange({ x: r1(left + nw / 2), y: r1(top + nh / 2), w: r1(nw), h: r1(nh) });
+      return;
+    }
+    const hw = box ? s.w / 2 : 0;
+    const hh = box ? s.h / 2 : 0;
+    const x = Math.min(100 - hw, Math.max(hw, s.x + dx));
+    const y = Math.min(100 - hh, Math.max(hh, s.y + dy));
+    onChange(box ? { x: r1(x), y: r1(y), w: s.w, h: s.h } : { x: r1(x), y: r1(y) });
+  }
+  const end = () => {
+    st.current = null;
+  };
+  const common = {
+    "aria-hidden": true,
+    onPointerDown: (e: PointerEvent<HTMLElement>) => begin(e, "move"),
+    onPointerMove: moveTo,
+    onPointerUp: end,
+    onPointerCancel: end,
+    // 放したときの「押した」が地図に届くと、そこが「ここ？」になってしまうので止める
+    onClick: (e: MouseEvent<HTMLElement>) => e.stopPropagation(),
+  } as const;
+  return box ? (
+    <div className="mx-grip mx-grip--box" style={{ left: `${pin.x - w / 2}%`, top: `${pin.y - h / 2}%`, width: `${w}%`, height: `${h}%` }} title="ドラッグで動かす" {...common}>
+      <span className="mx-grip-size" title="ドラッグで大きさを変える" onPointerDown={(e) => begin(e, "size")} />
+    </div>
+  ) : (
+    <div className="mx-grip mx-grip--pin" style={{ left: `${pin.x}%`, top: `${pin.y}%` }} title="ドラッグで動かす" {...common} />
   );
 }

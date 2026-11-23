@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const no = await needAdmin();
   if (no) return no;
-  const { depts, shops, places, areas, news } = await loadAll({ fresh: true });
+  const { depts, shops, places, areas, news, outLayout } = await loadAll({ fresh: true });
   const jst = new Date(Date.now() + 9 * 3600e3).toISOString();
   const stamp = `${jst.slice(0, 10).replace(/-/g, "")}-${jst.slice(11, 16).replace(":", "")}`;
   const body = {
@@ -30,6 +30,8 @@ export async function GET() {
     places: places.filter((p) => !isMapPlace(p)),
     areas,
     news,
+    // 外の会場マップの配置（v0.22.0。会場マップの場所はここから作る）
+    outLayout,
   };
   return new NextResponse(JSON.stringify(body, null, 2), {
     headers: {

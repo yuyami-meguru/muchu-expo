@@ -1,3 +1,4 @@
+import { DEFAULT_LAYOUT } from "./outside-plan";
 import type { Dept, MenuItem, Place, Shop, SiteData } from "./types";
 
 // はじめに入れておくデータ（実行委員まとめ 8 月末時点・LINE 10 月まで）。
@@ -152,4 +153,4 @@ export const SEED_SHOPS: Shop[] = [
 ];
 
 // フロア（areas）とその部屋は floor-plans.ts の FLOOR_SEED から、別に 1 度だけ入れる（store.ts）
-export const SEED: SiteData = { depts: SEED_DEPTS, shops: SEED_SHOPS, places: SEED_PLACES, areas: [], news: [] };
+export const SEED: SiteData = { depts: SEED_DEPTS, shops: SEED_SHOPS, places: SEED_PLACES, areas: [], news: [], outLayout: DEFAULT_LAYOUT };

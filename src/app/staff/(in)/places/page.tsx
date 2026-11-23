@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function StaffPlacesPage() {
   await adminOnly("/staff/places");
-  const { places, shops, areas, depts } = await loadAll({ fresh: true });
+  const { places, shops, areas, depts, outLayout } = await loadAll({ fresh: true });
   const counts = Object.fromEntries(places.map((p) => [p.id, shops.filter((s) => s.placeId === p.id).length]));
   return (
     <div className="st-page st-page--wide st-stack">
@@ -24,7 +24,7 @@ export default async function StaffPlacesPage() {
           </Button>
         }
       />
-      <PlacesEditor places={places} areas={areas} counts={counts} />
+      <PlacesEditor places={places} areas={areas} counts={counts} layout={outLayout} />
       <ShopPlaces shops={shops} places={places} areas={areas} depts={depts} />
     </div>
   );

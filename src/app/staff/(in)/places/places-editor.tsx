@@ -2,16 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
+import { SchoolMap, type DragPatch, type MapBase, type MapPin } from "@/components/map/school-map";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Checkbox, Select, TextField } from "@/components/ui/field";
-import { isMapPlace, OUT_BUILDINGS, OUT_HAS_GATE, OUT_PLACES, outBoxRect, outsideSpot } from "@/lib/outside-plan";
+import { isMapPlace, itemRect, layoutPlaces, outBuildings, outHasGate, outsideSpot, type OutLayout } from "@/lib/outside-plan";
 import { areaName, areaOf, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Place, type PlaceKind } from "@/lib/types";
 import { savedAt, send, slug } from "../../_lib/client";
 import { useUnsavedGuard } from "../shops/[id]/use-unsaved-guard";
+import { LayoutEditor } from "./layout-editor";
 import "./places.css";
 
 /** 直している途中のピン。key は画面の中だけの名前（新しいピンは、英字の名前が空のままでもよい） */
@@ -60,10 +61,23 @@ const onPlan = (p: Place): Place => {
  * フロアの部屋は「四角で描く」にすると、幅と高さのある四角になる（お客さんの地図では、押すとその部屋のお店が出る）。
  * パソコンでは、地図と選んだピンの欄を横に並べる（places.css）。
  */
-export function PlacesEditor({ places: all, areas: initialAreas, counts }: { places: Place[]; areas: Area[]; counts: Record<string, number> }) {
+export function PlacesEditor({
+  places: all,
+  areas: initialAreas,
+  counts,
+  layout,
+}: {
+  places: Place[];
+  areas: Area[];
+  counts: Record<string, number>;
+  /** 外の会場マップの配置（v0.22.0。［会場マップの配置を直す］でドラッグして直せる） */
+  layout: OutLayout;
+}) {
   const router = useRouter();
-  // 会場マップの場所（大食堂・受付など。地図に描いてある決まった場所）は、ここでは動かさない・消さない（外の地図に枠として見せるだけ）
-  const fixed = OUT_PLACES.filter((m) => all.some((p) => p.id === m.id));
+  // 会場マップの場所（大食堂・受付など。配置の枠から作る場所）は、ここでは動かさない・消さない（外の地図に枠として見せるだけ）。
+  // 枠の位置・名前は［会場マップの配置を直す］（LayoutEditor）で直す
+  const fixed = layoutPlaces(layout);
+  const [layoutMode, setLayoutMode] = useState(false);
   const initial = all.filter((p) => !isMapPlace(p));
   const [places, setPlaces] = useState<Draft[]>(() => initial.map((p) => ({ ...onPlan(p), key: p.id })));
   // 保存してある値（変えたかどうか・消すときの名前に使う）。外のピンの位置は、上の places と同じく会場マップの上の位置
@@ -106,6 +120,11 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
   function moveHere() {
     if (!cur || !spot) return;
     update(spot);
+    setSpot(null);
+  }
+  /** 地図の上でドラッグしたとき（v0.22.0）。「ここ？」の案は消す */
+  function dragTo(p: DragPatch) {
+    update(p);
     setSpot(null);
   }
   function nudge(dx: number, dy: number) {
@@ -186,7 +205,7 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
     area === OUTSIDE
       ? fixed.flatMap((p) =>
           (p.boxes ?? []).flatMap((b, i) => {
-            const r = outBoxRect(b);
+            const r = itemRect(layout, b);
             return r ? [{ id: `map:${p.id}`, name: p.name, ...r, plan: true, part: i, count: counts[p.id] || undefined, mark: counts[p.id] ? "店" : undefined, label: p.name }] : [];
           }),
         )
@@ -222,9 +241,9 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
   // 会場マップ（パンフと同じ配置図）に描いてある建物（知育館：押すと中の地図へ）と正門は、ピンが無くてよい
   const outside = places.filter((p) => areaOf(p) === OUTSIDE && !p.isNew);
   const noBuilding = [...new Set(areas.map((a) => a.building))].filter(
-    (b) => !OUT_BUILDINGS.has(b) && !outside.some((p) => placeKindOf(p) === "building" && p.name === b),
+    (b) => !outBuildings(layout).has(b) && !outside.some((p) => placeKindOf(p) === "building" && p.name === b),
   );
-  const noGate = !OUT_HAS_GATE && !outside.some((p) => placeKindOf(p) === "gate");
+  const noGate = !outHasGate(layout) && !outside.some((p) => placeKindOf(p) === "gate");
   // 前の外の地図（OpenStreetMap の形）の仮の位置のままで、会場マップでは置き場所が決まっていないピン（お客さんの地図には出していない）
   const unplaced = Object.values(saved).filter((p) => areaOf(p) === OUTSIDE && !outsideSpot(p));
   // 選んでいるピンの注意：建物のピンの名前がフロアの建物の名前と合わない・お店がつながったまま種類を設備にした
@@ -235,12 +254,18 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
 
   return (
     <div className="st-stack">
-      {area === OUTSIDE && fixed.length > 0 && (
+      {area === OUTSIDE && !layoutMode && (
         <Banner tone="info" title="外の場所は、会場マップに描いてある枠です（ピンを置かなくてよい）">
           <p>
-            {fixed.map((p) => p.name).join("・")}は、地図に描いてある決まった場所です。動かす必要はありません（動かしたり消したりはできません）。
-            お店・出し物をそこにするときは、いちばん下の「お店の場所を決める」か、お店の情報の「場所」で選んでください。ピンを足すのは、会場マップに無い場所だけです。
+            {fixed.length ? `${fixed.map((p) => p.name).join("・")}は、地図に描いてある枠がそのまま場所です。` : ""}
+            枠の位置・大きさ・名前を変えたり、枠を足したり消したりするときは［会場マップの配置を直す］で、地図の上でドラッグして直せます。
+            お店・出し物をそこにするときは、いちばん下の「お店の場所を決める」か、お店の情報の「場所」で選んでください。
           </p>
+          <div className="st-row">
+            <Button size="sm" variant="primary" icon="直す" onClick={() => setLayoutMode(true)}>
+              会場マップの配置を直す
+            </Button>
+          </div>
         </Banner>
       )}
       {unplaced.length > 0 && (
@@ -264,6 +289,18 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
         </Banner>
       )}
 
+      {area === OUTSIDE && layoutMode ? (
+        <>
+          <div className="st-areas" role="group" aria-label="外・フロアの切り替え">
+            {[{ id: OUTSIDE, name: "外" }, ...areas.map((a) => ({ id: a.id, name: areaName(a) }))].map((t) => (
+              <Button key={t.id} size="sm" variant={area === t.id ? "primary" : "secondary"} aria-pressed={area === t.id} disabled={t.id !== OUTSIDE} onClick={() => switchArea(t.id)}>
+                {t.name}
+              </Button>
+            ))}
+          </div>
+          <LayoutEditor layout={layout} counts={counts} buildings={[...new Set(areas.map((a) => a.building))]} onClose={() => setLayoutMode(false)} />
+        </>
+      ) : (
       <div className={cur ? "pe-cols pe-cols--side" : "pe-cols"}>
         <div className="pe-main st-stack">
           <div className="st-areas" role="group" aria-label="外・フロアの切り替え">
@@ -276,12 +313,15 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
           </div>
 
           <SchoolMap
+            outLayout={layout}
             pins={pins}
             selected={sel}
             base={base}
             caption={areaLabel(area)}
             shapeRooms={false}
             pickOnly={!!cur}
+            // v0.22.0：選んだピン・部屋の四角は、地図の上でドラッグして動かせる（部屋は右下の角で大きさも）。保存を押すまで残らない
+            drag={cur ? { id: cur.key, onChange: dragTo } : undefined}
             onSelect={(id) => (id.startsWith("map:") ? showFixed(id) : id !== "__spot" && choose(id))}
             onPick={(x, y) => {
               setSpot({ x, y });
@@ -311,7 +351,7 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
             ) : cur ? (
               <>
                 <p className="st-place-pick">
-                  「{curName}」を選んでいます。動かすときは、地図で動かしたい所を押してから［ここに動かす］を押してください（保存を押すまで残りません）。ほかのピンは下の一覧から選べます。
+                  「{curName}」を選んでいます。{isBox(cur) ? "四角" : "ピン"}を地図の上でドラッグすると動きます{isBox(cur) ? "（右下の角をドラッグすると大きさが変わります）" : ""}。地図で動かしたい所を押して［ここに動かす］でも動かせます。保存を押すまで残りません。ほかのピンは下の一覧から選べます。
                 </p>
                 <div className="st-place-nudge" role="group" aria-label="ピンを少しずつ動かす">
                   <Button size="sm" onClick={() => nudge(-1, 0)} aria-label="左へ少し動かす">
@@ -466,6 +506,7 @@ export function PlacesEditor({ places: all, areas: initialAreas, counts }: { pla
           </Card>
         )}
       </div>
+      )}
 
       <FloorsCard
         areas={areas}

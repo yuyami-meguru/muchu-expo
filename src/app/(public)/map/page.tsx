@@ -22,7 +22,7 @@ function aboutOf(text: string) {
 export default async function MapPage({ searchParams }: { searchParams: Promise<{ place?: string; area?: string }> }) {
   // ?place=・?area= は MapView が URL から読む（戻る・進むでも合わせるため）。ここで待つのは、ページを毎回サーバーで作るため
   await searchParams;
-  const { shops, places, areas, depts } = await loadAll();
+  const { shops, places, areas, depts, outLayout } = await loadAll();
   const visible = shops
     .filter((s) => !s.hidden)
     .map((s) => ({ id: s.id, name: s.name, dept: s.dept, placeId: s.placeId, placeNote: s.placeNote, catch: s.catch, about: aboutOf(s.description) }));
@@ -49,7 +49,7 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
           一覧で見る（階ごとの案内）↓
         </a>
       </header>
-      <MapView shops={visible} places={shownPlaces} areas={areas} depts={depts.filter((d) => visible.some((s) => s.dept === d.id))} />
+      <MapView layout={outLayout} shops={visible} places={shownPlaces} areas={areas} depts={depts.filter((d) => visible.some((s) => s.dept === d.id))} />
       <section className="mp-access" aria-labelledby="mp-access-h">
         <h2 id="mp-access-h">会場への行き方</h2>
         <AccessMap />

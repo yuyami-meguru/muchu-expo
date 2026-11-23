@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { guarded, needAdmin, ok, readBody, zId } from "@/lib/api";
-import { isMapPlace, isMapPlaceId } from "@/lib/outside-plan";
-import { deleteArea, deleteDept, deletePlace, deleteShop, loadAll, saveArea, saveDept, saveLive, savePlace, saveShop, type LivePatch } from "@/lib/store";
+import { isMapPlace, isMapPlaceId, OUT_MAX_ITEMS, parseLayout } from "@/lib/outside-plan";
+import { deleteArea, deleteDept, deletePlace, deleteShop, loadAll, saveArea, saveDept, saveLive, saveOutLayout, savePlace, saveShop, type LivePatch } from "@/lib/store";
 
 /*
  * 控えから戻す（実行委員だけ）。控えの部門・お店・場所で上書きする。
@@ -61,6 +61,8 @@ const backupSchema = z.object({
     places: z.array(placeSchema).max(300),
     /** v0.11.0 から。古い控えには無い（無ければフロアはそのまま） */
     areas: z.array(areaSchema).max(50).optional(),
+    /** v0.22.0 から：外の会場マップの配置。古い控えには無い（無ければ今の配置のまま）。中身は parseLayout で確かめる */
+    outLayout: z.object({ items: z.array(z.unknown()).max(OUT_MAX_ITEMS) }).optional(),
   }),
 });
 
@@ -70,9 +72,12 @@ export async function POST(req: NextRequest) {
     if (no) return no;
     const b = await readBody(req, backupSchema);
     if ("error" in b) return b.error;
-    const { depts, shops, places, areas } = b.data.data;
+    const { depts, shops, places, areas, outLayout } = b.data.data;
     const now = await loadAll({ fresh: true });
 
+    // 外の会場マップの配置（お店の場所は控えのお店の中身で戻るので、ここではお店を「未定」に戻さない）
+    const layout = outLayout ? parseLayout(outLayout) : null;
+    if (layout) await saveOutLayout(layout, []);
     for (const d of depts) await saveDept(d);
     for (const a of areas ?? []) await saveArea(a);
     // 会場マップの場所（大食堂・受付など。保存しない決まった場所）は、控えにあっても書かない

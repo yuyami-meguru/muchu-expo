@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons";
 import { isSelling, LiveShopBadges, shownState } from "@/components/live/live-parts";
 import { useLive, usePhase } from "@/components/live/live-provider";
 import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
-import { outBoxRect, outsideSpot } from "@/lib/outside-plan";
+import { itemRect, outsideSpot, type OutLayout } from "@/lib/outside-plan";
 import { cx } from "@/components/ui/cx";
 import { areaName, areaOf, deptLookup, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind } from "@/lib/types";
 
@@ -45,7 +45,7 @@ function viewOf(q: { get(name: string): string | null }, places: Place[], areas:
  * 選んだ面と場所は URL（?area=・?place=）にも入れる（送る・戻るで同じ所が開く。戻る・進む・下の「マップ」で URL が変わったら、それに合わせる）。
  * 地図の上の部屋・ピンは Tab で通らない（同じものを下の一覧で選べる。読み上げも一覧で）。選んだら、選んだ場所の見出しへフォーカスを移し、短い一文で知らせる
  */
-export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; places: Place[]; areas: Area[]; depts: Dept[] }) {
+export function MapView({ shops, places, areas, depts, layout }: { shops: MapShop[]; places: Place[]; areas: Area[]; depts: Dept[]; layout: OutLayout }) {
   const dept = deptLookup(depts);
   const live = useLive();
   const phase = usePhase();
@@ -134,7 +134,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
   const partsOf = (p: (typeof pins)[number]): MapPin[] =>
     p.boxes?.length
       ? p.boxes.flatMap((b, i) => {
-          const r = outBoxRect(b);
+          const r = itemRect(layout, b);
           return r ? [{ ...p, ...r, plan: true, part: i }] : [];
         })
       : [p];
@@ -258,6 +258,7 @@ export function MapView({ shops, places, areas, depts }: { shops: MapShop[]; pla
 
         <div className="mp-map">
           <SchoolMap
+            outLayout={layout}
             pins={onMap}
             selected={sel}
             onSelect={(id) => go(area, id, { focus: "here" })}

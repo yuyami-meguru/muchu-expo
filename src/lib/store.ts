@@ -8,7 +8,7 @@ import { SEED } from "./seed";
 import { FLOOR_SEED } from "./floor-plans";
 import { LIVE_TIMING, parsePhaseMode, phaseOf } from "./ops";
 import { RADIO_SHOP } from "./radio-shop";
-import { isMapPlaceId, OUT_PLACES } from "./outside-plan";
+import { DEFAULT_LAYOUT, isMapPlaceId, layoutPlaces, parseLayout, type OutLayout } from "./outside-plan";
 import { PLACE_KINDS, TONES, type Area, type Dept, type Kind, type MenuItem, type News, type Place, type Shop, type ShopState, type SiteData, type Stock } from "./types";
 
 /*
@@ -50,8 +50,10 @@ type Raw = {
   key: Record<string, string>;
   live: Record<string, string>;
   area: Record<string, string>;
+  /** 外の会場マップの配置（v0.22.0。"layout" に JSON 1 つ。無ければはじめの配置） */
+  omap: Record<string, string>;
 };
-const TABLES = ["dept", "shop", "place", "news", "key", "live", "area"] as const;
+const TABLES = ["dept", "shop", "place", "news", "key", "live", "area", "omap"] as const;
 /** 当日よく変わる表（ほかの表より短い間だけ使い回す） */
 const LIVE_TABLES = ["live", "news"] as const;
 
@@ -123,7 +125,7 @@ class RedisBackend implements Backend {
   async readAll(): Promise<Raw> {
     // 編集用のかぎ（key）はここでは読まない（お客さんの画面には要らない。照合は hget で 1 件だけ）
     const t = await this.readTables(TABLES.filter((x) => x !== "key"));
-    return { dept: t.dept, shop: t.shop, place: t.place, news: t.news, live: t.live, area: t.area, key: {} };
+    return { dept: t.dept, shop: t.shop, place: t.place, news: t.news, live: t.live, area: t.area, omap: t.omap, key: {} };
   }
   async readTables(tables: readonly string[]) {
     const p = this.r.pipeline();
@@ -214,12 +216,13 @@ class FileBackend implements Backend {
       try {
         this.data = JSON.parse(readFileSync(this.file, "utf8"));
       } catch {
-        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {}, live: {}, area: {} };
+        this.data = { dept: {}, shop: {}, place: {}, news: {}, key: {}, live: {}, area: {}, omap: {} };
       }
       // v0.3.0 の手元データには部門の表が無い。v0.10.0 より前には live が、v0.11.0 より前には area が無い
       this.data!.dept ??= {};
       this.data!.live ??= {};
       this.data!.area ??= {};
+      this.data!.omap ??= {};
       this.data!.flags ??= this.data!.seeded ? { seeded: true } : {};
     }
     return this.data!;
@@ -319,14 +322,14 @@ class FileBackend implements Backend {
 }
 
 // 開発中の作り直し（HMR）で古い形の保存先が残らないよう、形を変えたら名前の数字を上げる
-// （V11：readTables を足した。V17：flagOnce を足した。手元の中身は .data/dev.json から読み直すので消えない）
-const g = globalThis as unknown as { __muchuBackendV17?: Backend };
+// （V11：readTables を足した。V17：flagOnce を足した。V19：表 omap（外の配置）を足した。手元の中身は .data/dev.json から読み直すので消えない）
+const g = globalThis as unknown as { __muchuBackendV19?: Backend };
 function backend(): Backend {
-  if (!g.__muchuBackendV17) {
+  if (!g.__muchuBackendV19) {
     const env = redisEnv();
-    g.__muchuBackendV17 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
+    g.__muchuBackendV19 = env ? new RedisBackend(env.url, env.token) : new FileBackend(process.env.NODE_ENV !== "production");
   }
-  return g.__muchuBackendV17;
+  return g.__muchuBackendV19;
 }
 
 /** 保存先につながっていて書き換えができるか（本番で Upstash が未設定なら false） */
@@ -339,7 +342,7 @@ export function newKey() {
 }
 
 function seedRaw(): Raw {
-  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {}, live: {}, area: {} };
+  const raw: Raw = { dept: seedDepts(), shop: {}, place: {}, news: {}, key: {}, live: {}, area: {}, omap: {} };
   for (const s of SEED.shops) {
     raw.shop[s.id] = JSON.stringify(s);
     raw.key[s.id] = newKey();
@@ -627,7 +630,8 @@ const OUT_MOVES: Record<string, string> = { "tent-food": "out-yakisoba", "tent-c
  */
 function outPlacesFix(r: Raw): { shop: Record<string, string>; dropPlaces: string[]; log: LogEntry[] } | null {
   const at = Date.now();
-  const nameOf = (id: string) => OUT_PLACES.find((p) => p.id === id)?.name ?? id;
+  const mapPlaces = layoutPlaces(layoutOf(r));
+  const nameOf = (id: string) => mapPlaces.find((p) => p.id === id)?.name ?? id;
   const shop: Record<string, string> = {};
   const log: LogEntry[] = [];
   for (const [sid, v] of Object.entries(r.shop)) {
@@ -909,16 +913,23 @@ function withLive(shop: Shop, l: LiveRec | undefined): Shop {
   };
 }
 
+/** 外の会場マップの配置（保存が無い・読めなければ、はじめの配置） */
+function layoutOf(r: Raw): OutLayout {
+  return parseLayout(r.omap?.layout) ?? DEFAULT_LAYOUT;
+}
+
 function siteData(r: Raw): SiteData {
   const live = liveIndex(r.live);
+  const outLayout = layoutOf(r);
   return {
+    outLayout,
     depts: parseTable(r.dept, asDept).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja") || byId(a, b)),
     shops: parseTable(r.shop, asShop)
       .map((s) => withLive(s, live.get(s.id)))
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ja") || byId(a, b)),
-    // 会場マップの場所（outside-plan.ts の OUT_PLACES。保存しない決まった場所）も足す（同じ id の保存した場所は使わない）。
+    // 会場マップの場所（外の配置の枠から作る。outside-plan.ts の layoutPlaces）も足す（「out-」で始まる保存した場所は使わない）。
     // 同じ名前のピン（各階のトイレなど）は、外 → フロアの id の順（f2・f3・f4）
-    places: [...parseTable(r.place, asPlace).filter((p) => !isMapPlaceId(p.id)), ...OUT_PLACES].sort(
+    places: [...parseTable(r.place, asPlace).filter((p) => !isMapPlaceId(p.id)), ...layoutPlaces(outLayout)].sort(
       (a, b) => a.name.localeCompare(b.name, "ja", { numeric: true }) || (a.area ?? "").localeCompare(b.area ?? "", "ja", { numeric: true }) || byId(a, b),
     ),
     areas: parseTable(r.area, asArea).sort(
@@ -1035,6 +1046,27 @@ export async function deletePlace(id: string): Promise<string[]> {
   dropCache();
   return Object.keys(values);
 }
+/**
+ * 外の会場マップの配置を保存する（v0.22.0）。配置から消えた場所（out-…）を場所にしていたお店は「未定」に戻し、そのお店の id を返す
+ * （消えた場所の id は、呼ぶ側が前の配置と比べて渡す）
+ */
+export async function saveOutLayout(layout: OutLayout, dropped: string[]): Promise<string[]> {
+  guard();
+  await backend().hset("omap", { layout: JSON.stringify(layout) });
+  const values: Record<string, string> = {};
+  if (dropped.length) {
+    const gone = new Set(dropped);
+    const shops = await backend().hgetall("shop");
+    for (const [sid, v] of Object.entries(shops)) {
+      const o = objOf(v);
+      if (o && typeof o.placeId === "string" && gone.has(o.placeId)) values[sid] = JSON.stringify({ ...o, placeId: "", updatedAt: Date.now() });
+    }
+    if (Object.keys(values).length) await backend().hset("shop", values);
+  }
+  dropCache();
+  return Object.keys(values);
+}
+
 export async function saveArea(a: Area) {
   guard();
   await backend().hset("area", { [a.id]: JSON.stringify(a) });
