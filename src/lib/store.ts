@@ -767,6 +767,38 @@ function chayaSetFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } 
   return { shop: { chaya: JSON.stringify(next) }, log };
 }
 
+/** v0.22.3 の「保存した外の配置のテントの名前を宮島大工に」を、このサーバーの中でもう試したか */
+let tentNameTried = false;
+/** はじめの配置（v0.21.0〜v0.22.2）のテントの字と場所の名前 */
+const TENT_OLD = { label: "テ\nン\nト", name: "テント（クラフトセンターの下）" };
+
+/**
+ * 実行委員が保存した外の配置（muchu:omap）に、前の名前のテント（テント／テント（クラフトセンターの下））が残っていれば、
+ * はじめの配置と同じ「宮島大工」にする直し（2026-11-24 ユーザー「見取り図 テント→宮島大工」。無ければ null）。
+ * 保存が無い（はじめの配置のまま）なら直すものは無い。実行委員が自分で付けた名前はそのまま
+ */
+function tentNameFix(r: Raw): string | null {
+  const lay = parseLayout(r.omap?.layout);
+  const def = DEFAULT_LAYOUT.items.find((i) => i.id === "tent-craft");
+  if (!lay || !def?.place) return null;
+  let changed = false;
+  const items = lay.items.map((i) => {
+    if (i.id !== "tent-craft") return i;
+    const next = { ...i };
+    if (i.label === TENT_OLD.label) {
+      next.label = def.label;
+      if (i.dy === undefined && def.dy !== undefined) next.dy = def.dy;
+      changed = true;
+    }
+    if (i.place?.name === TENT_OLD.name) {
+      next.place = { ...i.place, name: def.place!.name, note: i.place.note || def.place!.note };
+      changed = true;
+    }
+    return next;
+  });
+  return changed ? JSON.stringify({ items }) : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -865,6 +897,15 @@ async function loadRaw(): Promise<Raw> {
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }
+    }
+  }
+  // v0.22.3（2026-11-24）：保存した外の配置に前の名前のテントが残っていれば「宮島大工」に（tentNameFix。目印 muchu:fix:tent-miyajima）
+  if (!tentNameTried && storeReady()) {
+    tentNameTried = true;
+    const v = tentNameFix(r);
+    if (v && (await b.flagOnce("fix:tent-miyajima"))) {
+      await b.hset("omap", { layout: v });
+      r = await b.readAll();
     }
   }
   return r;

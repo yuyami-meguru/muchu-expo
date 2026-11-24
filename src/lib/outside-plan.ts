@@ -83,8 +83,10 @@ export const DEFAULT_LAYOUT: OutLayout = {
     { id: "marche", k: "booth", x1: 571, y1: 287, x2: 724, y2: 345, label: "エンカレ\nマルシェ", size: 18, place: P("out-marche", "エンカレマルシェ") },
     { id: "cafe", k: "cafe", x1: 763, y1: 303, x2: 872, y2: 340, label: "カフェ", size: 17, place: P("out-cafe", "カフェ") },
     { id: "craft", k: "other", x1: 948, y1: 265, x2: 1050, y2: 385, label: "クラフト\nセンター・\n音楽室", size: 15 },
-    // 2026-11-20：クラフトセンターの下の道に、端に寄せてテントが増えた（ユーザー。道の線の左・藤棚との間に縦長 1 つ）
-    { id: "tent-craft", k: "booth", x1: 910, y1: 398, x2: 950, y2: 528, label: "テ\nン\nト", size: 15, place: P("out-tent-craft", "テント（クラフトセンターの下）") },
+    // 2026-11-20：クラフトセンターの下の道に、端に寄せてテントが増えた（ユーザー。道の線の左・藤棚との間に縦長 1 つ）。
+    // 2026-11-24：地図の名前は「宮島大工」（ユーザー「見取り図 テント→宮島大工」。パンフの会場マップも同じ）。場所の id は変えない。
+    // 4 字だと 1 字目が右上の印（地 1）に隠れるので、字を少し下げる（dy）
+    { id: "tent-craft", k: "booth", x1: 910, y1: 398, x2: 950, y2: 528, label: "宮\n島\n大\n工", size: 15, dy: 10, place: P("out-tent-craft", "宮島大工のテント", "spot", "クラフトセンターの下") },
     { id: "shoshokudo", k: "bldg", x1: 82, y1: 354, x2: 188, y2: 555, label: "小食堂" },
     { id: "chaya", k: "booth", x1: 197, y1: 356, x2: 286, y2: 538, label: "茶屋", size: 22, place: P("out-chaya", "茶屋") },
     { id: "rest-w", k: "rest", x1: 317, y1: 420, x2: 392, y2: 535, label: "休憩", place: REST },
