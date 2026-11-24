@@ -8,7 +8,7 @@ import { SEED } from "./seed";
 import { FLOOR_SEED } from "./floor-plans";
 import { LIVE_TIMING, parsePhaseMode, phaseOf } from "./ops";
 import { RADIO_SHOP } from "./radio-shop";
-import { DEFAULT_LAYOUT, isMapPlaceId, layoutPlaces, parseLayout, type OutLayout } from "./outside-plan";
+import { DEFAULT_LAYOUT, isMapPlaceId, layoutPlaces, parseLayout, type OutItem, type OutLayout } from "./outside-plan";
 import { PLACE_KINDS, TONES, type Area, type Dept, type Kind, type MenuItem, type News, type Place, type Shop, type ShopState, type SiteData, type Stock } from "./types";
 
 /*
@@ -811,9 +811,17 @@ const STAGE_SCHEDULE = [
   { time: "11:00-11:10", text: "ネオ職員室 ライブ（2Fロビー）" },
   { time: "12:00-12:20", text: "ごみ解決PJ 発表（2Fロビー）" },
   { time: "12:30-12:40", text: "ピアノ演奏（音楽室）" },
-  { time: "13:00-13:30", text: "宮大工 トークショー（2Fロビー）" },
+  { time: "13:00-13:30", text: "宮島宮大工 トークショー（2Fロビー）" },
   { time: "13:30-14:00", text: "ピアノ弾き語り（音楽室）" },
 ];
+
+/** ステージ発表の説明（v0.23.1 で「宮大工」→「宮島宮大工」。ユーザー「宮大工も宮島宮大工に全部変更」） */
+const STAGE_DESC = "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮島宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。";
+/** v0.22.4〜v0.23.0 で入れた、前の字（宮大工）の当日の流れの行と説明 */
+const STAGE_OLD = {
+  row: "宮大工 トークショー（2Fロビー）",
+  desc: "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。",
+};
 
 /**
  * 確定したステージ発表を、お店・出し物「ステージ発表」（部門も）として 1 度だけ足す直し（2026-11-24 ユーザーが「サイトにも入れる」を選んだ。無ければ null）。
@@ -828,7 +836,7 @@ function stageFix(r: Raw): { dept: Record<string, string>; shop: Record<string, 
     kind: "see",
     name: "ステージ発表",
     catch: "ライブ・発表・ピアノ・トークショー",
-    description: "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。",
+    description: STAGE_DESC,
     message: "",
     placeId: r.place["f2-genkan"] ? "f2-genkan" : "",
     placeNote: "2F ロビー（ピアノは音楽室）",
@@ -846,6 +854,112 @@ function stageFix(r: Raw): { dept: Record<string, string>; shop: Record<string, 
     key: { stage: newKey() },
     log: [{ at, by: "admin", shop: "stage", shopName: shop.name, field: "お店・出し物", before: "", after: "足した（確定したタイムスケジュールの 5 つ。サイトの更新 v0.22.4 で）" }],
   };
+}
+
+/** v0.23.1〜：パンフの赤ペン（2026-11-24 夕）と「宮島宮大工」を、本番のデータにも入れたか（このサーバーの中で） */
+let redPenTried = false;
+/** はじめの配置のままの小食堂の枠（茶屋の箱を足すのは、実行委員が動かしていないときだけ） */
+const SHOSHOKUDO_AT = { x1: 82, y1: 354, x2: 188, y2: 555 };
+
+/**
+ * 実行委員が保存した外の配置（muchu:omap）を、はじめの配置（DEFAULT_LAYOUT）と同じ赤ペンの形にそろえる直し
+ * （2026-11-24 夕 ユーザー「サイトの地図も合わせる」「宮大工も宮島宮大工に全部変更」。直すものが無ければ null）。
+ * 前の字・前の位置のままの所だけを変える（実行委員が自分で付けた名前・動かした枠はそのまま）。保存が無ければ、はじめの配置がそのまま出る
+ */
+function redPenLayoutFix(r: Raw): string | null {
+  const lay = parseLayout(r.omap?.layout);
+  if (!lay) return null;
+  const def = (id: string) => DEFAULT_LAYOUT.items.find((i) => i.id === id);
+  const tent = def("tent-craft");
+  const shokudo = def("shokudo");
+  const craft = def("craft");
+  const shosho = def("shoshokudo");
+  const chayaIn = def("chaya-in");
+  if (!tent?.place || !shokudo || !craft || !shosho || !chayaIn) return null;
+  const hasChayaIn = lay.items.some((i) => i.id === "chaya-in");
+  let changed = false;
+  const items: OutItem[] = [];
+  for (const i of lay.items) {
+    let next: OutItem = i;
+    if (i.id === "tent-craft") {
+      next = { ...i };
+      if (["宮\n大\n工", ...TENT_OLD.labels].includes(i.label)) {
+        next.label = tent.label;
+        next.size = tent.size;
+        next.dy = tent.dy;
+        if (i.y1 === tent.y1 && i.y2 === 528) next.y2 = tent.y2; // はじめの位置のままなら、5 字が入るよう下へのばす
+        changed = true;
+      }
+      if (i.place && ["宮大工のテント", ...TENT_OLD.names].includes(i.place.name)) {
+        next.place = { ...i.place, name: tent.place.name };
+        changed = true;
+      }
+    } else if (i.id === "shokudo" && i.sub === "体験・休憩") {
+      next = { ...i, sub: shokudo.sub, size: i.size ?? shokudo.size, y1: i.y1 === 219 ? shokudo.y1 : i.y1 };
+      changed = true;
+    } else if (i.id === "craft" && i.label === "クラフト\nセンター・\n音楽室") {
+      next = { ...i, label: craft.label };
+      changed = true;
+    } else if (
+      i.id === "shoshokudo" &&
+      !hasChayaIn &&
+      i.x1 === SHOSHOKUDO_AT.x1 && i.y1 === SHOSHOKUDO_AT.y1 && i.x2 === SHOSHOKUDO_AT.x2 && i.y2 === SHOSHOKUDO_AT.y2
+    ) {
+      items.push({ ...i, dy: i.dy ?? shosho.dy }, chayaIn);
+      changed = true;
+      continue;
+    }
+    items.push(next);
+  }
+  return changed ? JSON.stringify({ items }) : null;
+}
+
+/** 3 階の「文書庫」の部屋の四角（f3-bunsho）を消すか（パンフの赤ペンで消した字。お店・出し物が置かれていれば消さない） */
+function bunshoGone(r: Raw): boolean {
+  const raw = r.place["f3-bunsho"];
+  if (!raw) return false;
+  try {
+    if (JSON.parse(raw).name !== "文書庫") return false;
+  } catch {
+    return false;
+  }
+  return !Object.values(r.shop).some((v) => {
+    try {
+      return JSON.parse(v).placeId === "f3-bunsho";
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** ステージ発表の「宮大工」を「宮島宮大工」に（当日の流れの行と説明。前の字のままの所だけ。無ければ null） */
+function stageNameFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } | null {
+  const raw = r.shop.stage;
+  if (!raw) return null;
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const rows = Array.isArray(o.schedule) ? (o.schedule as { time?: unknown; text?: unknown }[]) : [];
+  const newRow = STAGE_SCHEDULE.find((x) => x.time === "13:00-13:30")?.text ?? "";
+  const rowHit = rows.some((x) => x?.text === STAGE_OLD.row);
+  const descHit = o.description === STAGE_OLD.desc;
+  if (!rowHit && !descHit) return null;
+  const at = Date.now();
+  const shopName = str(o.name) || "stage";
+  const why = "（ユーザー「宮大工も宮島宮大工に全部変更」。サイトの更新 v0.23.1 で）";
+  const log: LogEntry[] = [];
+  if (rowHit) log.push({ at, by: "admin", shop: "stage", shopName, field: "当日の流れ", before: STAGE_OLD.row, after: `${newRow}${why}` });
+  if (descHit) log.push({ at, by: "admin", shop: "stage", shopName, field: "どんなお店？", before: STAGE_OLD.desc, after: `${STAGE_DESC}${why}` });
+  const next = {
+    ...o,
+    ...(rowHit ? { schedule: rows.map((x) => (x?.text === STAGE_OLD.row ? { ...x, text: newRow } : x)) } : {}),
+    ...(descHit ? { description: STAGE_DESC } : {}),
+    updatedAt: at,
+  };
+  return { shop: { stage: JSON.stringify(next) }, log };
 }
 
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
@@ -971,6 +1085,31 @@ async function loadRaw(): Promise<Raw> {
       r = await b.readAll();
       try {
         await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.23.1（2026-11-24 夕）：パンフの試し刷りの赤ペンと「宮島宮大工」を、本番のデータにも 1 度ずつ入れる
+  // （保存した外の配置＝redPenLayoutFix・目印 muchu:fix:out-redpen-1124、3 階の文書庫の四角を消す＝目印 muchu:fix:f3-bunsho、
+  //  ステージ発表の字＝stageNameFix・目印 muchu:fix:stage-miyajima）。そのあとは実行委員が直すのに従う
+  if (!redPenTried && storeReady()) {
+    redPenTried = true;
+    const lay = redPenLayoutFix(r);
+    if (lay && (await b.flagOnce("fix:out-redpen-1124"))) {
+      await b.hset("omap", { layout: lay });
+      r = await b.readAll();
+    }
+    if (bunshoGone(r) && (await b.flagOnce("fix:f3-bunsho"))) {
+      await b.hdel("place", ["f3-bunsho"]);
+      r = await b.readAll();
+    }
+    const st = stageNameFix(r);
+    if (st && (await b.flagOnce("fix:stage-miyajima"))) {
+      await b.hset("shop", st.shop);
+      r = await b.readAll();
+      try {
+        await addLog(st.log);
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }

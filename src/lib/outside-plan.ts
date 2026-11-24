@@ -78,16 +78,23 @@ export const DEFAULT_LAYOUT: OutLayout = {
     { id: "seikatsu", k: "bldg", x1: 160, y1: 219, x2: 685, y2: 280, label: "生活棟（A）", dx: -20 },
     { id: "wc-1", k: "other", shape: "wc", x1: 636, y1: 235, x2: 676, y2: 265, label: "", place: WC },
     { id: "iriguchi", k: "other", x1: 688, y1: 240, x2: 760, y2: 280, label: "入口", size: 15 },
-    { id: "shokudo", k: "booth", x1: 763, y1: 219, x2: 936, y2: 280, label: "大食堂", sub: "体験・休憩", place: P("out-shokudo", "大食堂", "spot", "体験・休憩ができます") },
+    // 2026-11-24 夕：パンフの試し刷りの赤ペンにそろえた（ユーザー「サイトの地図も合わせる」）。大食堂は箱を上へのばして、体験の中身を 3 行目に
+    // （パンフは「（押し花しおり・射的）」。サイトはスマホの字の下限 0.7rem で枠に収まるよう、かっこを外した）
+    { id: "shokudo", k: "booth", x1: 763, y1: 200, x2: 936, y2: 280, label: "大食堂", sub: "体験・休憩\n押し花しおり・射的", size: 17, place: P("out-shokudo", "大食堂", "spot", "体験・休憩ができます") },
     { id: "yakisoba", k: "booth", x1: 305, y1: 286, x2: 490, y2: 343, label: "焼きそば", size: 20, place: P("out-yakisoba", "焼きそば") },
     { id: "marche", k: "booth", x1: 571, y1: 287, x2: 724, y2: 345, label: "エンカレ\nマルシェ", size: 18, place: P("out-marche", "エンカレマルシェ") },
     { id: "cafe", k: "cafe", x1: 763, y1: 303, x2: 872, y2: 340, label: "カフェ", size: 17, place: P("out-cafe", "カフェ") },
-    { id: "craft", k: "other", x1: 948, y1: 265, x2: 1050, y2: 385, label: "クラフト\nセンター・\n音楽室", size: 15 },
+    // 2026-11-24 夕 赤ペン：音楽室で「発表」（ピアノ）
+    { id: "craft", k: "other", x1: 948, y1: 265, x2: 1050, y2: 385, label: "クラフト\nセンター・\n音楽室\n発表", size: 15 },
     // 2026-11-20：クラフトセンターの下の道に、端に寄せてテントが増えた（ユーザー。道の線の左・藤棚との間に縦長 1 つ）。
     // 2026-11-24：地図の名前は「宮大工」（ユーザー「見取り図 テント→宮島大工」のあと「地図も宮大工に」。表の「宮大工　トークショー」とそろえた。
     // パンフの会場マップも同じ）。場所の id は変えない。1 字目が右上の印（地 1）にかからないよう、字を少し下げる（dy）
-    { id: "tent-craft", k: "booth", x1: 910, y1: 398, x2: 950, y2: 528, label: "宮\n大\n工", size: 15, dy: 6, place: P("out-tent-craft", "宮大工のテント", "spot", "クラフトセンターの下") },
-    { id: "shoshokudo", k: "bldg", x1: 82, y1: 354, x2: 188, y2: 555, label: "小食堂" },
+    // 2026-11-24 夕：ユーザー「宮大工も宮島宮大工に全部変更」→ 縦 5 字。スマホの字の下限（0.7rem）でも、右上の印（地 1）にかからず枠に
+    // 収まるよう、サイトでは枠を下へ 20 のばす（パンフは 528 のまま）
+    { id: "tent-craft", k: "booth", x1: 910, y1: 398, x2: 950, y2: 548, label: "宮\n島\n宮\n大\n工", size: 14, dy: 7, place: P("out-tent-craft", "宮島宮大工のテント", "spot", "クラフトセンターの下") },
+    // 2026-11-24 夕 赤ペン：小食堂の中にも「茶屋」の箱（外の茶屋の箱と同じ場所 out-chaya。押すとどちらも茶屋）
+    { id: "shoshokudo", k: "bldg", x1: 82, y1: 354, x2: 188, y2: 555, label: "小食堂", dy: 30 },
+    { id: "chaya-in", k: "booth", x1: 96, y1: 372, x2: 174, y2: 430, label: "茶屋", size: 20, place: P("out-chaya", "茶屋") },
     { id: "chaya", k: "booth", x1: 197, y1: 356, x2: 286, y2: 538, label: "茶屋", size: 22, place: P("out-chaya", "茶屋") },
     { id: "rest-w", k: "rest", x1: 317, y1: 420, x2: 392, y2: 535, label: "休憩", place: REST },
     { id: "rest-n", k: "rest", x1: 398, y1: 358, x2: 517, y2: 415, label: "休憩", place: REST },

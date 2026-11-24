@@ -55,7 +55,6 @@ export const FLOOR_SEED: { areas: Area[]; places: Place[] } = {
     {"id":"f2-toilet","area":"f2","kind":"toilet","name":"トイレ","x":54.6,"y":78.6,"note":""},
     {"id":"f2-entrance","area":"f2","kind":"gate","name":"玄関","x":68.9,"y":81.2,"note":"建物の入口"},
     {"id":"f3-hall","area":"f3","kind":"spot","name":"廊下","x":62.8,"y":63.3,"w":58.4,"h":34.3,"note":""},
-    {"id":"f3-bunsho","area":"f3","kind":"spot","name":"文書庫","x":40.9,"y":36.8,"w":14.5,"h":18.7,"note":""},
     {"id":"f3-301","area":"f3","kind":"spot","name":"301 教室","x":55.3,"y":26.2,"w":14.4,"h":39.9,"note":""},
     {"id":"f3-302","area":"f3","kind":"spot","name":"302 教室","x":69.9,"y":26.2,"w":14.6,"h":39.9,"note":""},
     {"id":"f3-303","area":"f3","kind":"spot","name":"303 教室","x":84.6,"y":26.2,"w":14.8,"h":39.9,"note":""},

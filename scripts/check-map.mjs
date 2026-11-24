@@ -137,7 +137,15 @@ check("お店の場所を会場マップの場所（カフェ）にできる", m
 check("その場所に戻せる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed })).json?.shop?.placeId === placed);
 
 // v0.21.0：クラフトセンターの下のテント（地域部門）と、11/20 の打ち合わせの 1 度だけの直し
-check("外の地図にクラフトセンターの下のテント（宮大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮大工のテント") && out.includes(">宮\n大\n工<"));
+check("外の地図にクラフトセンターの下のテント（宮島宮大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮島宮大工のテント") && out.includes(">宮\n島\n宮\n大\n工<"));
+check("前の字のテント（宮大工だけ）は残っていない", !out.includes(">宮\n大\n工<") && !out.includes(">宮大工のテント"));
+// v0.23.1：パンフの試し刷りの赤ペンにそろえた（大食堂の体験の中身・小食堂の茶屋・音楽室の発表・3 階の文書庫を消す）
+check("大食堂に体験の中身（押し花しおり・射的）", out.includes("体験・休憩\n押し花しおり・射的"));
+check("小食堂の中に茶屋の箱がある", (out.match(/>茶屋</g) ?? []).length >= 2);
+check("クラフトセンター・音楽室に「発表」", out.includes("音楽室\n発表"));
+const f3 = await page("/map?area=f3");
+check("3 階の地図に「文書庫」が出ない", !f3.includes("文書庫"));
+check("タイムテーブルのトークショーが「宮島宮大工」", (await page("/schedule")).includes("宮島宮大工 トークショー"));
 check("保存した配置にも、前の名前のテント（テント・宮島大工）は残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<") && !out.includes("宮島大工"));
 check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
 for (const id of ["classroom", "radio"]) {
