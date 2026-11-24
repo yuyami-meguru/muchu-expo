@@ -146,6 +146,9 @@ check("クラフトセンター・音楽室に「発表」", out.includes("音�
 const f3 = await page("/map?area=f3");
 check("3 階の地図に「文書庫」が出ない", !f3.includes("文書庫"));
 check("タイムテーブルのトークショーが「宮島宮大工」", (await page("/schedule")).includes("宮島宮大工 トークショー"));
+// v0.23.2：ステージ発表は 2 階の「ロビー」（f2-lobby）。手元のデータを読み直して確かめる（ページを開いたあとに直しが入るので）
+const after = JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8"));
+check("ステージ発表の場所が 2 階のロビー", JSON.parse(after.shop.stage ?? "{}").placeId === "f2-lobby");
 check("保存した配置にも、前の名前のテント（テント・宮島大工）は残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<") && !out.includes("宮島大工"));
 check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
 for (const id of ["classroom", "radio"]) {

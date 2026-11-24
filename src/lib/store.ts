@@ -838,7 +838,8 @@ function stageFix(r: Raw): { dept: Record<string, string>; shop: Record<string, 
     catch: "ライブ・発表・ピアノ・トークショー",
     description: STAGE_DESC,
     message: "",
-    placeId: r.place["f2-genkan"] ? "f2-genkan" : "",
+    // v0.23.2：場所は 2 階の「ロビー」（f2-lobby。ユーザー「ロビーに移す」）。無ければ玄関ホール
+    placeId: r.place["f2-lobby"] ? "f2-lobby" : r.place["f2-genkan"] ? "f2-genkan" : "",
     placeNote: "2F ロビー（ピアノは音楽室）",
     menu: [],
     schedule: STAGE_SCHEDULE,
@@ -960,6 +961,31 @@ function stageNameFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] }
     updatedAt: at,
   };
   return { shop: { stage: JSON.stringify(next) }, log };
+}
+
+/** v0.23.2〜：ステージ発表の場所を 2 階の「ロビー」に移す直しを、このサーバーの中でもう試したか */
+let stageLobbyTried = false;
+/**
+ * ステージ発表の場所を、知育館 2 階の玄関ホール（f2-genkan）から「ロビー」（f2-lobby）へ移す直し
+ * （2026-11-24 夕 ユーザー「ロビーに移す」。タイムスケジュールの「2Fロビー」は、2 階の見取り図の「ロビー」のこと。v0.22.4 では玄関ホールとみなしていた）。
+ * まだ玄関ホールのときだけ（実行委員がほかへ動かしていればそのまま）。無ければ null
+ */
+function stageLobbyFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } | null {
+  const raw = r.shop.stage;
+  if (!raw || !r.place["f2-lobby"]) return null;
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (o.placeId !== "f2-genkan") return null;
+  const at = Date.now();
+  const shopName = str(o.name) || "stage";
+  return {
+    shop: { stage: JSON.stringify({ ...o, placeId: "f2-lobby", updatedAt: at }) },
+    log: [{ at, by: "admin", shop: "stage", shopName, field: "場所", before: "玄関ホール", after: "ロビー（知育館 2 階。ユーザー「ロビーに移す」。サイトの更新 v0.23.2 で）" }],
+  };
 }
 
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
@@ -1110,6 +1136,20 @@ async function loadRaw(): Promise<Raw> {
       r = await b.readAll();
       try {
         await addLog(st.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.23.2（2026-11-24 夕）：ステージ発表の場所を 2 階の玄関ホールから「ロビー」へ（stageLobbyFix、目印 muchu:fix:stage-lobby。変更の記録にも残す）
+  if (!stageLobbyTried && storeReady()) {
+    stageLobbyTried = true;
+    const fix = stageLobbyFix(r);
+    if (fix && (await b.flagOnce("fix:stage-lobby"))) {
+      await b.hset("shop", fix.shop);
+      r = await b.readAll();
+      try {
+        await addLog(fix.log);
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }
