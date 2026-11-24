@@ -161,8 +161,11 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
       setStatus(target ? statusOf(target, nextArea) : `${nameOfArea(nextArea)}の地図にしました。`);
     });
     try {
-      const q = place ? `?place=${encodeURIComponent(place)}` : nextArea !== OUTSIDE ? `?area=${encodeURIComponent(nextArea)}` : "";
-      window.history.replaceState(null, "", `/map${q}`);
+      // パンフの QR から開いたとき（?solo=1。メニューを出さない）は、面を変えても solo=1 を残す（戻る・読み直しでも同じ見た目に）
+      const solo = new URLSearchParams(window.location.search).get("solo") === "1" ? "solo=1" : "";
+      const sel = place ? `place=${encodeURIComponent(place)}` : nextArea !== OUTSIDE ? `area=${encodeURIComponent(nextArea)}` : "";
+      const q = [sel, solo].filter(Boolean).join("&");
+      window.history.replaceState(null, "", `/map${q ? `?${q}` : ""}`);
     } catch {
       // URL を変えられなくても、選ぶことはできる
     }

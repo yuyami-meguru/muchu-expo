@@ -317,3 +317,12 @@
   .shell-pfoot > * { display: none !important; }
   .shell-pfoot > .shell-pfoot-print { display: block !important; margin: 0; font-size: 9pt; line-height: 1.5; }
 }
+
+/* ───── パンフの QR から開いたページ（?solo=1。solo-page.tsx の目印があるとき）：そのページだけを見せる ─────
+   上の帯（ロゴ・メニュー・文字を大きく）・スマホの下のメニュー・いちばん下の案内の欄（ロゴとリンクの並び）を出さない。
+   下のメニューが無いので、その分の下のあき（--tabbar-h）も 0 に。いちばん下の「主催・サイト制作・版」の行は残す */
+:root:has([data-solo-page]) { --tabbar-h: 0px; }
+:root:has([data-solo-page]) .shell-ptop,
+:root:has([data-solo-page]) .shell-tabs,
+:root:has([data-solo-page]) .shell-pfoot-inner { display: none; }
+:root:has([data-solo-page]) .shell-pub .shell-pfoot { padding-top: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
