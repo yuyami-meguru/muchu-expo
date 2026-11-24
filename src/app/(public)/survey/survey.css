@@ -18,6 +18,8 @@
 .sv-note { background: var(--primary-soft); border-radius: var(--r-md); padding: 10px 14px; font-weight: 700; }
 .sv-form { display: grid; gap: 16px; }
 .sv-q { margin: 0; border: 3px solid var(--line); border-radius: var(--r-card); background: var(--surface); padding: 14px 16px 16px; box-shadow: var(--shadow-card); min-width: 0; }
+/* /survey#award（パンフの夢中アワードの QR）で問 5 へ飛んだとき、上の帯に隠れないように */
+.sv-q { scroll-margin-top: 84px; }
 .sv-q > legend { float: left; width: 100%; display: flex; gap: 10px; align-items: center; font-weight: 900; font-size: 1.05rem; line-height: 1.5; padding: 0; margin: 0 0 4px; }
 .sv-q > legend + * { clear: both; }
 .sv-no { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; background: var(--title); color: #10331f; font-family: var(--font-display); font-size: 1.1rem; }

@@ -59,7 +59,7 @@ export default async function AwardPage() {
           {/* アンケートは当日から（開催前は答えようがないので誘わない） */}
           <InPhase only={["morning", "during", "after"]}>
             <IfSurveyOpen>
-              <Link href="/survey">アンケートで、それぞれの賞にふさわしい展示に投票する</Link>
+              <Link href="/survey#award">アンケートで、それぞれの賞にふさわしい展示に投票する</Link>
             </IfSurveyOpen>
           </InPhase>
         </p>

@@ -737,6 +737,36 @@ function minutesFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } |
   return Object.keys(shop).length ? { shop, log } : null;
 }
 
+/** v0.22.2 の「エンカレ茶屋のメニューをセットだけにする」を、このサーバーの中でもう試したか */
+let chayaSetTried = false;
+/** はじめの説明（焼き芋が入っている）。この文のままなら、セットの説明に替える */
+const CHAYA_OLD_DESC = "エンカレの桜を使ったさくら茶と緑茶、焼き団子、焼き芋（大学芋・塩バター味）。";
+const CHAYA_NEW_DESC = "団子 1 個・飲み物・金平糖のセット（300 円）で、ほっとひと休みできます。";
+
+/**
+ * エンカレ茶屋のメニューをセットだけにする直し（2026-11-24 ユーザー「セットだけにして」。無ければ null）。
+ * セットの品（名前に「セット」）があるときだけ、ほかの品（さくら茶・緑茶・焼き団子・大学芋・琥珀糖など）を消す。
+ * 説明がはじめの文（焼き芋入り）のままなら、セットの説明に替える。お店の人が書いた説明はそのまま
+ */
+function chayaSetFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } | null {
+  const o = objOf(r.shop.chaya ?? "");
+  if (!o) return null;
+  const menu = (Array.isArray(o.menu) ? (o.menu as unknown[]) : []).filter((m): m is Record<string, unknown> => !!m && typeof m === "object");
+  const isSet = (m: Record<string, unknown>) => str(m.name).includes("セット");
+  if (!menu.some(isSet)) return null;
+  const drop = menu.filter((m) => !isSet(m));
+  const oldDesc = str(o.description) === CHAYA_OLD_DESC;
+  if (!drop.length && !oldDesc) return null;
+  const at = Date.now();
+  const shopName = str(o.name) || "chaya";
+  const why = "（ユーザー「セットだけにして」。サイトの更新 v0.22.2 で）";
+  const log: LogEntry[] = [];
+  if (drop.length) log.push({ at, by: "admin", shop: "chaya", shopName, field: "メニュー", before: drop.map((m) => str(m.name)).join("・"), after: `セットだけ${why}` });
+  if (oldDesc) log.push({ at, by: "admin", shop: "chaya", shopName, field: "どんなお店？", before: CHAYA_OLD_DESC, after: `${CHAYA_NEW_DESC}${why}` });
+  const next = { ...o, menu: menu.filter(isSet), ...(oldDesc ? { description: CHAYA_NEW_DESC } : {}), updatedAt: at };
+  return { shop: { chaya: JSON.stringify(next) }, log };
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -817,6 +847,21 @@ async function loadRaw(): Promise<Raw> {
       r = await b.readAll();
       try {
         if (fix.log.length) await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.22.2（2026-11-24）：エンカレ茶屋のメニューをセットだけに（ユーザー「セットだけにして」。chayaSetFix、目印 muchu:fix:chaya-set）。
+  // そのあと実行委員・お店の人が品を足せば、それに従う。変更の記録にも残す
+  if (!chayaSetTried && storeReady()) {
+    chayaSetTried = true;
+    const fix = chayaSetFix(r);
+    if (fix && (await b.flagOnce("fix:chaya-set"))) {
+      await b.hset("shop", fix.shop);
+      r = await b.readAll();
+      try {
+        await addLog(fix.log);
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }

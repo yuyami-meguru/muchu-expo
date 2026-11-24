@@ -125,6 +125,16 @@ export function SurveyForm({
     }
   }, [a, ready, done]);
 
+  // パンフ 4 ページ目の「夢中アワード」の QR（github.io/muchu-expo/award/ → /survey#award）から来たら、問 5（夢中アワードの投票）を見せる。
+  // 書きかけを戻したり「前に答えた」の知らせが出たりして上の高さが変わるので、読み終えてから 1 度だけ動かす（v0.22.2）
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (!ready || jumped.current) return;
+    jumped.current = true;
+    if (window.location.hash !== "#award") return;
+    requestAnimationFrame(() => document.getElementById("award")?.scrollIntoView({ block: "start" }));
+  }, [ready]);
+
   // 送れたら、お礼の見出しへ（読み上げでも分かるように）
   useEffect(() => {
     if (!done) return;
@@ -324,7 +334,7 @@ export function SurveyForm({
         </fieldset>
 
         {awards.length > 0 && candidates.length > 0 && (
-          <fieldset className="sv-q" aria-describedby="sv-q5-hint">
+          <fieldset className="sv-q" id="award" aria-describedby="sv-q5-hint">
             <legend>
               <span className="sv-no">5</span>夢中アワードの投票（個人の展示）
             </legend>
