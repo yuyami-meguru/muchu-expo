@@ -799,6 +799,55 @@ function tentNameFix(r: Raw): string | null {
   return changed ? JSON.stringify({ items }) : null;
 }
 
+/** v0.22.4 の「確定したステージ発表をサイトに足す」を、このサーバーの中でもう試したか */
+let stageTried = false;
+/** ステージ発表の部門（夢中アワードの投票の対象＝個人発表・展示には入れない） */
+const STAGE_DEPT: Dept = { id: "stage", name: "ステージ発表", short: "ステージ", tagline: "2Fロビーと音楽室で", color: "teal", order: 35 };
+/**
+ * 2026-11-24 にユーザーが送ってきた、確定したタイムスケジュール（パンフ 4 ページ目と同じ。2Fロビー・音楽室）。
+ * サイトには生徒の名前を載せない（パンフのピアノの 2 つには名字があるが、ここでは外す）。場所はかっこの中に書く（schedule.ts の hasOwnPlace）
+ */
+const STAGE_SCHEDULE = [
+  { time: "11:00-11:10", text: "ネオ職員室 ライブ（2Fロビー）" },
+  { time: "12:00-12:20", text: "ごみ解決PJ 発表（2Fロビー）" },
+  { time: "12:30-12:40", text: "ピアノ演奏（音楽室）" },
+  { time: "13:00-13:30", text: "宮大工 トークショー（2Fロビー）" },
+  { time: "13:30-14:00", text: "ピアノ弾き語り（音楽室）" },
+];
+
+/**
+ * 確定したステージ発表を、お店・出し物「ステージ発表」（部門も）として 1 度だけ足す直し（2026-11-24 ユーザーが「サイトにも入れる」を選んだ。無ければ null）。
+ * もう「stage」があれば何もしない。場所は知育館 2 階の玄関ホール（2F ロビー）、ピアノは音楽室（場所の補足と、当日の流れのかっこ）
+ */
+function stageFix(r: Raw): { dept: Record<string, string>; shop: Record<string, string>; key: Record<string, string>; log: LogEntry[] } | null {
+  if (r.shop[STAGE_DEPT.id]) return null;
+  const at = Date.now();
+  const shop: Shop = {
+    id: "stage",
+    dept: STAGE_DEPT.id,
+    kind: "see",
+    name: "ステージ発表",
+    catch: "ライブ・発表・ピアノ・トークショー",
+    description: "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。",
+    message: "",
+    placeId: r.place["f2-genkan"] ? "f2-genkan" : "",
+    placeNote: "2F ロビー（ピアノは音楽室）",
+    menu: [],
+    schedule: STAGE_SCHEDULE,
+    state: "prep",
+    notice: "",
+    hidden: false,
+    order: 75,
+    updatedAt: at,
+  };
+  return {
+    dept: r.dept[STAGE_DEPT.id] ? {} : { [STAGE_DEPT.id]: JSON.stringify(STAGE_DEPT) },
+    shop: { stage: JSON.stringify(shop) },
+    key: { stage: newKey() },
+    log: [{ at, by: "admin", shop: "stage", shopName: shop.name, field: "お店・出し物", before: "", after: "足した（確定したタイムスケジュールの 5 つ。サイトの更新 v0.22.4 で）" }],
+  };
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -906,6 +955,24 @@ async function loadRaw(): Promise<Raw> {
     if (v && (await b.flagOnce("fix:tent-miyajima"))) {
       await b.hset("omap", { layout: v });
       r = await b.readAll();
+    }
+  }
+  // v0.22.4（2026-11-24）：確定したステージ発表（2Fロビー・音楽室の 5 つ）を、お店・出し物「ステージ発表」として 1 度だけ足す
+  // （stageFix、目印 muchu:fix:stage-1124）。そのあとは実行委員が直す・消すのに従う。変更の記録にも残す
+  if (!stageTried && storeReady()) {
+    stageTried = true;
+    const fix = stageFix(r);
+    if (fix && (await b.flagOnce("fix:stage-1124"))) {
+      if (Object.keys(fix.dept).length) await b.hset("dept", fix.dept);
+      await b.hset("shop", fix.shop);
+      await b.hset("key", fix.key);
+      dropKeys();
+      r = await b.readAll();
+      try {
+        await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
     }
   }
   return r;
