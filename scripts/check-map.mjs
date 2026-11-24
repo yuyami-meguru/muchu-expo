@@ -132,8 +132,8 @@ check("お店の場所を会場マップの場所（カフェ）にできる", m
 check("その場所に戻せる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed })).json?.shop?.placeId === placed);
 
 // v0.21.0：クラフトセンターの下のテント（地域部門）と、11/20 の打ち合わせの 1 度だけの直し
-check("外の地図にクラフトセンターの下のテント（宮島大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮島大工のテント") && out.includes(">宮\n島\n大\n工<"));
-check("保存した配置にも、前の名前のテントは残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<"));
+check("外の地図にクラフトセンターの下のテント（宮大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮大工のテント") && out.includes(">宮\n大\n工<"));
+check("保存した配置にも、前の名前のテント（テント・宮島大工）は残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<") && !out.includes("宮島大工"));
 check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
 for (const id of ["classroom", "radio"]) {
   if (!now.place[id]) continue;

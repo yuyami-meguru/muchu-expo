@@ -767,14 +767,14 @@ function chayaSetFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } 
   return { shop: { chaya: JSON.stringify(next) }, log };
 }
 
-/** v0.22.3 の「保存した外の配置のテントの名前を宮島大工に」を、このサーバーの中でもう試したか */
+/** v0.22.3〜：「保存した外の配置のテントの名前を今の名前（宮大工）に」を、このサーバーの中でもう試したか */
 let tentNameTried = false;
-/** はじめの配置（v0.21.0〜v0.22.2）のテントの字と場所の名前 */
-const TENT_OLD = { label: "テ\nン\nト", name: "テント（クラフトセンターの下）" };
+/** 前のテントの字と場所の名前（v0.21.0〜v0.22.2 の「テント」、v0.22.3 の「宮島大工」） */
+const TENT_OLD = { labels: ["テ\nン\nト", "宮\n島\n大\n工"], names: ["テント（クラフトセンターの下）", "宮島大工のテント"] };
 
 /**
- * 実行委員が保存した外の配置（muchu:omap）に、前の名前のテント（テント／テント（クラフトセンターの下））が残っていれば、
- * はじめの配置と同じ「宮島大工」にする直し（2026-11-24 ユーザー「見取り図 テント→宮島大工」。無ければ null）。
+ * 実行委員が保存した外の配置（muchu:omap）に、前の名前のテント（テント／宮島大工）が残っていれば、
+ * はじめの配置と同じ「宮大工」にする直し（2026-11-24 ユーザー「見取り図 テント→宮島大工」→「地図も宮大工に」。無ければ null）。
  * 保存が無い（はじめの配置のまま）なら直すものは無い。実行委員が自分で付けた名前はそのまま
  */
 function tentNameFix(r: Raw): string | null {
@@ -785,12 +785,12 @@ function tentNameFix(r: Raw): string | null {
   const items = lay.items.map((i) => {
     if (i.id !== "tent-craft") return i;
     const next = { ...i };
-    if (i.label === TENT_OLD.label) {
+    if (TENT_OLD.labels.includes(i.label)) {
       next.label = def.label;
-      if (i.dy === undefined && def.dy !== undefined) next.dy = def.dy;
+      next.dy = def.dy;
       changed = true;
     }
-    if (i.place?.name === TENT_OLD.name) {
+    if (i.place && TENT_OLD.names.includes(i.place.name)) {
       next.place = { ...i.place, name: def.place!.name, note: i.place.note || def.place!.note };
       changed = true;
     }
@@ -948,11 +948,12 @@ async function loadRaw(): Promise<Raw> {
       }
     }
   }
-  // v0.22.3（2026-11-24）：保存した外の配置に前の名前のテントが残っていれば「宮島大工」に（tentNameFix。目印 muchu:fix:tent-miyajima）
+  // v0.22.5（2026-11-24）：保存した外の配置に前の名前のテント（テント・宮島大工）が残っていれば「宮大工」に（tentNameFix。目印 muchu:fix:tent-miyadaiku。
+  // v0.22.3 の目印 fix:tent-miyajima とは別にして、宮島大工で保存した所でももう 1 度直す）
   if (!tentNameTried && storeReady()) {
     tentNameTried = true;
     const v = tentNameFix(r);
-    if (v && (await b.flagOnce("fix:tent-miyajima"))) {
+    if (v && (await b.flagOnce("fix:tent-miyadaiku"))) {
       await b.hset("omap", { layout: v });
       r = await b.readAll();
     }
