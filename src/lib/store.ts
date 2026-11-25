@@ -680,8 +680,9 @@ const YAKISOBA_PRICE = { from: "400円前後（予定）", to: "300円" };
 const CHAYA_SET = { name: "セット（団子 1 個・飲み物・金平糖）", price: "300円" };
 /** 打ち合わせで決まった時間（お店の「当日の流れ」が空のときだけ入れる） */
 const MINUTES_SCHEDULE: Record<string, { time: string; text: string }[]> = {
-  shateki: [{ time: "10:00〜12:00", text: "射的・くじ引き" }],
-  oshibana: [{ time: "12:00〜14:00", text: "押し花しおりづくり" }],
+  // v0.23.3：2026-11-25 の付箋「サイト内 射的 10:00-11:30・しおり 12:30-14:00」（はじめから入れるときもこの時間）
+  shateki: [{ time: "10:00〜11:30", text: "射的・くじ引き" }],
+  oshibana: [{ time: "12:30〜14:00", text: "押し花しおりづくり" }],
 };
 /** 地域のつくり手を紹介の場所（会場マップのテント。outside-plan.ts） */
 const CHIIKI_PLACE = "out-tent-craft";
@@ -808,15 +809,32 @@ const STAGE_DEPT: Dept = { id: "stage", name: "ステージ発表", short: "ス�
  * サイトには生徒の名前を載せない（パンフのピアノの 2 つには名字があるが、ここでは外す）。場所はかっこの中に書く（schedule.ts の hasOwnPlace）
  */
 const STAGE_SCHEDULE = [
-  { time: "11:00-11:10", text: "ネオ職員室 ライブ（2Fロビー）" },
+  // v0.23.3（2026-11-25 パンフの赤ペン）：題を「お笑いライブ「ネオ職員室」」「トークイベント 宮島宮大工「宮大工の魅力とは？」」に
+  { time: "11:00-11:10", text: "お笑いライブ「ネオ職員室」（2Fロビー）" },
   { time: "12:00-12:20", text: "ごみ解決PJ 発表（2Fロビー）" },
   { time: "12:30-12:40", text: "ピアノ演奏（音楽室）" },
-  { time: "13:00-13:30", text: "宮島宮大工 トークショー（2Fロビー）" },
+  { time: "13:00-13:30", text: "トークイベント 宮島宮大工「宮大工の魅力とは？」（2Fロビー）" },
   { time: "13:30-14:00", text: "ピアノ弾き語り（音楽室）" },
 ];
 
-/** ステージ発表の説明（v0.23.1 で「宮大工」→「宮島宮大工」。ユーザー「宮大工も宮島宮大工に全部変更」） */
-const STAGE_DESC = "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮島宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。";
+/** ステージ発表の説明（v0.23.1 で「宮大工」→「宮島宮大工」。v0.23.3 でお笑いライブ・トークイベントに） */
+const STAGE_DESC = "知育館の 2F ロビーと音楽室で、お笑いライブや発表、ピアノの演奏、宮島宮大工のトークイベントがあります。時間はタイムテーブルをご覧ください。";
+/** ステージ発表のひとこと（v0.23.3） */
+const STAGE_CATCH = "お笑いライブ・発表・ピアノ・トークイベント";
+/** v0.23.1〜v0.23.2 の本番の字（v0.23.3 の programFix で、この字のままの所だけを今の字にする） */
+const STAGE_V231 = {
+  rows: {
+    "ネオ職員室 ライブ（2Fロビー）": "お笑いライブ「ネオ職員室」（2Fロビー）",
+    "宮島宮大工 トークショー（2Fロビー）": "トークイベント 宮島宮大工「宮大工の魅力とは？」（2Fロビー）",
+  } as Record<string, string>,
+  desc: "知育館の 2F ロビーと音楽室で、ライブや発表、ピアノの演奏、宮島宮大工のトークショーがあります。時間はタイムテーブルをご覧ください。",
+  catch: "ライブ・発表・ピアノ・トークショー",
+};
+/** v0.21.0 で入れた射的・押し花しおりの時間 → 2026-11-25 の付箋の時間（v0.23.3） */
+const TIMES_1125: Record<string, { from: string; to: string }> = {
+  shateki: { from: "10:00〜12:00", to: "10:00〜11:30" },
+  oshibana: { from: "12:00〜14:00", to: "12:30〜14:00" },
+};
 /** v0.22.4〜v0.23.0 で入れた、前の字（宮大工）の当日の流れの行と説明 */
 const STAGE_OLD = {
   row: "宮大工 トークショー（2Fロビー）",
@@ -835,7 +853,7 @@ function stageFix(r: Raw): { dept: Record<string, string>; shop: Record<string, 
     dept: STAGE_DEPT.id,
     kind: "see",
     name: "ステージ発表",
-    catch: "ライブ・発表・ピアノ・トークショー",
+    catch: STAGE_CATCH,
     description: STAGE_DESC,
     message: "",
     // v0.23.2：場所は 2 階の「ロビー」（f2-lobby。ユーザー「ロビーに移す」）。無ければ玄関ホール
@@ -986,6 +1004,57 @@ function stageLobbyFix(r: Raw): { shop: Record<string, string>; log: LogEntry[] 
     shop: { stage: JSON.stringify({ ...o, placeId: "f2-lobby", updatedAt: at }) },
     log: [{ at, by: "admin", shop: "stage", shopName, field: "場所", before: "玄関ホール", after: "ロビー（知育館 2 階。ユーザー「ロビーに移す」。サイトの更新 v0.23.2 で）" }],
   };
+}
+
+/** v0.23.3〜：射的・押し花しおりの時間と、ステージ発表の題を直したか（このサーバーの中で） */
+let program1125Tried = false;
+/**
+ * 2026-11-25 にユーザーが送ってきた付箋・赤ペンを、本番のお店の情報に 1 度だけ入れる直し（無ければ null）：
+ * 射的 10:00〜12:00 → 10:00〜11:30、押し花しおり 12:00〜14:00 → 12:30〜14:00（付箋「サイト内 射的 10:00-11:30 しおり 12:30-14:00」）、
+ * ステージ発表の当日の流れ・説明・ひとことを、パンフの赤ペンの題（お笑いライブ「ネオ職員室」・トークイベント 宮島宮大工「宮大工の魅力とは？」）に。
+ * どれも前の字のままの所だけ（実行委員・お店の人が書きかえていればそのまま）。変更の記録に残す
+ */
+function program1125Fix(r: Raw): { shop: Record<string, string>; log: LogEntry[] } | null {
+  const at = Date.now();
+  const why = "（2026-11-25 の付箋・赤ペン。サイトの更新 v0.23.3 で）";
+  const shop: Record<string, string> = {};
+  const log: LogEntry[] = [];
+  for (const [sid, t] of Object.entries(TIMES_1125)) {
+    const o = objOf(r.shop[sid] ?? "");
+    if (!o || !Array.isArray(o.schedule)) continue;
+    const rows = o.schedule as { time?: unknown; text?: unknown }[];
+    if (!rows.some((x) => x?.time === t.from)) continue;
+    const shopName = str(o.name) || sid;
+    log.push({ at, by: "admin", shop: sid, shopName, field: "当日の流れ", before: t.from, after: `${t.to}${why}` });
+    shop[sid] = JSON.stringify({ ...o, schedule: rows.map((x) => (x?.time === t.from ? { ...x, time: t.to } : x)), updatedAt: at });
+  }
+  const st = objOf(r.shop.stage ?? "");
+  if (st) {
+    const shopName = str(st.name) || "stage";
+    const next: Record<string, unknown> = { ...st };
+    let changed = false;
+    if (Array.isArray(st.schedule)) {
+      const rows = st.schedule as { time?: unknown; text?: unknown }[];
+      const hits = rows.filter((x) => typeof x?.text === "string" && STAGE_V231.rows[x.text]);
+      if (hits.length) {
+        for (const h of hits) log.push({ at, by: "admin", shop: "stage", shopName, field: "当日の流れ", before: String(h.text), after: `${STAGE_V231.rows[String(h.text)]}${why}` });
+        next.schedule = rows.map((x) => (typeof x?.text === "string" && STAGE_V231.rows[x.text] ? { ...x, text: STAGE_V231.rows[x.text] } : x));
+        changed = true;
+      }
+    }
+    if (st.description === STAGE_V231.desc) {
+      log.push({ at, by: "admin", shop: "stage", shopName, field: "どんなお店？", before: STAGE_V231.desc, after: `${STAGE_DESC}${why}` });
+      next.description = STAGE_DESC;
+      changed = true;
+    }
+    if (st.catch === STAGE_V231.catch) {
+      log.push({ at, by: "admin", shop: "stage", shopName, field: "ひとこと", before: STAGE_V231.catch, after: `${STAGE_CATCH}${why}` });
+      next.catch = STAGE_CATCH;
+      changed = true;
+    }
+    if (changed) shop.stage = JSON.stringify({ ...next, updatedAt: at });
+  }
+  return Object.keys(shop).length ? { shop, log } : null;
 }
 
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
@@ -1146,6 +1215,20 @@ async function loadRaw(): Promise<Raw> {
     stageLobbyTried = true;
     const fix = stageLobbyFix(r);
     if (fix && (await b.flagOnce("fix:stage-lobby"))) {
+      await b.hset("shop", fix.shop);
+      r = await b.readAll();
+      try {
+        await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.23.3（2026-11-25）：射的・押し花しおりの時間と、ステージ発表の題（program1125Fix、目印 muchu:fix:program-1125。変更の記録にも残す）
+  if (!program1125Tried && storeReady()) {
+    program1125Tried = true;
+    const fix = program1125Fix(r);
+    if (fix && (await b.flagOnce("fix:program-1125"))) {
       await b.hset("shop", fix.shop);
       r = await b.readAll();
       try {

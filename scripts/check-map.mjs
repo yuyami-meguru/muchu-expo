@@ -145,10 +145,14 @@ check("小食堂の中に茶屋の箱がある", (out.match(/>茶屋</g) ?? []).
 check("クラフトセンター・音楽室に「発表」", out.includes("音楽室\n発表"));
 const f3 = await page("/map?area=f3");
 check("3 階の地図に「文書庫」が出ない", !f3.includes("文書庫"));
-check("タイムテーブルのトークショーが「宮島宮大工」", (await page("/schedule")).includes("宮島宮大工 トークショー"));
+check("タイムテーブルの宮大工は「宮島宮大工」（v0.23.3 からはトークイベント）", (await page("/schedule")).includes("トークイベント 宮島宮大工"));
 // v0.23.2：ステージ発表は 2 階の「ロビー」（f2-lobby）。手元のデータを読み直して確かめる（ページを開いたあとに直しが入るので）
 const after = JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8"));
 check("ステージ発表の場所が 2 階のロビー", JSON.parse(after.shop.stage ?? "{}").placeId === "f2-lobby");
+// v0.23.3：2026-11-25 の付箋・赤ペン（射的・押し花しおりの時間、ステージ発表の題）
+const sch = await page("/schedule");
+check("射的は 10:00〜11:30・押し花しおりは 12:30〜14:00", sch.includes("10:00〜11:30") && sch.includes("12:30〜14:00") && !sch.includes("10:00〜12:00"));
+check("ステージ発表の題が赤ペンどおり", sch.includes("お笑いライブ「ネオ職員室」") && sch.includes("トークイベント 宮島宮大工「宮大工の魅力とは？」") && !sch.includes("トークショー"));
 check("保存した配置にも、前の名前のテント（テント・宮島大工）は残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<") && !out.includes("宮島大工"));
 check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
 for (const id of ["classroom", "radio"]) {
