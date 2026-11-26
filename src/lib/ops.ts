@@ -85,13 +85,15 @@ export function phaseValue(mode: PhaseMode, at = Date.now()) {
  *  - liveMs：サーバーの中（1 台の中）で、当日の値（売り切れ・状態・お知らせ）と運営の設定を使い回す古さ
  *  - contentMs：サーバーの中（1 台の中）で、お店の中身・部門・場所・フロアを使い回す古さ
  *    （Vercel の関数は何台かに分かれ、ほかの台で書いた分はこの古さだけ遅れて入るので、どれも 10 秒まで）
- * 開催中は、お店が押してから、お客さんの画面に出るまで長くて 20 秒ほど（15＋3＋3）。開催前・終了後は数分かかってもよい
+ * 開催中は、お店が押してから、お客さんの画面に出るまで長くて 35 秒ほど（15＋10＋10）。開催前・終了後は数分かかってもよい。
+ * 2026-11-26：開催中の CDN を 3＋5 秒から 10＋10 秒にした。Vercel の無料プラン（Hobby）の CPU の時間（月 4 時間・チームで共有）を
+ * この日すでに 2 時間 5 分使っていて、/api/status の作り直し（1 回 約 0.1 秒）を減らすため
  */
 export type LiveTiming = { pollMs: number; cdnSec: number; swrSec: number; liveMs: number; contentMs: number };
 export const LIVE_TIMING: Record<Phase, LiveTiming> = {
   before: { pollMs: 120_000, cdnSec: 60, swrSec: 30, liveMs: 10_000, contentMs: 10_000 },
   morning: { pollMs: 30_000, cdnSec: 10, swrSec: 10, liveMs: 10_000, contentMs: 10_000 },
-  during: { pollMs: 15_000, cdnSec: 3, swrSec: 5, liveMs: 3_000, contentMs: 10_000 },
+  during: { pollMs: 15_000, cdnSec: 10, swrSec: 10, liveMs: 3_000, contentMs: 10_000 },
   after: { pollMs: 60_000, cdnSec: 30, swrSec: 15, liveMs: 10_000, contentMs: 10_000 },
 };
 

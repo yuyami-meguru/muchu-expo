@@ -22,7 +22,7 @@ export default async function StaffRadioPage() {
   const phase = phaseOf(serverNow(), ops.phase);
   return (
     <div className="st-page st-stack">
-      <PageHeader title="校内ラジオ" sub={`［放送を始める］を押すと、お客さんの画面に「放送中」が出ます（当日は 20 秒ほどで届きます）。届いたメッセージは ${everyText(phase)}に読み直します`} />
+      <PageHeader title="校内ラジオ" sub={`［放送を始める］を押すと、お客さんの画面に「放送中」が出ます（当日は 30 秒ほどで届きます）。届いたメッセージは ${everyText(phase)}に読み直します`} />
       {/* 校内ラジオを隠しているあいだ（ラジオのお店が非表示。radio-shop.ts）は、ここで準備はできるが、お客さんには何も出ない */}
       {!shop ? (
         <Banner tone="warning" title="お客さんの画面に校内ラジオは出ていません">

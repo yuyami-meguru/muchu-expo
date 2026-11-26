@@ -3,7 +3,7 @@ import { fail, guarded, needAdmin, ok, readBody } from "@/lib/api";
 import { alertBody, type SiteAlert } from "@/lib/ops";
 import { setSetting } from "@/lib/store";
 
-/** 全体の帯（雨・急ぎ）を出す・消す（実行委員だけ）。お客さん側の全部のページのいちばん上に、20 秒ほどで出る */
+/** 全体の帯（雨・急ぎ）を出す・消す（実行委員だけ）。お客さん側の全部のページのいちばん上に、30 秒ほどで出る */
 export async function PUT(req: NextRequest) {
   return guarded(async () => {
     const no = await needAdmin();

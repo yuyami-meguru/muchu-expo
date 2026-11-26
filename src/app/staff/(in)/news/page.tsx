@@ -22,7 +22,7 @@ export default async function StaffNewsPage() {
     <div className="st-page st-stack">
       <PageHeader
         title="全体のお知らせ"
-        sub="お知らせは、お客さんの画面のホームに出ます（当日は 20 秒ほどで届きます）。雨・急ぎの帯と、お店の人への連絡もここから出せます"
+        sub="お知らせは、お客さんの画面のホームに出ます（当日は 30 秒ほどで届きます）。雨・急ぎの帯と、お店の人への連絡もここから出せます"
       />
       {!ready && (
         <Banner tone="error" title="保存先（Upstash）がまだつながっていません">

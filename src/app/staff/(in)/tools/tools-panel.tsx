@@ -323,7 +323,7 @@ export function ToolsPanel({
                   )
                 }
               >
-                お客さんの画面に「営業中」と出ます（当日は 20 秒ほどで）。
+                お客さんの画面に「営業中」と出ます（当日は 30 秒ほどで）。
               </ConfirmDialog>
             ) : (
               <Button variant="primary" disabled>
@@ -350,7 +350,7 @@ export function ToolsPanel({
           </div>
           {ready ? (
             <ConfirmDialog title="全部のお店を「終了」にしますか？" confirmLabel="終了にする" triggerLabel="全部のお店を「終了」にする" onConfirm={closeDay}>
-              お客さんの画面に「終了」と出ます（当日は 20 秒ほどで）。
+              お客さんの画面に「終了」と出ます（当日は 30 秒ほどで）。
               {radioOff && <> ラジオの「放送中」も消えます。</>}
               {closingNews && <> 全体のお知らせに「{CLOSING_NEWS}」を出します。</>}
             </ConfirmDialog>

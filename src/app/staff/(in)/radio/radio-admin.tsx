@@ -97,7 +97,7 @@ export function RadioAdmin({
 
   /**
    * 状態を変える（送った欄だけ）。what は「放送を始める」など（失敗の文に使う）、done は「放送を始めました」など。
-   * after は時刻のあとに続ける文（「当日は 20 秒ほどで…」）
+   * after は時刻のあとに続ける文（「当日は 30 秒ほどで…」）
    */
   async function put(patch: Partial<RadioState>, where: Where, what: string, done: string, after = "") {
     // 送っているあいだは、ほかのボタンを押しても何もしない（ボタンは disabled にせず「押せない」印だけ。キーボードで選んでいた所が消えないように）
@@ -167,7 +167,7 @@ export function RadioAdmin({
           {state.onAir ? "ON AIR（放送中）" : "放送していません"}
         </h2>
         {state.onAir ? (
-          <button type="button" className="rda-air-btn" disabled={!ready} aria-disabled={!!busy || undefined} aria-busy={busy === "air" || undefined} onClick={() => put({ onAir: false }, "air", "放送を終える", "放送を終えました", "。当日は 20 秒ほどで、お客さんの画面から「放送中」が消えます（開催前は、数分かかることがあります）")}>
+          <button type="button" className="rda-air-btn" disabled={!ready} aria-disabled={!!busy || undefined} aria-busy={busy === "air" || undefined} onClick={() => put({ onAir: false }, "air", "放送を終える", "放送を終えました", "。当日は 30 秒ほどで、お客さんの画面から「放送中」が消えます（開催前は、数分かかることがあります）")}>
             ■ 放送を終える
           </button>
         ) : (

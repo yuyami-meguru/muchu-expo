@@ -5,8 +5,8 @@ import { LIVE_TIMING, phaseOf } from "@/lib/ops";
 import { loadPublicOps } from "@/lib/ops-server";
 
 // みんなの画面が読み直す「いまの様子」。売り切れ・お店の状態・お知らせ・ラジオの ON AIR だけ（説明文などは入れない）。
-// Vercel の CDN に表示の時期に合わせた秒数だけ置き（開催中 3 秒・開催前 60 秒。ops.ts の LIVE_TIMING）、
-// サーバーの中でも同じ古さまで使い回して、人が多くても Redis を呼びすぎないようにする（開催中は、お店が押してからお客さんの画面に出るまで長くて 20 秒ほど）。
+// Vercel の CDN に表示の時期に合わせた秒数だけ置き（開催中 10 秒・開催前 60 秒。ops.ts の LIVE_TIMING）、
+// サーバーの中でも同じ古さまで使い回して、人が多くても Redis を呼びすぎないようにする（開催中は、お店が押してからお客さんの画面に出るまで長くて 35 秒ほど）。
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {

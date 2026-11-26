@@ -15,7 +15,7 @@ export function ResultLine({ r }: { r: Result }) {
 type Fail = Extract<SendResult, { ok: false }>;
 
 /** 実行委員が出したものが、お客さんの画面に届くまで（開いたままの画面は読み直しの間かくで。開催前は間かくが長い） */
-export const REACH = "当日は 20 秒ほどで、お客さんの画面に出ます（開催前は、数分かかることがあります）";
+export const REACH = "当日は 30 秒ほどで、お客さんの画面に出ます（開催前は、数分かかることがあります）";
 
 /**
  * 従業員側の画面が読み直す間隔（_lib/use-staff-live.ts と同じ）：当日の朝・開催中は 15 秒、開催前・終了後は 60 秒

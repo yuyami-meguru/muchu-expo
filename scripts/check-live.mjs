@@ -110,7 +110,7 @@ check("お店の人の「いまの様子」も「当日」になる", (await a.r
 check("実行委員の「いまの様子」に表示の時期・全体の帯・ラジオが入る", (await admin.req("GET", "/api/staff/live?fresh=1")).json?.phase === "during" && "alert" in (await admin.req("GET", "/api/staff/live")).json);
 // /api/status を CDN に置く秒数は、表示の時期で変える（開催中は短く、開催前・終了後は長く）
 const ccDuring = (await fetch(`${BASE}/api/status`, { cache: "no-store" })).headers.get("cache-control") ?? "";
-check("開催中の /api/status は CDN に 3 秒", /s-maxage=3\b/.test(ccDuring), ccDuring);
+check("開催中の /api/status は CDN に 10 秒", /s-maxage=10\b/.test(ccDuring), ccDuring);
 await admin.req("PUT", "/api/staff/phase", { mode: "before" });
 const ccBefore = (await fetch(`${BASE}/api/status`, { cache: "no-store" })).headers.get("cache-control") ?? "";
 check("開催前の /api/status は CDN に 60 秒", /s-maxage=60\b/.test(ccBefore), ccBefore);

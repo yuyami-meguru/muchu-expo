@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { phaseOf, type AdminLive, type ShopLive } from "@/lib/ops";
 
-// 当日（朝・開催中）は 15 秒ごと。開催前・終了後は 60 秒ごと（売り切れなどはお客さんに出ないので。Upstash の回数を増やさないため）。
-// 押したあと・画面を開いたときは refresh() ですぐ、新しく読む（?fresh=1）
-const DAY_MS = 15_000;
+// 当日（朝・開催中）は 30 秒ごと。開催前・終了後は 60 秒ごと（売り切れなどはお客さんに出ないので。Upstash の回数を増やさないため）。
+// 押したあと・画面を開いたときは refresh() ですぐ、新しく読む（?fresh=1）。
+// 2026-11-26：当日を 15 秒から 30 秒に（30〜40 台のスマホの読み直しが、Vercel の無料プランの CPU の時間をいちばん使うため）
+const DAY_MS = 30_000;
 const QUIET_MS = 60_000;
 /** 画面に戻ったときの読み直しは、前に読んでからこれだけたってから（行ったり来たりで読みすぎないように） */
 const VISIBLE_GAP_MS = 5_000;
@@ -18,7 +19,7 @@ function intervalOf(live: AdminLive | ShopLive | null) {
 }
 
 /**
- * 従業員側の「いまの様子」を読み直す（GET /api/staff/live）。当日は 15 秒ごと、開催前・終了後は 60 秒ごと、画面に戻ったときも。
+ * 従業員側の「いまの様子」を読み直す（GET /api/staff/live）。当日は 30 秒ごと、開催前・終了後は 60 秒ごと、画面に戻ったときも。
  * 別のスマホや実行委員が押した売り切れ・連絡が、読み込み直さなくても入る。
  * 画面が裏に回っているあいだは読まない。
  * refresh() は今すぐ、使い回しなしで新しく読む（押したあとなど）。ふだんの読み直しは、サーバーが少しだけ使い回す（api/staff/live/route.ts）

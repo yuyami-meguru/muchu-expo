@@ -32,7 +32,7 @@ type Props = { alert: SiteAlert; setAlert: Dispatch<SetStateAction<SiteAlert>>; 
 
 /**
  * 全体の帯（雨・急ぎ）。種類を選ぶと文の例が入る（自分で書いた文は消さない）。文は直せる。
- * お客さん側の全部のページのいちばん上に出る（当日は 20 秒ほどで）。
+ * お客さん側の全部のページのいちばん上に出る（当日は 30 秒ほどで）。
  * 雨を選んだときは、帯を出してもお店の場所は変わらないこと（先に場所を直すこと）を出す。
  */
 export function AlertCard({ alert, setAlert, touch, ready, markDirty }: Props) {
@@ -66,7 +66,7 @@ export function AlertCard({ alert, setAlert, touch, ready, markDirty }: Props) {
     touch();
     setAlert(r.alert);
     setDraft(null);
-    setResult({ text: on ? `帯を出しました（${clock(r.alert.at)}）。${REACH}` : `帯を消しました（${clock(r.alert.at)}）。当日は 20 秒ほどで、お客さんの画面から消えます（開催前は、数分かかることがあります）` });
+    setResult({ text: on ? `帯を出しました（${clock(r.alert.at)}）。${REACH}` : `帯を消しました（${clock(r.alert.at)}）。当日は 30 秒ほどで、お客さんの画面から消えます（開催前は、数分かかることがあります）` });
   }
 
   return (
@@ -141,7 +141,7 @@ export function AlertCard({ alert, setAlert, touch, ready, markDirty }: Props) {
         <p style={{ marginTop: 8 }}>お客さん側の全部のページのいちばん上に出ます。{REACH}。</p>
       </ConfirmDialog>
       <ConfirmDialog title="全体の帯を消しますか？" confirmLabel="帯を消す" open={hideOpen} onOpenChange={setHideOpen} onConfirm={() => put(false)}>
-        お客さんの画面から消えます（当日は 20 秒ほどで）。文は残るので、あとでまた出せます。
+        お客さんの画面から消えます（当日は 30 秒ほどで）。文は残るので、あとでまた出せます。
       </ConfirmDialog>
     </Card>
   );
