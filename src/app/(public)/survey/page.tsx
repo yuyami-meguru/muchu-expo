@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Sprite } from "@/components/pixel/sprites";
 import { getSession } from "@/lib/auth";
 import { getSetting, loadAll, surveyOpen } from "@/lib/store";
-import { AWARD_DEPT, AWARD_KEY, parseAward } from "../award/award-data";
+import { AWARD_KEY, isAwardTarget, parseAward } from "../award/award-data";
 import { deptLookup } from "@/lib/types";
 import { ByPhase } from "../_components/in-phase";
 import { isSolo, SoloPage } from "@/components/shell/solo-page";
@@ -30,7 +30,11 @@ export default async function SurveyPage({ searchParams }: { searchParams: Promi
   // 夢中アワードを発表したあとは、問 5（投票）を出さない（発表のあとに票が増えないように。2026-11-26 の点検）
   const awardSetting = parseAward(awardRaw);
   const awards = awardSetting.published ? [] : awardSetting.awards.map((x) => ({ id: x.id, name: x.name, note: x.note }));
-  const kojin = choices.filter((c) => shops.find((s) => s.id === c.id)?.dept === AWARD_DEPT);
+  // 候補は個人の展示（教科展示は外す。award-data.ts の isAwardTarget）
+  const kojin = choices.filter((c) => {
+    const s = shops.find((x) => x.id === c.id);
+    return !!s && isAwardTarget(s);
+  });
   const form = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} />;
   const previewForm = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} preview />;
   return (

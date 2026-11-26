@@ -3,7 +3,7 @@ import { clientIp, fail, guarded, ok, readBody } from "@/lib/api";
 import { parsePhaseMode, phaseOf } from "@/lib/ops";
 import { addSurvey, allow, allowHere, getSetting, loadAll, surveyOpen } from "@/lib/store";
 import { isEmptyAnswer, SURVEY_LABELS, surveyBody, type SurveyAnswer } from "@/lib/survey";
-import { AWARD_DEPT, AWARD_KEY, parseAward } from "@/app/(public)/award/award-data";
+import { AWARD_KEY, isAwardTarget, parseAward } from "@/app/(public)/award/award-data";
 
 // お客さんのアンケートの回答。ログインはいらない。
 // 回数の上限は「つなぎ先（IP）」ごとに 10 分 600 回。会場の Wi-Fi は全員が同じ IP になることがあるので大きめにし、
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // 発表したあとは票を受け付けない（問 5 も出していない）
     const awardSetting = parseAward(awardRaw);
     const awardIds = new Set(awardSetting.published ? [] : awardSetting.awards.map((x) => x.id));
-    const target = new Set(shops.filter((s) => !s.hidden && s.dept === AWARD_DEPT).map((s) => s.id));
+    const target = new Set(shops.filter((s) => isAwardTarget(s)).map((s) => s.id));
     const candidates = target.size ? target : ids;
     const votedFor = new Set<string>();
     const award = a.award.filter((v) => awardIds.has(v.a) && candidates.has(v.s) && !votedFor.has(v.a) && votedFor.add(v.a));

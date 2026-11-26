@@ -35,6 +35,17 @@ export const AWARD_KEY = "award";
 /** 賞の対象の部門（個人発表・展示）。アンケートの投票と、受賞を選ぶ欄の候補 */
 export const AWARD_DEPT = "kojin";
 
+/**
+ * 部門が「個人発表・展示」でも、投票の候補にしない展示（名前にこの言葉が入るもの）。
+ * 2026-11-26 のユーザー「教科展示だけ外したくて」（実行委員がこの部門に「教科展示」（2 階 201）を足した。学校の教科の展示で、個人の展示ではない）
+ */
+export const AWARD_EXCLUDE_WORDS = ["教科展示"];
+
+/** 賞の対象か：非表示でなく、部門が個人発表・展示で、名前に AWARD_EXCLUDE_WORDS の言葉が入っていない。アンケートの投票・受け付け・受賞を選ぶ欄で同じものを使う */
+export function isAwardTarget(s: { dept: string; name: string; hidden?: boolean }) {
+  return !s.hidden && s.dept === AWARD_DEPT && !AWARD_EXCLUDE_WORDS.some((w) => s.name.includes(w));
+}
+
 /** 2026-11-20 に実行委員会で決まった 4 つの賞（名前／説明＝審査の基準）。id は投票の集計に使うので変えない */
 export const DEFAULT_AWARDS: Award[] = [
   { id: "unique", name: "ユニークアワード", note: "印象に残ったもの、個性のあるもの", winners: [] },
