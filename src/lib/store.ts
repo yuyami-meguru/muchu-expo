@@ -1057,6 +1057,46 @@ function program1125Fix(r: Raw): { shop: Record<string, string>; log: LogEntry[]
   return Object.keys(shop).length ? { shop, log } : null;
 }
 
+/** v0.23.5〜：保存した外の配置のテントをエンカレマルシェの右へ移したか（このサーバーの中で） */
+let tentMoveTried = false;
+/** 2026-11-26 より前のはじめの位置（x1・y1・x2・y2）。テントは v0.23.1 で下へのばす前（528）と後（548）の 2 つ */
+const BEFORE_1126: Record<string, [number, number, number, number][]> = {
+  yakisoba: [[305, 286, 490, 343]],
+  marche: [[571, 287, 724, 345]],
+  "tent-craft": [
+    [910, 398, 950, 548],
+    [910, 398, 950, 528],
+  ],
+};
+/**
+ * 実行委員が保存した外の配置（muchu:omap）でも、宮島宮大工のテントをエンカレマルシェの右へ移し、焼きそば・エンカレマルシェを左へ寄せる直し
+ * （2026-11-26 ユーザーの写真の青ペン「宮島のやつをエンカレマルシェの右に設置、でも入口の前じゃないから全体的に左に移す」。直すものが無ければ null）。
+ * 前のはじめの位置のままの枠だけを、今のはじめの配置（DEFAULT_LAYOUT）の位置にする（実行委員が動かした枠・付けた名前はそのまま）。
+ * テントを移すときは、縦 5 字の字と場所の補足「クラフトセンターの下」も今のものにする。保存が無ければ、はじめの配置がそのまま出る
+ */
+function tentMoveFix(r: Raw): string | null {
+  const lay = parseLayout(r.omap?.layout);
+  if (!lay) return null;
+  let changed = false;
+  const items = lay.items.map((i) => {
+    const before = BEFORE_1126[i.id];
+    const def = DEFAULT_LAYOUT.items.find((d) => d.id === i.id);
+    if (!before || !def || !before.some(([x1, y1, x2, y2]) => i.x1 === x1 && i.y1 === y1 && i.x2 === x2 && i.y2 === y2)) return i;
+    const next: OutItem = { ...i, x1: def.x1, y1: def.y1, x2: def.x2, y2: def.y2 };
+    if (i.id === "tent-craft") {
+      if (i.label === "宮\n島\n宮\n大\n工") {
+        next.label = def.label;
+        next.size = def.size;
+        next.dy = def.dy;
+      }
+      if (i.place && def.place && i.place.note === "クラフトセンターの下") next.place = { ...i.place, note: def.place.note };
+    }
+    changed = true;
+    return next;
+  });
+  return changed ? JSON.stringify({ items }) : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -1236,6 +1276,16 @@ async function loadRaw(): Promise<Raw> {
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }
+    }
+  }
+  // v0.23.5（2026-11-26）：保存した外の配置でも、宮島宮大工のテントをエンカレマルシェの右へ（tentMoveFix、目印 muchu:fix:tent-marche-1126）。
+  // 保存が無ければ、はじめの配置（DEFAULT_LAYOUT）がもう新しい位置なので、何もしない
+  if (!tentMoveTried && storeReady()) {
+    tentMoveTried = true;
+    const lay = tentMoveFix(r);
+    if (lay && (await b.flagOnce("fix:tent-marche-1126"))) {
+      await b.hset("omap", { layout: lay });
+      r = await b.readAll();
     }
   }
   return r;

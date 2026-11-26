@@ -137,8 +137,10 @@ check("お店の場所を会場マップの場所（カフェ）にできる", m
 check("その場所に戻せる", (await admin.req("PATCH", "/api/staff/shops/yakisoba", { placeId: placed })).json?.shop?.placeId === placed);
 
 // v0.21.0：クラフトセンターの下のテント（地域部門）と、11/20 の打ち合わせの 1 度だけの直し
-check("外の地図にクラフトセンターの下のテント（宮島宮大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮島宮大工のテント") && out.includes(">宮\n島\n宮\n大\n工<"));
-check("前の字のテント（宮大工だけ）は残っていない", !out.includes(">宮\n大\n工<") && !out.includes(">宮大工のテント"));
+// v0.23.5（2026-11-26 の青ペン）：テントはエンカレマルシェの右へ（字は横 2 行「宮島／宮大工」、場所の補足は「エンカレマルシェの右」）
+check("外の地図に、エンカレマルシェの右のテント（宮島宮大工）がある", out.includes('data-pin="out-tent-craft"') && out.includes("宮島宮大工のテント") && out.includes(">宮島\n宮大工<"));
+check("前の字のテント（宮大工だけ・縦 5 字）は残っていない", !out.includes(">宮\n大\n工<") && !out.includes(">宮大工のテント") && !out.includes(">宮\n島\n宮\n大\n工<"));
+check("テントの場所の補足に「クラフトセンターの下」は残っていない", !out.includes("クラフトセンターの下") && out.includes("エンカレマルシェの右"));
 // v0.23.1：パンフの試し刷りの赤ペンにそろえた（大食堂の体験の中身・小食堂の茶屋・音楽室の発表・3 階の文書庫を消す）
 check("大食堂に体験の中身（押し花しおり・射的）", out.includes("体験・休憩\n押し花しおり・射的"));
 check("小食堂の中に茶屋の箱がある", (out.match(/>茶屋</g) ?? []).length >= 2);
@@ -180,17 +182,28 @@ const lay0 = (await admin.req("GET", "/api/staff/export")).json?.outLayout;
 check("控えに外の会場マップの配置が入る（テントもある）", Array.isArray(lay0?.items) && lay0.items.some((i) => i.id === "tent-craft"));
 check("配置の保存は、ログインしていないと断る", [401, 403].includes((await anon.req("PUT", "/api/staff/outmap", { layout: lay0 })).status));
 check("配置の保存は、お店の人には断る", [401, 403].includes((await shop.req("PUT", "/api/staff/outmap", { layout: lay0 })).status));
+// v0.23.5：テントはエンカレマルシェの右（同じ列）で、入口の前ではない。焼きそば・エンカレマルシェは左へ寄せた（保存した配置でも＝tentMoveFix）
+{
+  const L = (id) => lay0?.items?.find((i) => i.id === id);
+  const [yaki, mar, tent, iri] = ["yakisoba", "marche", "tent-craft", "iriguchi"].map(L);
+  check("テントはエンカレマルシェの右（同じ列）", !!(tent && mar) && tent.x1 > mar.x2 && tent.y1 === mar.y1, JSON.stringify({ tent, mar }));
+  check("テントは入口の前ではない（入口より左）", !!(tent && iri) && tent.x2 < iri.x1);
+  check("焼きそばとエンカレマルシェは重ならず、焼きそばが左", !!(yaki && mar) && yaki.x2 < mar.x1);
+  check("テントの場所の補足は「エンカレマルシェの右」", tent?.place?.note === "エンカレマルシェの右");
+  check("1 度だけの直しの目印（fix:tent-marche-1126）は、保存した配置があるときだけ立つ", !now.omap?.layout || !!JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8")).flags?.["fix:tent-marche-1126"]);
+}
 if (lay0?.items) {
+  const t0 = lay0.items.find((i) => i.id === "tent-craft");
   const movedLay = { items: lay0.items.map((i) => (i.id === "tent-craft" ? { ...i, x1: i.x1 - 40, x2: i.x2 - 40 } : i)) };
   const put = await admin.req("PUT", "/api/staff/outmap", { layout: movedLay });
   check("実行委員は配置を保存できる", put.status === 200, String(put.status));
   const tx = movedLay.items.find((i) => i.id === "tent-craft").x1;
-  check("お客さんの地図が、保存した配置で描かれる", (await page("/map")).includes(`x="${tx}" y="398"`));
+  check("お客さんの地図が、保存した配置で描かれる", (await page("/map")).includes(`x="${tx}" y="${t0.y1}"`));
   const dup = { items: [...lay0.items, { ...lay0.items[0] }] };
   check("同じ id の枠が 2 つある配置は断る", (await admin.req("PUT", "/api/staff/outmap", { layout: dup })).status === 400);
   check("小さすぎる枠は断る", (await admin.req("PUT", "/api/staff/outmap", { layout: { items: [{ ...lay0.items[1], x2: lay0.items[1].x1 + 2 }] } })).status === 400);
   check("配置をもとに戻せる", (await admin.req("PUT", "/api/staff/outmap", { layout: lay0 })).status === 200);
-  check("戻したあと、テントはもとの位置", (await page("/map")).includes(`x="${lay0.items.find((i) => i.id === "tent-craft").x1}" y="398"`));
+  check("戻したあと、テントはもとの位置", (await page("/map")).includes(`x="${t0.x1}" y="${t0.y1}"`));
 }
 
 // フォントを先に読む印（<link rel="preload" as="font">）がたくさんあると、遅い回線で最初の表示が何十秒も遅れる（R8）。
