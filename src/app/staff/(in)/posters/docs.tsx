@@ -140,7 +140,9 @@ export function TimetableDoc({ timed, other, placeOf, asOf }: { timed: TimedRow[
       {timed.length > 0 && <TimeTable rows={timed} placeOf={placeOf} />}
       {other.length > 0 && (
         <>
-          <h4 className="pst-doc-h">時刻が決まっていないもの・一日じゅう開いているもの</h4>
+          <h4 className="pst-doc-h">
+            時刻が決まっていないもの・<span className="nowrap">一日じゅう</span>開いているもの
+          </h4>
           <TimeTable rows={other} placeOf={placeOf} />
         </>
       )}

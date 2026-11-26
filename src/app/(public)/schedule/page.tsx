@@ -36,7 +36,10 @@ export default async function SchedulePage() {
 
       {other.length > 0 && (
         <section className="sc-other" aria-labelledby="sc-other-h">
-          <h2 id="sc-other-h">時刻が決まっていないもの・一日じゅう開いているもの</h2>
+          {/* 「一日じゅう」は 1 まとまり（Chrome の auto-phrase が「一｜日じゅう」で切っていた） */}
+          <h2 id="sc-other-h">
+            時刻が決まっていないもの・<span className="nowrap">一日じゅう</span>開いているもの
+          </h2>
           <ul className="sc-list">
             {other.map((r, i) => (
               <ScheduleRow key={i} r={r} />
