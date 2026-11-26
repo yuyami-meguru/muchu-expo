@@ -44,6 +44,8 @@
 .pfl-room--has { border: 0.45cqw solid #111; background: #ececec; }
 .pfl-room--has .pfl-room-name { font-size: 2.1cqw; font-weight: 900; color: #111; }
 .pfl-room-shops { list-style: none; padding: 0; display: grid; gap: 0.4cqw; font-size: 1.75cqw; font-weight: 900; line-height: 1.2; word-break: auto-phrase; }
+/* 部屋の使いみちの札（教科展示など。v0.23.4）。お店・出し物ではないので、部屋は灰に塗らず、白地に黒い枠の札だけ */
+.pfl-room-use { padding: 0 1cqw; border: 0.3cqw solid #111; border-radius: 999px; background: #fff; font-size: 1.9cqw; font-weight: 900; line-height: 1.5; color: #111; white-space: nowrap; }
 /* 床の形に切った部屋（ホール・廊下）：四角の線と地は出さず、SVG の形で描く（線の外がわ半分は形の外で切れるので、太さは 2 倍） */
 .pfl-room--shaped { border: 0; background: none; }
 .pfl-room-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }

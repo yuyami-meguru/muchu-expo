@@ -77,6 +77,13 @@
 .mp-place-name { flex: 1 1 8em; min-width: 0; line-height: 1.4; word-break: auto-phrase; }
 .mp-place-n { font-size: 0.8rem; color: var(--ink-2); white-space: nowrap; }
 .mp-place-x { font-size: 0.8rem; color: var(--ng-ink); }
+/* 部屋の使いみちの札（教科展示など。地図の部屋の四角の札 .mx-room-use と同じ見え方。v0.23.4） */
+.mp-place-use {
+  display: inline-block; margin-left: 6px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: var(--r-pill); background: var(--surface);
+  font-size: 0.85rem; font-weight: 900; line-height: 1.5; white-space: nowrap; vertical-align: 0.1em;
+}
+.mp-use { margin: 4px 0 6px; font-weight: 700; color: var(--ink-2); }
+.mp-use .mp-place-use { margin: 0 4px; color: var(--ink); }
 /* お店の無い部屋・場所（たたんでおく） */
 .mp-empty { margin-top: 10px; }
 .mp-empty > summary {

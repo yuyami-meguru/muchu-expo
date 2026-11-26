@@ -38,6 +38,11 @@ export type MapPin = {
    */
   items?: { name: string; mark: string; tone?: string }[];
   /**
+   * 部屋の使いみち（「教科展示」など。floor-plans.ts の ROOM_USE）。部屋の四角の名前の下に、白い札で出す。
+   * お店・出し物ではないので、部門の色は付けない（紫は個人発表・展示の部門の色なので、パンフの紫の字はまねない）
+   */
+  use?: string;
+  /**
    * 会場マップに描いてある枠そのもの（外の地図の「大食堂」「受付」など。v0.17.0）。描いてある枠と名前の上に、透明な四角を重ねて押せるようにする
    * （名前は地図の字のまま。お店・出し物があれば右上に頭文字と数、選ぶと太い枠）
    */
@@ -179,7 +184,7 @@ export function SchoolMap({
 
   // ピンの名前を、ほかのピン・名前・地図の端と重ならない所へ（せまい画面の外の地図で、名前がピンに隠れないように）
   const sig = pins
-    .map((p) => `${p.id}:${p.x}:${p.y}:${p.name}:${p.count ?? ""}:${p.alert ? 1 : 0}:${p.w ?? ""}:${(p.items ?? []).map((i) => i.name).join("/")}`)
+    .map((p) => `${p.id}:${p.x}:${p.y}:${p.name}:${p.count ?? ""}:${p.alert ? 1 : 0}:${p.w ?? ""}:${p.use ?? ""}:${(p.items ?? []).map((i) => i.name).join("/")}`)
     .join("|");
   useLayoutEffect(() => {
     const board = boardRef.current;
@@ -417,7 +422,7 @@ function fitRooms(board: HTMLElement) {
   }
 }
 
-/** 部屋の四角（押すとその部屋を選ぶ）。中に部屋の名前と、お店・出し物の名前（部門の頭文字つき。無ければ頭文字と数）、売り切れは ×。床の形に切った部屋は SVG で形を描く */
+/** 部屋の四角（押すとその部屋を選ぶ）。中に部屋の名前と、使いみちの札（教科展示など）、お店・出し物の名前（部門の頭文字つき。無ければ頭文字と数）、売り切れは ×。床の形に切った部屋は SVG で形を描く */
 function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean; onSelect?: (id: string) => void; shape?: RoomShape; tabbable: boolean }) {
   const w = p.w ?? 0;
   const h = p.h ?? 0;
@@ -486,6 +491,11 @@ function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean;
         style={lab ? { top: `${lab.top}%`, height: `${lab.bottom - lab.top}%`, left: `${lab.left}%`, width: `${lab.right - lab.left}%` } : undefined}
       >
         <span className="mx-room-name">{p.name}</span>
+        {p.use && (
+          <span className="mx-room-use" aria-hidden="true">
+            {p.use}
+          </span>
+        )}
         {p.items?.length ? (
           <span className="mx-room-items" aria-hidden="true">
             {p.items.map((it, i) => (

@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons";
 import { isSelling, LiveShopBadges, shownState } from "@/components/live/live-parts";
 import { useLive, usePhase } from "@/components/live/live-provider";
 import { SchoolMap, type MapBase, type MapPin } from "@/components/map/school-map";
+import { ROOM_USE } from "@/lib/floor-plans";
 import { itemRect, outsideSpot, type OutLayout } from "@/lib/outside-plan";
 import { cx } from "@/components/ui/cx";
 import { areaName, areaOf, deptLookup, OUTSIDE, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind } from "@/lib/types";
@@ -103,6 +104,9 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
     }
     const ds = [...new Map(here.map((s) => [dept(s.dept).id, dept(s.dept)])).values()];
     const alert = soldOut(here);
+    // 部屋の使いみち（教科展示など。お店・出し物ではない札。floor-plans.ts の ROOM_USE）
+    const use = ROOM_USE[p.id];
+    const what = here.length ? here.map((s) => s.name).join("、") : use ? "" : before ? "お店・出し物は未定" : "お店・出し物なし";
     return {
       id: p.id,
       name: p.name,
@@ -118,7 +122,8 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
         const d = dept(s.dept);
         return { name: s.name, mark: initialOf(d), tone: `tone-${d.color}` };
       }),
-      label: `${p.name}（${here.length ? here.map((s) => s.name).join("、") : before ? "お店・出し物は未定" : "お店・出し物なし"}${alert ? "・売り切れあり" : ""}）`,
+      use,
+      label: `${p.name}（${[use, what].filter(Boolean).join("・")}${alert ? "・売り切れあり" : ""}）`,
       ...box,
     };
   }
@@ -128,7 +133,9 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
   const pins = inArea.filter((p) => showFac || placeKindOf(p) === "spot" || p.id === sel).map(pinOf);
   const spotPins = pins.filter((p) => p.kind === "spot");
   const withShops = spotPins.filter((p) => p.count);
-  const empty = spotPins.filter((p) => !p.count);
+  // 使いみち（教科展示など）だけの部屋も、お店・出し物のある場所といっしょに上の一覧へ。どちらも無い場所はたたむ
+  const withUse = spotPins.filter((p) => !p.count && p.use);
+  const empty = spotPins.filter((p) => !p.count && !p.use);
   const facPins = pins.filter((p) => p.kind !== "spot");
   /** 地図に置く物：会場マップの場所は、描いてある枠ごとに 1 つの四角（トイレ 3 か所なら 3 つ。どれを押しても同じ場所を選ぶ） */
   const partsOf = (p: (typeof pins)[number]): MapPin[] =>
@@ -182,13 +189,17 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
   /** 選んだときに読み上げる短い一文 */
   function statusOf(p: Place, inAreaId: string) {
     const n = shopsAt(p.id).length;
-    const what = n ? `お店・出し物は ${n} 件です。` : placeKindOf(p) !== "spot" ? "" : before ? "お店・出し物は未定です。" : "お店・出し物はありません。";
-    return `${nameOfArea(inAreaId)}の「${p.name}」を選びました。${what}`;
+    const spot = placeKindOf(p) === "spot";
+    const use = spot ? ROOM_USE[p.id] : undefined;
+    const what = n ? `お店・出し物は ${n} 件です。` : !spot || use ? "" : before ? "お店・出し物は未定です。" : "お店・出し物はありません。";
+    return `${nameOfArea(inAreaId)}の「${p.name}」を選びました。${use ? `「${use}」の会場です。` : ""}${what}`;
   }
 
   const place = places.find((p) => p.id === sel && areaOf(p) === area);
   const placeKind = place ? placeKindOf(place) : "spot";
   const here = place ? shopsAt(place.id) : [];
+  /** 選んだ部屋の使いみち（教科展示など） */
+  const placeUse = place && placeKind === "spot" ? ROOM_USE[place.id] : undefined;
   /** 建物のピンなら、その建物のフロア（フロアの「建物の名前」がピンの名前と同じもの） */
   const floorsOf = (p: Place) => areas.filter((a) => a.building === p.name);
   // 外の地図に建物のピンが無い建物（外から中へ移れないので、外の地図の下にボタンを出す）
@@ -225,9 +236,16 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
           <span className="mp-place-name">
             {p.name}
             {note && <span className="sr-only">（{note}）</span>}
+            {p.use && (
+              <>
+                <span className="sr-only">（</span>
+                <span className="mp-place-use">{p.use}</span>
+                <span className="sr-only">）</span>
+              </>
+            )}
           </span>
           {p.kind === "spot" ? (
-            <span className="mp-place-n">{p.count ? `${p.count} 件` : before ? "未定" : "なし"}</span>
+            (p.count || !p.use) && <span className="mp-place-n">{p.count ? `${p.count} 件` : before ? "未定" : "なし"}</span>
           ) : (
             !!p.count && <span className="mp-place-n">{p.count} 件</span>
           )}
@@ -237,7 +255,7 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
     );
   };
 
-  const listed = [...withShops, ...facPins];
+  const listed = [...withShops, ...withUse, ...facPins];
   return (
     <>
       <div className={cx("mp-grid", cur ? "mp-grid--floor" : "mp-grid--out", ((!cur && inside.length > 0) || otherFloors.length > 0) && "mp-grid--inside")}>
@@ -290,6 +308,11 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
                 {place.name}
               </h2>
               {kindNoteHere && <p className="mp-kind">{kindNoteHere}</p>}
+              {placeUse && (
+                <p className="mp-use">
+                  この部屋は<span className="mp-place-use">{placeUse}</span>の会場です。
+                </p>
+              )}
               {place.note && <p className="mp-note">{place.note}</p>}
               {placeKind === "building" &&
                 (floorsOf(place).length ? (
@@ -307,7 +330,8 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
               {here.length > 0 ? (
                 <ShopList shops={here} dept={dept} />
               ) : (
-                placeKind === "spot" && (
+                placeKind === "spot" &&
+                !placeUse && (
                   <p className="mp-note">
                     {before ? "この場所のお店・出し物は未定です。決まりしだいお知らせします。" : "この場所には、お店・出し物はありません。"}
                   </p>

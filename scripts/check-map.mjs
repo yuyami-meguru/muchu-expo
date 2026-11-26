@@ -153,6 +153,15 @@ check("ステージ発表の場所が 2 階のロビー", JSON.parse(after.shop.
 const sch = await page("/schedule");
 check("射的は 10:00〜11:30・押し花しおりは 12:30〜14:00", sch.includes("10:00〜11:30") && sch.includes("12:30〜14:00") && !sch.includes("10:00〜12:00"));
 check("ステージ発表の題が赤ペンどおり", sch.includes("お笑いライブ「ネオ職員室」") && sch.includes("トークイベント 宮島宮大工「宮大工の魅力とは？」") && !sch.includes("トークショー"));
+// v0.23.4：2 階の 201 に「教科展示」の札（パンフ 3 ページ目の赤ペンと同じ。お店・出し物ではない、表示だけの札＝floor-plans.ts の ROOM_USE）
+const room201 = m2.match(/data-pin="f2-201"[\s\S]*?<\/button>/)?.[0] ?? "";
+check("2 階の地図の 201 に「教科展示」の札が出る", room201.includes('class="mx-room-use"') && room201.includes(">教科展示<"));
+check("201 は「お店・出し物は未定」でなく「教科展示」と読める", room201.includes("201 小講義室（教科展示）"));
+const empty2 = m2.match(/<details class="mp-empty"[\s\S]*?<\/details>/)?.[0] ?? "";
+check("201 は地図の下の一覧に「教科展示」つきで出る（たたまない）", /mp-place-name">201 小講義室.*?mp-place-use">教科展示</.test(m2) && !empty2.includes("201 小講義室"));
+check("教科展示はお店・出し物の一覧に入らない（表示だけの札）", !(await page("/shops")).includes("教科展示"));
+const posters = await (await fetch(BASE + "/staff/posters", { headers: { cookie: admin.cookie } })).text();
+check("フロアの案内の紙（2 階）の 201 にも「教科展示」", posters.includes('class="pfl-room-use">教科展示<'));
 check("保存した配置にも、前の名前のテント（テント・宮島大工）は残っていない", !out.includes("テント（クラフトセンターの下）") && !out.includes(">テ\nン\nト<") && !out.includes("宮島大工"));
 check("1 度だけの直しの目印（fix:minutes-1120）が立っている", !!now.flags?.["fix:minutes-1120"]);
 for (const id of ["classroom", "radio"]) {

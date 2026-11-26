@@ -237,6 +237,11 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
   max-width: 100%; font-size: max(0.75rem, 1.5cqi); font-weight: 900; line-height: 1.2; text-align: center; word-break: auto-phrase;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* 部屋の使いみちの札（教科展示など。v0.23.4）。お店・出し物ではないので部門の色は付けず、白地に濃い枠 */
+.mx-room-use {
+  flex: none; max-width: 100%; padding: 0 6px; border: 1.5px solid var(--ink); border-radius: var(--r-pill); background: var(--surface); color: var(--ink);
+  font-size: max(0.75rem, 1.3cqi); font-weight: 900; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .mx-room-mark {
   display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: var(--r-pill);
   background: var(--c, var(--ink)); color: var(--on-primary); font-size: max(0.75rem, 1.2cqi); font-weight: 900; line-height: 1.6; white-space: nowrap;
@@ -281,7 +286,7 @@ html.big .mx-map--floor .mx-map-board { min-width: 660px; }
 /* 印刷：色の印は背景の設定によらず刷る。押すための物（矢印・案内）は刷らない。見取り図は紙の幅に収める */
 @media print {
   .mx-map-board, .mx-map-svg, .mx-pin-dot, .mx-pin-count, .mx-pin-x, .mx-pin-label, .mx-pin--fac .mx-pin-head::after,
-  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-item-mark, .mx-room-x, .mx-map-cap {
+  .mx-room, .mx-room-shape, .mx-room-mark, .mx-room-use, .mx-room-item-mark, .mx-room-x, .mx-map-cap {
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
   .mx-map-more, .mx-map-hint { display: none !important; }

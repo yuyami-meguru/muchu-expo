@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { FloorLabels, FloorPlanSvg } from "@/components/map/floor-plan";
 import { roomShapeOf } from "@/components/map/room-shape";
-import { FLOOR_PLANS } from "@/lib/floor-plans";
+import { FLOOR_PLANS, ROOM_USE } from "@/lib/floor-plans";
 import { areaName, areaOf, deptLookup, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind, type Shop } from "@/lib/types";
 import { EVENT } from "@/lib/venue";
 import { isFacility, SHORT_DATE } from "./paper";
@@ -90,6 +90,8 @@ export function FloorGuideSheet({ sheet, depts, host, asOf }: { sheet: FloorShee
                     data-fit={here.length > 0 ? `${name}の見取り図の「${p.name}」` : undefined}
                   >
                     <span className="pfl-room-name">{p.name}</span>
+                    {/* 部屋の使いみち（教科展示など。地図の画面と同じ白い札） */}
+                    {ROOM_USE[p.id] && <span className="pfl-room-use">{ROOM_USE[p.id]}</span>}
                     {here.length > 0 && (
                       <ul className="pfl-room-shops">
                         {here.map((s) => (
