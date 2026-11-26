@@ -83,11 +83,13 @@ export const DEFAULT_LAYOUT: OutLayout = {
     { id: "shokudo", k: "booth", x1: 763, y1: 200, x2: 936, y2: 280, label: "大食堂", sub: "体験・休憩\n押し花しおり・射的", size: 17, place: P("out-shokudo", "大食堂", "spot", "体験・休憩ができます") },
     // 2026-11-26 ユーザーの写真（青ペン）「宮島のやつをエンカレマルシェの右に設置、でも入口の前じゃないから全体的に左に移す」：
     // テント（tent-craft）をエンカレマルシェの右（同じ列）へ。テントが入口（x 688〜）の前に来ないよう、焼きそば（305→206）・
-    // エンカレマルシェ（571→431）を左へ寄せた（大きさは前と同じ。パンフの build.mjs も同じ値。保存した配置は store.ts の tentMoveFix）
-    { id: "yakisoba", k: "booth", x1: 206, y1: 286, x2: 391, y2: 343, label: "焼きそば", size: 20, place: P("out-yakisoba", "焼きそば") },
-    { id: "marche", k: "booth", x1: 431, y1: 287, x2: 584, y2: 345, label: "エンカレ\nマルシェ", size: 18, place: P("out-marche", "エンカレマルシェ") },
+    // エンカレマルシェ（571→431）を左へ寄せた（v0.23.5）。そのあとユーザーが会場の写真を「こんな」と送ってきた（テントは生活棟の左はしから
+    // 一列に並び、いちばん右のテントと入口の間は大きくあいている）→ v0.23.6 で列ごと生活棟の左はしへ寄せ、箱の間は 18 にした
+    // （焼きそば 172〜・エンカレマルシェ 375〜・テント 546〜616。入口まで 72 あく。大きさは前と同じ。パンフの build.mjs も同じ値。保存した配置は store.ts の tentMoveFix）
+    { id: "yakisoba", k: "booth", x1: 172, y1: 286, x2: 357, y2: 343, label: "焼きそば", size: 20, place: P("out-yakisoba", "焼きそば") },
+    { id: "marche", k: "booth", x1: 375, y1: 287, x2: 528, y2: 345, label: "エンカレ\nマルシェ", size: 18, place: P("out-marche", "エンカレマルシェ") },
     // テントの枠は細い（幅 70）ので、右上の印（地 1）が 1 行目にかからないよう、サイトでは枠を下へ 30 のばして字を下げる（dy。パンフは 345 のまま）
-    { id: "tent-craft", k: "booth", x1: 598, y1: 287, x2: 668, y2: 375, label: "宮島\n宮大工", size: 18, dy: 10, place: P("out-tent-craft", "宮島宮大工のテント", "spot", "エンカレマルシェの右") },
+    { id: "tent-craft", k: "booth", x1: 546, y1: 287, x2: 616, y2: 375, label: "宮島\n宮大工", size: 18, dy: 10, place: P("out-tent-craft", "宮島宮大工のテント", "spot", "エンカレマルシェの右") },
     { id: "cafe", k: "cafe", x1: 763, y1: 303, x2: 872, y2: 340, label: "カフェ", size: 17, place: P("out-cafe", "カフェ") },
     // 2026-11-24 夕 赤ペン：音楽室で「発表」（ピアノ）
     { id: "craft", k: "other", x1: 948, y1: 265, x2: 1050, y2: 385, label: "クラフト\nセンター・\n音楽室\n発表", size: 15 },
@@ -251,7 +253,7 @@ const at = (ux: number, uy: number) => [pct(ux, OUT_VIEW.x, OUT_VIEW.w), pct(uy,
  * 実行委員がピンを動かしたら（保存した位置が from と違えば）、その位置をそのまま使う
  */
 const LEGACY_OUTSIDE: Record<string, { from: readonly [number, number]; to?: readonly [number, number] }> = {
-  "tent-food": { from: [48, 62], to: at(367, 343) }, // 焼きそば（v0.17.0 で会場マップの「焼きそば」の場所に移し、この仮のピンは消した。v0.23.5 で焼きそばを左へ寄せたので、その分だけ左へ）
+  "tent-food": { from: [48, 62], to: at(333, 343) }, // 焼きそば（v0.17.0 で会場マップの「焼きそば」の場所に移し、この仮のピンは消した。v0.23.5・v0.23.6 で焼きそばを左へ寄せたので、その分だけ左へ）
   "tent-chiiku": { from: [72, 30] }, // 体験（知育館のそば）→ v0.17.0 で大食堂の中へ。この仮のピンは消した
   classroom: { from: [24, 36] }, // 校舎の教室（会場マップに無い）
   radio: { from: [36, 74] }, // 放送ブース（場所は決まりしだい）

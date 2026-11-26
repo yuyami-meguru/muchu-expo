@@ -190,7 +190,11 @@ check("配置の保存は、お店の人には断る", [401, 403].includes((awai
   check("テントは入口の前ではない（入口より左）", !!(tent && iri) && tent.x2 < iri.x1);
   check("焼きそばとエンカレマルシェは重ならず、焼きそばが左", !!(yaki && mar) && yaki.x2 < mar.x1);
   check("テントの場所の補足は「エンカレマルシェの右」", tent?.place?.note === "エンカレマルシェの右");
-  check("1 度だけの直しの目印（fix:tent-marche-1126）は、保存した配置があるときだけ立つ", !now.omap?.layout || !!JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8")).flags?.["fix:tent-marche-1126"]);
+  check("1 度だけの直しの目印（fix:tent-row-1126b）は、保存した配置があるときだけ立つ", !now.omap?.layout || !!JSON.parse(readFileSync(new URL("../.data/dev.json", import.meta.url), "utf8")).flags?.["fix:tent-row-1126b"]);
+  // v0.23.6：ユーザーの会場の写真（「こんな」）のとおり、テントの列は生活棟の左はしから並び、いちばん右のテントと入口の間はあく
+  const seikatsu = L("seikatsu");
+  check("テントの列（焼きそば）は生活棟の左はしから", !!(yaki && seikatsu) && yaki.x1 - seikatsu.x1 <= 20, JSON.stringify({ yaki: yaki?.x1, seikatsu: seikatsu?.x1 }));
+  check("宮島宮大工のテントと入口の間があく（50 以上）", !!(tent && iri) && iri.x1 - tent.x2 >= 50, JSON.stringify({ tent: tent?.x2, iri: iri?.x1 }));
 }
 if (lay0?.items) {
   const t0 = lay0.items.find((i) => i.id === "tent-craft");

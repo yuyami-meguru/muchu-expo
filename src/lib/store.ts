@@ -1059,13 +1059,24 @@ function program1125Fix(r: Raw): { shop: Record<string, string>; log: LogEntry[]
 
 /** v0.23.5〜：保存した外の配置のテントをエンカレマルシェの右へ移したか（このサーバーの中で） */
 let tentMoveTried = false;
-/** 2026-11-26 より前のはじめの位置（x1・y1・x2・y2）。テントは v0.23.1 で下へのばす前（528）と後（548）の 2 つ */
+/**
+ * 今より前のはじめの位置（x1・y1・x2・y2）。v0.23.4 までの位置（テントは v0.23.1 で下へのばす前 528 と後 548 の 2 つ）と、
+ * v0.23.5 の位置（エンカレマルシェの右へ移した最初の位置。v0.23.6 で列ごと生活棟の左はしへ寄せた）
+ */
 const BEFORE_1126: Record<string, [number, number, number, number][]> = {
-  yakisoba: [[305, 286, 490, 343]],
-  marche: [[571, 287, 724, 345]],
+  yakisoba: [
+    [305, 286, 490, 343],
+    [206, 286, 391, 343],
+  ],
+  marche: [
+    [571, 287, 724, 345],
+    [431, 287, 584, 345],
+  ],
   "tent-craft": [
     [910, 398, 950, 548],
     [910, 398, 950, 528],
+    [598, 287, 668, 375],
+    [598, 287, 668, 345],
   ],
 };
 /**
@@ -1088,6 +1099,8 @@ function tentMoveFix(r: Raw): string | null {
         next.label = def.label;
         next.size = def.size;
         next.dy = def.dy;
+      } else if (i.label === def.label && i.dy === undefined) {
+        next.dy = def.dy; // 横 2 行の字のまま字を下げていなければ、右上の印をよけるよう下げる
       }
       if (i.place && def.place && i.place.note === "クラフトセンターの下") next.place = { ...i.place, note: def.place.note };
     }
@@ -1278,12 +1291,13 @@ async function loadRaw(): Promise<Raw> {
       }
     }
   }
-  // v0.23.5（2026-11-26）：保存した外の配置でも、宮島宮大工のテントをエンカレマルシェの右へ（tentMoveFix、目印 muchu:fix:tent-marche-1126）。
-  // 保存が無ければ、はじめの配置（DEFAULT_LAYOUT）がもう新しい位置なので、何もしない
+  // v0.23.5（2026-11-26）：保存した外の配置でも、宮島宮大工のテントをエンカレマルシェの右へ（tentMoveFix）。保存が無ければ、はじめの配置
+  // （DEFAULT_LAYOUT）がもう新しい位置なので、何もしない。v0.23.6 で列ごと生活棟の左はしへ寄せたので、目印を新しくした
+  // （v0.23.5 の目印 muchu:fix:tent-marche-1126 で直した配置も、もう 1 度だけ今の位置へ。目印 muchu:fix:tent-row-1126b）
   if (!tentMoveTried && storeReady()) {
     tentMoveTried = true;
     const lay = tentMoveFix(r);
-    if (lay && (await b.flagOnce("fix:tent-marche-1126"))) {
+    if (lay && (await b.flagOnce("fix:tent-row-1126b"))) {
       await b.hset("omap", { layout: lay });
       r = await b.readAll();
     }
