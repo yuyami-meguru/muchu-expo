@@ -605,6 +605,20 @@ async function windowOf(opts: ReadOpts): Promise<ReadWindow> {
 
 /** v0.16.0 の「校内ラジオを 1 度だけ隠す」を、このサーバーの中でもう試したか（読み込みのたびに Redis を呼ばないように） */
 let radioFixTried = false;
+// 2026-11-26：放送局（radio のお店）の説明を、BGM とお知らせの文に（ユーザー「放送局は…館内BGMや売り切れ情報などの放送を行う」→「隠して放送局だけ」）
+let radioBgmTried = false;
+export const RADIO_BGM_DESC = "館内に BGM を流し、売り切れなどのお知らせを放送します。";
+/** 放送局の説明が前の「校内ラジオ」の文（クイズ・ゲームの話）のままなら、新しい文にしたお店の JSON（ほかは null。実行委員が書きかえた文はそのまま） */
+function radioBgmJson(raw: string): { json: string; name: string; before: string } | null {
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown>;
+    const desc = typeof o.description === "string" ? o.description : "";
+    if (!desc.includes("クイズ")) return null;
+    return { json: JSON.stringify({ ...o, description: RADIO_BGM_DESC, updatedAt: Date.now() }), name: typeof o.name === "string" ? o.name : "放送局", before: desc };
+  } catch {
+    return null;
+  }
+}
 
 /** お店の JSON を「非表示」にしたもの（読めなければ null）。もう非表示なら、そのまま */
 function hiddenShopJson(raw: string): { json: string; changed: boolean; name: string } | null {
@@ -1149,6 +1163,19 @@ async function loadRaw(): Promise<Raw> {
       r = await b.readAll();
       try {
         await addLog([{ at: Date.now(), by: "admin", shop: RADIO_SHOP, shopName: h.name, field: "お客さんの画面", before: "表示中", after: "非表示（サイトの更新 v0.16.0 で）" }]);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
+    }
+  }
+  // v0.25.3（2026-11-26）：放送局の説明を 1 度だけ BGM とお知らせの文に（目印 muchu:fix:radio-bgm-1126）。変更の記録にも残す
+  if (!radioBgmTried && storeReady() && r.shop[RADIO_SHOP]) {
+    radioBgmTried = true;
+    const x = radioBgmJson(r.shop[RADIO_SHOP]);
+    if (x && (await b.seedOnce("fix:radio-bgm-1126", { shop: { [RADIO_SHOP]: x.json } }))) {
+      r = await b.readAll();
+      try {
+        await addLog([{ at: Date.now(), by: "admin", shop: RADIO_SHOP, shopName: x.name, field: "どんなお店？", before: x.before, after: `${RADIO_BGM_DESC}（サイトの更新 v0.25.3 で）` }]);
       } catch (e) {
         console.error("変更の記録に失敗", e);
       }

@@ -6,5 +6,12 @@
  */
 export const RADIO_SHOP = "radio";
 
-/** お客さんに校内ラジオを出しているか（ラジオのお店があって、非表示でない） */
-export const radioShown = (shops: readonly { id: string; hidden: boolean }[]) => shops.some((s) => s.id === RADIO_SHOP && !s.hidden);
+/**
+ * 「校内ラジオ」の作り（ラジオのページ・番組表・メッセージ・ホームの入口・いちばん下の案内・「放送中」の札）をお客さんに出すか。
+ * 2026-11-26：radio のお店は「放送局」（館内の BGM と売り切れなどのお知らせを流す所）になった。お店・出し物の一覧とマップには出すが、
+ * ラジオの作りは出さない（ユーザー「隠して放送局だけ」）。またラジオとして出すときは true に（お店も［お客さんの画面に出す］）
+ */
+export const RADIO_PUBLIC = false;
+
+/** お客さんに校内ラジオの作りを出しているか（RADIO_PUBLIC で、ラジオのお店があって、非表示でない） */
+export const radioShown = (shops: readonly { id: string; hidden: boolean }[]) => RADIO_PUBLIC && shops.some((s) => s.id === RADIO_SHOP && !s.hidden);

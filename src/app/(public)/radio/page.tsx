@@ -4,6 +4,7 @@ import { TimeRange } from "@/components/ui/time-range";
 import { RADIO_SHOP, radioLive } from "@/lib/radio";
 import { loadRadio } from "@/lib/radio-server";
 import { loadAll } from "@/lib/store";
+import { RADIO_PUBLIC } from "@/lib/radio-shop";
 import PublicNotFound from "../not-found";
 import { MessageForm } from "./message-form";
 import { RadioNow } from "./radio-now";
@@ -12,7 +13,8 @@ import "./radio.css";
 const NOT_FOUND_META: Metadata = { title: "ページが見つかりません", robots: { index: false, follow: false } };
 
 /** 校内ラジオのお店（お店・出し物の一覧にもある。id は radio）。非表示なら undefined */
-const radioShop = async () => (await loadAll()).shops.find((s) => s.id === RADIO_SHOP && !s.hidden);
+// 2026-11-26 から、ラジオの作りを出さないあいだ（radio-shop.ts の RADIO_PUBLIC）は、お店が表示中（放送局）でも undefined
+const radioShop = async () => (RADIO_PUBLIC ? (await loadAll()).shops.find((s) => s.id === RADIO_SHOP && !s.hidden) : undefined);
 
 export async function generateMetadata(): Promise<Metadata> {
   try {

@@ -4,6 +4,7 @@ import { clientIp, fail, guarded, ok, readBody } from "@/lib/api";
 import { RADIO_MSG_LABELS, RADIO_SHOP, radioMsgBody, type RadioMsg } from "@/lib/radio";
 import { loadRadio, MSG_MAX } from "@/lib/radio-server";
 import { allow, allowHere, getShop, pushList } from "@/lib/store";
+import { RADIO_PUBLIC } from "@/lib/radio-shop";
 
 // お客さんからラジオへのメッセージ（質問・メッセージ・リクエスト・クイズの答え）。ログインはいらない。
 // 回数の上限：
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (device && !allowHere(`radio-d1m:${device}`, DEVICE_PER_MIN, 60)) return fail(429, "続けて送りすぎています。1 分ほど待ってから、もう一度［ラジオに送る］を押してください");
     // 校内ラジオを隠しているあいだ（ラジオのお店が非表示。radio-shop.ts）と、募集を止めているあいだは受け付けない
     const [radio, shop] = await Promise.all([loadRadio(), getShop(RADIO_SHOP)]);
-    if (!shop || shop.hidden || !radio.msgOpen) return fail(403, "いまはメッセージを受け付けていません");
+    if (!RADIO_PUBLIC || !shop || shop.hidden || !radio.msgOpen) return fail(403, "いまはメッセージを受け付けていません");
     if (!(await allow(`radio:${ip}`, LIMIT, 600))) return fail(429, TOO_MANY);
     if (device && !(await allow(`radio-d:${device}`, DEVICE_PER_10MIN, 600))) return fail(429, "続けて送りすぎています。数分待ってから、もう一度［ラジオに送る］を押してください");
     // 同じ文の送り直し（押しなおし・いたずら）

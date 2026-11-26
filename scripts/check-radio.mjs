@@ -8,6 +8,9 @@ const PASS = process.env.ADMIN_PASSPHRASE ?? "dev-pass";
 const DATA = new URL("../.data/dev.json", import.meta.url);
 const data = JSON.parse(readFileSync(DATA, "utf8"));
 const SHOP = Object.keys(data.key)[0];
+// 2026-11-26 から、ラジオの作り（ページ・メッセージ・入口・札）は src/lib/radio-shop.ts の RADIO_PUBLIC で出すかを決める（いまは false＝放送局だけ）
+const PUBLIC = /export const RADIO_PUBLIC = true/.test(readFileSync(new URL("../src/lib/radio-shop.ts", import.meta.url), "utf8"));
+console.log(`--  ラジオの作りを出す（RADIO_PUBLIC）：${PUBLIC}`);
 
 let failed = 0;
 const check = (name, cond, extra = "") => {
@@ -58,8 +61,17 @@ check("隠しているあいだは、ラジオのお店のページも見つか�
 check("隠しているあいだは、マップの一覧に放送ブースが無い", !(await page("/map")).includes("放送ブース"));
 check("隠しているあいだは、メッセージを受け付けない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: `隠しているあいだ ${Date.now()}` })).status === 403);
 check("実行委員はラジオのお店を出せる", (await admin.req("PATCH", "/api/staff/shops/radio", { hidden: false })).status === 200);
-check("出すと、ラジオのページが開く", (await page("/radio")).includes("番組表"));
-check("出すと、ホームにラジオの入口がある", (await page("/")).includes('href="/radio"'));
+if (PUBLIC) {
+  check("出すと、ラジオのページが開く", (await page("/radio")).includes("番組表"));
+  check("出すと、ホームにラジオの入口がある", (await page("/")).includes('href="/radio"'));
+} else {
+  check("放送局として出しても、ラジオのページは「見つかりません」", (await page("/radio")).includes("ページが見つかりません"));
+  check("放送局として出しても、ホームにラジオの入口・案内が無い", !(await page("/")).includes('href="/radio"'));
+  const sp = await page("/shops/radio");
+  // 「ページが見つかりません」の字は、どのページの中のデータにも入っている（Next の見つからないときの部品）ので、開いたかは説明の字で見る
+  check("放送局のお店のページに、ラジオのページへの案内は無い", !sp.includes('href="/radio"'));
+  check("放送局のお店のページが開き、説明は BGM とお知らせの文（前のクイズの話ではない）", sp.includes("BGM") && !sp.includes("クイズ"));
+}
 check("出すと、マップに放送ブースが戻る", (await page("/map")).includes("放送ブース"));
 const count = async () => (await admin.req("GET", "/api/staff/radio")).json?.messages?.length ?? -1;
 
@@ -72,10 +84,12 @@ check("お店の人はメッセージを消せない", (await shop.req("DELETE",
 
 check("実行委員は ON AIR にできる", (await admin.req("PUT", "/api/staff/radio", { onAir: true, now: "テスト放送中", msgOpen: true })).status === 200);
 const live = (await anon.req("GET", "/api/status")).json?.radio;
-check("いまの様子に ON AIR が出る", live?.onAir === true && live?.now === "テスト放送中", JSON.stringify(live));
+if (PUBLIC) check("いまの様子に ON AIR が出る", live?.onAir === true && live?.now === "テスト放送中", JSON.stringify(live));
+else check("ラジオの作りを出さないあいだは、ON AIR にしても「放送中」が出ない", live?.onAir === false, JSON.stringify(live));
 check("長すぎる「いまの内容」は断る", (await admin.req("PUT", "/api/staff/radio", { now: "あ".repeat(61) })).status === 400);
 check("21 行の番組表は断る", (await admin.req("PUT", "/api/staff/radio", { program: Array.from({ length: 21 }, () => ({ time: "10:00", text: "x" })) })).status === 400);
 
+if (PUBLIC) {
 const n0 = await count();
 // 同じ文の送り直しは 10 分は 1 通にまとめるので、試すたびにちがう文にする
 const msgText = `テストの質問です ${Date.now()}`;
@@ -105,6 +119,9 @@ check("届いたメッセージに id が付く", /^[a-f0-9]{10}$/.test(first?.i
 const marked = await admin.req("PUT", "/api/staff/radio/read", { ids: [first.id], read: true });
 check("実行委員は読んだ印を付けられる", marked.status === 200 && marked.json.readIds.includes(first.id));
 await admin.req("PUT", "/api/staff/radio/read", { ids: [first.id], read: false });
+} else {
+  check("ラジオの作りを出さないあいだは、メッセージを受け付けない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: `放送局だけ ${Date.now()}` })).status === 403);
+}
 
 check("実行委員は募集を止められる", (await admin.req("PUT", "/api/staff/radio", { msgOpen: false })).status === 200);
 check("募集を止めているあいだは送れない", (await anon.req("POST", "/api/radio/message", { kind: "質問", text: "x" })).status === 403);
