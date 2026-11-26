@@ -111,6 +111,8 @@
 .st-chip[data-v="out"] { text-decoration: line-through; color: var(--ink-3); }
 .st-chip:disabled, .st-chip[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
 .st-chip[aria-busy="true"] { opacity: 1; border-color: var(--primary); border-style: dashed; }
+/* 札の「販売中」などは 1 まとまり（品物の名前が長くても「販売｜中」に切らない） */
+.st-chip > .st-muted { flex: none; white-space: nowrap; }
 .st-badge { display: inline-block; font-size: 0.75rem; font-weight: 900; padding: 2px 10px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
 .st-badge[data-v="open"] { background: var(--ok-soft); color: var(--ok-ink); }
 .st-badge[data-v="break"] { background: var(--warn-soft); color: var(--warn); }

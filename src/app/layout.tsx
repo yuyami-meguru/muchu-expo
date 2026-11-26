@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DotGothic16, Zen_Maru_Gothic } from "next/font/google";
+import { JaPhrase } from "@/components/shell/ja-phrase";
 import { TextSizeKeeper } from "@/components/shell/text-size-button";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           本文へ
         </a>
         <TextSizeKeeper />
+        <JaPhrase />
         {children}
       </body>
     </html>

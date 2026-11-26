@@ -187,7 +187,17 @@ body {
   overflow-wrap: anywhere;
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
+  /* 「ー」「っ」「ゃ」などを行の頭にしない */
+  line-break: strict;
 }
+/* ことばの切れ目（文節）で折り返す（ja-phrase.tsx）。Chrome などは auto-phrase、iPhone・iPad などは文節の間に入れた見えない空白と句読点の後ろでだけ。
+   入りきらない長いことばは、上の overflow-wrap で折り返す */
+html.ja-auto body { word-break: auto-phrase; }
+html.ja-ph body { word-break: keep-all; }
+html.ja-ph :is(textarea, input) { word-break: normal; }
+/* タイムテーブルの時刻（time-range.tsx）：始めと終わりを 2 行に。どちらも行の中では折り返さない */
+.tr-from, .tr-to { display: block; white-space: nowrap; }
+.tr-to { font-size: 0.8em; }
 img, svg, video { max-width: 100%; }
 img { height: auto; }
 a { color: var(--primary); }

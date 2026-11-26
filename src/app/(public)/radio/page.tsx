@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Sprite } from "@/components/pixel/sprites";
+import { TimeRange } from "@/components/ui/time-range";
 import { RADIO_SHOP, radioLive } from "@/lib/radio";
 import { loadRadio } from "@/lib/radio-server";
 import { loadAll } from "@/lib/store";
@@ -49,7 +50,7 @@ export default async function RadioPage() {
           <ol className="rd-prog">
             {program.map((p, i) => (
               <li key={i}>
-                <span className="rd-prog-t">{p.time}</span>
+                <TimeRange raw={p.time} className="rd-prog-t" />
                 <span>{p.text}</span>
               </li>
             ))}

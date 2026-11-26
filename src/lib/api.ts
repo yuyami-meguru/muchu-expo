@@ -154,7 +154,13 @@ export async function guarded(fn: () => Promise<NextResponse>) {
 }
 
 /* ───── 入力のきまり ───── */
-const text = (max: number) => z.string().trim().max(max);
+// 見えない空白（U+200B）は抜く：画面の字には折り返しのために入れている（ja-phrase.tsx）ので、コピーして貼られても残さない
+const text = (max: number) =>
+  z
+    .string()
+    .overwrite((s) => s.replaceAll("\u200b", ""))
+    .trim()
+    .max(max);
 export const zId = z.string().regex(/^[a-z0-9-]{1,40}$/);
 export const zStock = z.enum(["on", "few", "out"]);
 export const zState = z.enum(["prep", "open", "break", "closed"]);

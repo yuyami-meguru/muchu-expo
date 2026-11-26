@@ -17,7 +17,8 @@ import { SurveyEntry } from "./_components/survey-entry";
 import { InPhase } from "./_components/in-phase";
 import "./home.css";
 
-const PAMPHLET = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
+// 学校のサイトにある PDF は、正しくはチラシ（パンフレットではない。2026-11-26 のユーザーの指摘）
+const FLYER = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
 
 /**
  * ホーム。上から：（あれば）終了のごあいさつ・アワード・ON AIR → 表紙 → 流れる帯 → いまの様子 → 入口のカード → 部門 → 万博ってなに？。
@@ -203,8 +204,8 @@ export default async function HomePage() {
             <p>体験・エンカレ茶屋・地域の 3 つの部門に分かれた全体での取り組みだけでなく、演奏、絵画、工作、昆虫、古銭など、個人の夢中もさまざまなカタチで表現する予定です。</p>
             <p>エンカレ夢中万博を通して、生徒たちのさまざまな夢中をぜひご覧ください。</p>
             <p className="hm-links">
-              <a href={PAMPHLET} target="_blank" rel="noopener noreferrer">
-                パンフレット（PDF・別の画面で開きます）
+              <a href={FLYER} target="_blank" rel="noopener noreferrer">
+                チラシ（PDF・別の画面で開きます）
               </a>
               <a href={EVENT.instagram} target="_blank" rel="noopener noreferrer">
                 準備の様子（Instagram・別の画面で開きます）

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePhase } from "@/components/live/live-provider";
+import { TimeRange } from "@/components/ui/time-range";
 import type { TimedRow } from "@/lib/schedule";
 import { markOf, minutesToGo, useEventMinute } from "./clock";
 import { RowPlace } from "./row-place";
@@ -33,7 +34,7 @@ export function ComingUp({ rows }: { rows: TimedRow[] }) {
             const soon = on ? null : minutesToGo(r.min, now);
             return (
               <li key={i} className={`tone-${r.color}${on ? " hm-next--now" : ""}`}>
-                <span className="hm-next-t">{r.time}</span>
+                <TimeRange raw={r.time} className="hm-next-t" />
                 <span className="hm-next-b">
                   <Link href={`/shops/${r.shopId}`} className="hm-next-main">
                     {on && <em className="hm-next-now">いまやっている</em>}

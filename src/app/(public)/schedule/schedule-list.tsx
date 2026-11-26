@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { TimeRange } from "@/components/ui/time-range";
 import type { TimedRow } from "@/lib/schedule";
 import { markOf, minutesToGo, useEventMinute } from "../_components/clock";
 import { RowPlace } from "../_components/row-place";
@@ -16,7 +17,7 @@ export function ScheduleRow({ r, mark = null, soon = null }: { r: TimedRow; mark
       {mark === "now" && <span className="sc-now">いまやっている</span>}
       {mark === "done" && <span className="sc-done">おわり</span>}
       {soon !== null && <span className="sc-soon">あと {soon} 分</span>}
-      <span className="sc-time">{r.time || "—"}</span>
+      <TimeRange raw={r.time || "—"} className="sc-time" />
       <div className="sc-body">
         <Link href={`/shops/${r.shopId}`} className="sc-main">
           <span className="sc-text">{r.text}</span>

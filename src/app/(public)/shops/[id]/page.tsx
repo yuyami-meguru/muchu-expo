@@ -7,6 +7,7 @@ import { MiniFloorMap } from "@/components/map/mini-floor-map";
 import { canEditShop, getSession } from "@/lib/auth";
 import { RADIO_SHOP } from "@/lib/radio-shop";
 import { getShop, loadAll } from "@/lib/store";
+import { timeLabel } from "@/lib/time-text";
 import { deptLookup, KIND_LABEL, type Kind, placeLabeler } from "@/lib/types";
 import { ByPhase } from "../../_components/in-phase";
 import { ShareButton } from "../../_components/share-button";
@@ -184,7 +185,7 @@ export default async function ShopPage({ params }: PageProps<"/shops/[id]">) {
             <ol className="sd-flow">
               {s.schedule.map((x, i) => (
                 <li key={i}>
-                  <span className="sd-flow-time">{x.time}</span>
+                  <span className="sd-flow-time">{timeLabel(x.time)}</span>
                   <span className="sd-flow-text">{x.text}</span>
                 </li>
               ))}
