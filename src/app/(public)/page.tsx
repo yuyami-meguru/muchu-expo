@@ -195,8 +195,13 @@ export default async function HomePage() {
       <section className="hm-sec hm-sec--alt" aria-labelledby="about-h">
         <div className="hm-wrap">
           <div className="hm-about">
-            <h2 id="about-h" className="hm-h2 px-title">
-              エンカレ夢中万博ってなに？
+            {/* 切れ目は「エンカレ｜夢中万博って｜なに？」だけ（幅によって「…ってな｜に？」「…万｜博って」と切れていた。2026-11-26 の点検） */}
+            <h2 id="about-h" className="hm-h2 px-title hm-about-h" data-no-phrase>
+              エンカレ
+              <wbr />
+              夢中万博って
+              <wbr />
+              なに？
             </h2>
             <p>
               「エンカレ夢中万博」は、生徒たちの<strong>夢中を表現する</strong>行事です。

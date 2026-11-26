@@ -255,7 +255,7 @@ export function ShopForm({
           <h2 id="st-hidden-h" className="st-hidden-h">
             {added ? `『${base.name}』を足しました。いまはお客さんの画面に出ていません（非表示）` : "このお店は、いまお客さんの画面に出ていません（非表示）"}
           </h2>
-          <p className="st-hidden-ready">{ready.ready ? "✓ お客さんに見せる準備はできています" : `まだ：${missingText(ready)}`}</p>
+          <p className="st-hidden-ready">{ready.ready ? "✓ お客さんに見せる準備はできています" : `未入力：${missingText(ready)}`}</p>
           <ol className="st-hidden-steps">
             <li>「何したい？」の分け方を確かめる（いま：{kindNow}）</li>
             <li>下の「場所」で場所を決める（「地図のピン」の「お店の場所を決める」でも決められます）</li>

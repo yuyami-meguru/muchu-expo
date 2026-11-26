@@ -490,7 +490,9 @@ function RoomBox({ p, on, onSelect, shape, tabbable }: { p: MapPin; on: boolean;
         className="mx-room-in"
         style={lab ? { top: `${lab.top}%`, height: `${lab.bottom - lab.top}%`, left: `${lab.left}%`, width: `${lab.right - lab.left}%` } : undefined}
       >
-        <span className="mx-room-name">{p.name}</span>
+        <span className="mx-room-name" data-no-phrase>
+          {p.name}
+        </span>
         {p.use && (
           <span className="mx-room-use" aria-hidden="true">
             {p.use}

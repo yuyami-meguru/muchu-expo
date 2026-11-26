@@ -22,8 +22,8 @@ import "../ops.css";
 type Summary = { shops: number; open: number; out: number; notices: number };
 type Backup = { app?: string; exportedAt?: string; depts?: unknown[]; shops?: { id?: unknown; name?: unknown }[]; places?: unknown[]; areas?: unknown[] };
 /** まとめて戻すで、いっしょに消せるもの（POST /api/staff/reset の also） */
-type Also = "alert" | "memo" | "radio";
-const ALSO_LABEL: Record<Also, string> = { alert: "全体の帯", memo: "お店の人への連絡", radio: "ラジオの「放送中」" };
+type Also = "notice" | "alert" | "memo" | "radio";
+const ALSO_LABEL: Record<Also, string> = { notice: "お店からのお知らせ", alert: "全体の帯", memo: "お店の人への連絡", radio: "ラジオの「放送中」" };
 /** チェックリスト・表示の時期を読み直す間隔（ほかの実行委員の印。画面に戻ったときにも読む） */
 const REFRESH_MS = 60_000;
 
@@ -58,7 +58,8 @@ export function ToolsPanel({
   const [keepLive, setKeepLive] = useState(false);
   const [radioOff, setRadioOff] = useState(true);
   const [closingNews, setClosingNews] = useState(!closingPosted);
-  const [also, setAlso] = useState<Record<Also, boolean>>({ alert: true, memo: true, radio: true });
+  // お店からのお知らせは、はじめは消さない（当日の朝に押しても、前もって入れたお知らせが残るように。練習のあとはチェックして消す）
+  const [also, setAlso] = useState<Record<Also, boolean>>({ notice: false, alert: true, memo: true, radio: true });
   const fileRef = useRef<HTMLInputElement>(null);
 
   // チェックリスト・表示の時期は、ほかの実行委員が変えた分も入るよう 60 秒ごとと、画面に戻ったときに読み直す（画面が見えているときだけ）
@@ -99,6 +100,7 @@ export function ToolsPanel({
   const onAir = live?.radio ? live.radio.onAir : firstOps.onAir;
   const phaseMode = live?.phase ?? phase.mode;
   const now: Record<Also, string> = {
+    notice: summary.notices ? `いま：${summary.notices} 店が出しています` : "いま：出していません",
     alert: alertOn ? "いま：出ています" : "いま：出していません",
     memo: memo ? "いま：出しています" : "いま：出していません",
     radio: onAir ? "いま：放送中" : "いま：放送していません",
@@ -221,7 +223,7 @@ export function ToolsPanel({
             <div>
               <h3 className="st-tool-h">売り切れと状態をまとめて戻す</h3>
               <p className="st-muted">
-                全部のお店の品物が「販売中」、状態が「準備中」になり、お店からのお知らせは消えます。下でチェックしたものも、いっしょに消します。全体のお知らせは消えません。前日の練習のあとにも使います。
+                全部のお店の品物が「販売中」、状態が「準備中」になります。下でチェックしたものも、いっしょに消します（お店からのお知らせは、練習のあとだけチェックしてください。当日の朝はチェックしないと、前もって入れたお知らせが残ります）。全体のお知らせは消えません。
               </p>
               <fieldset className="st-also" disabled={!ready}>
                 <legend className="st-also-h">いっしょに消す</legend>
@@ -242,8 +244,9 @@ export function ToolsPanel({
                   })
                 }
               >
-                全部のお店の品物が「販売中」、状態が「準備中」になり、お店からのお知らせは消えます。
+                全部のお店の品物が「販売中」、状態が「準備中」になります。
                 {picked.length ? `${picked.map((x) => ALSO_LABEL[x]).join("・")}も消します。` : ""}
+                {also.notice ? "" : "お店からのお知らせは残ります。"}
                 お店の名前・メニュー・値段・思いと、全体のお知らせは消えません。元に戻すボタンはないので、先に［控えを保存］をしてください。
               </ConfirmDialog>
             ) : (

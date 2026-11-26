@@ -108,7 +108,7 @@ export function AwardEditor({
         <section className="aw-ed-card">
           <h2>発表</h2>
           <Switch
-            label={a.published ? "発表しています（お客さんに見えています）" : "まだ発表していません"}
+            label={a.published ? "発表しています（お客さんに見えています）" : "未発表（お客さんには見えていません）"}
             hint={cannotPublish ? "受賞のお店を 1 つ以上入れると発表できます" : "オンにすると、お客さんの「アワード」のページとホームに受賞が出ます"}
             checked={a.published}
             onChange={togglePublish}
@@ -180,7 +180,7 @@ export function AwardEditor({
                 )}
               </div>
               <h3>受賞するお店</h3>
-              {aw.winners.length === 0 && <p className="st-muted">まだ選んでいません</p>}
+              {aw.winners.length === 0 && <p className="st-muted">未選択</p>}
               <ul className="aw-ed-winners">
                 {aw.winners.map((w, k) => {
                   const s = shopOf.get(w.shop);

@@ -81,7 +81,12 @@ await admin.req("PATCH", `/api/staff/shops/${first.id}`, { stock: [{ id: first.m
 check("まとめて戻せる", (await admin.req("POST", "/api/staff/reset", { confirm: "リセット" })).status === 200);
 let now = (await admin.req("GET", "/api/staff/export")).json;
 check("全部の品物が販売中", now.shops.every((s) => s.menu.every((m) => m.stock === "on")));
-check("全部のお店が準備中・お知らせなし", now.shops.every((s) => s.state === "prep" && s.notice === ""));
+check("全部のお店が準備中", now.shops.every((s) => s.state === "prep"));
+// 2026-11-26 から、お店からのお知らせは also に "notice" を入れたときだけ消す
+check("お店からのお知らせは、選ばなければ残る", now.shops.find((s) => s.id === first.id)?.notice === "テスト");
+check("お知らせもいっしょに消せる", (await admin.req("POST", "/api/staff/reset", { confirm: "リセット", also: ["notice"] })).status === 200);
+now = (await admin.req("GET", "/api/staff/export")).json;
+check("全部のお店のお知らせが消えた", now.shops.every((s) => s.notice === ""));
 
 // まとめて戻すで、全体の帯・お店の人への連絡・ラジオの放送中もいっしょに消せる（also）。試したあと、帯とラジオは元に戻す
 const alertBefore = (await admin.req("GET", "/api/staff/news")).json?.alert;

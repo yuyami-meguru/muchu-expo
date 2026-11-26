@@ -1,3 +1,4 @@
+import { timeParts } from "./time-text";
 import { deptLookup, placeLabeler, type Area, type Dept, type Place, type Shop } from "./types";
 
 /**
@@ -22,6 +23,12 @@ export function minutesOf(raw: string): number | null {
   return h <= 23 && mm <= 59 ? h * 60 + mm : null;
 }
 
+/** 時刻の文の終わりの分（「10:00〜11:30」→ 11:30 の分）。終わりが書いていなければ null */
+export function endMinutesOf(raw: string): number | null {
+  const to = timeParts(raw)?.to;
+  return to ? minutesOf(to) : null;
+}
+
 /** 分を「13:05」の形に */
 export function hhmm(min: number) {
   return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
@@ -29,7 +36,8 @@ export function hhmm(min: number) {
 
 /**
  * タイムテーブルの 1 行。place はお店の場所（「知育館 3階・301 教室」。地図のピンが無ければ場所の補足、どちらも無ければ空）、
- * placeId は地図で指す場所（地図のピンが無いお店は空。押すとマップの ?place= へ）
+ * placeId は地図で指す場所（地図のピンが無いお店は空。押すとマップの ?place= へ）。
+ * end は終わりの分（「10:00〜11:30」の 11:30。書いていなければ null）。「いまやっている／おわり」に使う
  */
 export type TimedRow = {
   shopId: string;
@@ -39,6 +47,7 @@ export type TimedRow = {
   time: string;
   text: string;
   min: number | null;
+  end: number | null;
   place: string;
   placeId: string;
 };
@@ -79,6 +88,7 @@ export function allSchedule(shops: Shop[], depts: Dept[], map?: { places: Place[
           time: x.time,
           text: x.text,
           min: minutesOf(x.time),
+          end: endMinutesOf(x.time),
           place: own ? "" : place,
           placeId: own ? "" : (p?.id ?? ""),
           order: s.order,

@@ -443,7 +443,9 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
                   <span>体茶</span>
                 </span>
               </dt>
-              <dd>いくつかの部門がある場所（白い印）</dd>
+              <dd>
+                いくつかの部門がある場所<span className="nowrap">（白い印）</span>
+              </dd>
             </div>
             {cur && (
               <>
@@ -481,7 +483,9 @@ export function MapView({ shops, places, areas, depts, layout }: { shops: MapSho
                   <span>WC</span>
                 </span>
               </dt>
-              <dd>トイレ・受付・救護・休憩所・バス停などの設備（下の一覧の四角い印）</dd>
+              <dd>
+                トイレ・受付・救護・休憩所・バス停などの設備<span className="nowrap">（下の一覧の四角い印）</span>
+              </dd>
             </div>
             <div>
               <dt>

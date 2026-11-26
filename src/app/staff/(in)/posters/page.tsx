@@ -11,6 +11,7 @@ import { PAMPHLET_FLOORS, PAMPHLET_URL, SITE_URL } from "@/lib/site";
 import { loadAll } from "@/lib/store";
 import { areaName, deptLookup, NO_DEPT, placeKindOf, type Shop } from "@/lib/types";
 import { EVENT, VENUE } from "@/lib/venue";
+import { timeLabel } from "@/lib/time-text";
 import { adminOnly } from "../_components/admin-only";
 import { PrintButton, PrintGroupButton } from "../qr/qr-tools";
 import { docPageCss, IndexDoc, placeCell, ShopListDoc, TimetableDoc } from "./docs";
@@ -342,8 +343,8 @@ export default async function StaffPostersPage() {
                         <ul className="pst-sched" aria-label="当日の流れ">
                           {sched.slice(0, 3).map((x, j) => (
                             <li key={j}>
-                              <b>{x.time}</b>
-                              <span data-fit-line={`「${shop.name}」の当日の流れ（${x.time}）`}>{x.text}</span>
+                              <b>{timeLabel(x.time)}</b>
+                              <span data-fit-line={`「${shop.name}」の当日の流れ（${timeLabel(x.time)}）`}>{x.text}</span>
                             </li>
                           ))}
                           {sched.length > 3 && <li className="pst-sched-more">ほかに {sched.length - 3} つ（スマホで）</li>}

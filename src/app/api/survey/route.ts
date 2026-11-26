@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
     const [{ shops }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
     const ids = new Set(shops.filter((s) => !s.hidden).map((s) => s.id));
     // 夢中アワードの投票：いまある賞の、対象の部門（個人）の展示だけ。1 つの賞に 1 票（あとの物は捨てる）
-    const awardIds = new Set(parseAward(awardRaw).awards.map((x) => x.id));
+    // 発表したあとは票を受け付けない（問 5 も出していない）
+    const awardSetting = parseAward(awardRaw);
+    const awardIds = new Set(awardSetting.published ? [] : awardSetting.awards.map((x) => x.id));
     const target = new Set(shops.filter((s) => !s.hidden && s.dept === AWARD_DEPT).map((s) => s.id));
     const candidates = target.size ? target : ids;
     const votedFor = new Set<string>();

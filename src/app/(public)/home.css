@@ -1,3 +1,5 @@
+/* 「エンカレ夢中万博ってなに？」は <wbr> の所だけで折る（Chrome の auto-phrase も止める） */
+.hm-about-h { word-break: keep-all; }
 /* ホーム。学校のパンフレット（水色の地・緑のドット文字・紫の日付・ドット絵の小物）に合わせた。hm- で始める */
 .hm-wrap { max-width: var(--content-max); margin: 0 auto; padding: 0 16px; }
 .hm-sec { padding: 56px 0; }

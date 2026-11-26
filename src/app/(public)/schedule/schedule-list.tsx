@@ -33,14 +33,14 @@ export function ScheduleRow({ r, mark = null, soon = null }: { r: TimedRow; mark
 
 /**
  * 時刻の決まった行（時刻の順）。当日だけ「いまやっている」「おわり」と、始まる 15 分前からの「あと N 分」を出す（30 秒ごとに見直す・端末の時計で）。
- * 「いまやっている」は始まってから、次の“ちがう時刻”の行が始まるまで・長くて 30 分（ホームの「このあと」と同じ。clock.ts の markOf）。
+ * 「いまやっている」は、終わりの時刻がある行は終わりまで。無い行は始まってから、次の“ちがう時刻”の行が始まるまで・長くて 30 分（ホームの「このあと」と同じ。clock.ts の markOf）。
  * おわったものがあれば「これからの予定だけ」で隠せる
  */
 export function ScheduleList({ rows }: { rows: TimedRow[] }) {
   const now = useEventMinute();
   const [onlyNext, setOnlyNext] = useState(false);
   const mins = rows.map((r) => r.min ?? 0);
-  const marks = rows.map((_, i) => markOf(mins, i, now));
+  const marks = rows.map((r, i) => markOf(mins, i, now, r.end));
   const doneCount = marks.filter((m) => m === "done").length;
 
   return (

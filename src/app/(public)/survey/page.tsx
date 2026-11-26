@@ -27,7 +27,9 @@ export default async function SurveyPage({ searchParams }: { searchParams: Promi
     .filter((s) => !s.hidden)
     .map((s) => ({ id: s.id, name: s.name, dept: dept(s.dept).short, color: dept(s.dept).color }));
   // 夢中アワードの投票：賞（名前と基準）と、対象の個人の展示（無ければ全部のお店）
-  const awards = parseAward(awardRaw).awards.map((x) => ({ id: x.id, name: x.name, note: x.note }));
+  // 夢中アワードを発表したあとは、問 5（投票）を出さない（発表のあとに票が増えないように。2026-11-26 の点検）
+  const awardSetting = parseAward(awardRaw);
+  const awards = awardSetting.published ? [] : awardSetting.awards.map((x) => ({ id: x.id, name: x.name, note: x.note }));
   const kojin = choices.filter((c) => shops.find((s) => s.id === c.id)?.dept === AWARD_DEPT);
   const form = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} />;
   const previewForm = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} preview />;

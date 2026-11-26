@@ -76,7 +76,9 @@ export default async function InfoPage() {
 
       <div className="if-card" id="bus">
         <h3>無料送迎バス</h3>
-        <p className="if-sub">行き：大原駅前バス停留所（フレスタ側）発</p>
+        <p className="if-sub">
+          行き：大原駅前バス停留所<span className="nowrap">（フレスタ側）発</span>
+        </p>
         <BusTimes times={BUS_FROM_STATION} label="大原駅前バス停留所発の時刻" />
         <p className="if-sub">帰り：{VENUE.name}発</p>
         <BusTimes times={BUS_FROM_SCHOOL} label={`${VENUE.name}発の時刻`} showNext />

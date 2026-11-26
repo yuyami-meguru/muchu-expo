@@ -23,7 +23,7 @@ export type QuickRow = { shop: Shop; deptName: string; color: Tone; placeName: s
 type Filter = "all" | "todo" | "noplace" | "hidden" | "prep" | "out";
 const FILTERS: { key: Filter; label: string; test: (r: QuickRow, s: Shop) => boolean }[] = [
   { key: "all", label: "すべて", test: () => true },
-  { key: "todo", label: "準備がまだ", test: (r) => !r.ready.ready },
+  { key: "todo", label: "準備が未完了", test: (r) => !r.ready.ready },
   { key: "noplace", label: "場所が未定", test: (r) => r.ready.missing.some((x) => x.key === "place") },
   { key: "hidden", label: "非表示", test: (_, s) => s.hidden },
   { key: "prep", label: "「準備中」のまま", test: (_, s) => !s.hidden && s.state === "prep" },
@@ -151,7 +151,7 @@ function ReadyLine({ r }: { r: Readiness }) {
   const price = r.noPrice > 0 && !r.missing.some((x) => x.key === "menu");
   return (
     <>
-      <span className={r.ready ? "st-ready st-ready--ok" : "st-ready"}>{r.ready ? "✓ 準備ができました" : `まだ：${missingText(r)}`}</span>
+      <span className={r.ready ? "st-ready st-ready--ok" : "st-ready"}>{r.ready ? "✓ 準備ができました" : `未入力：${missingText(r)}`}</span>
       {price && <span className="st-ready-price"> ・ 値段が未定の品物あり</span>}
     </>
   );

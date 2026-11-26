@@ -3,6 +3,7 @@ import type { TimedRow } from "@/lib/schedule";
 import { areaName, deptLookup, PLACE_KINDS, placeKindOf, type Area, type Dept, type Place, type PlaceKind, type Shop, type Tone } from "@/lib/types";
 import { EVENT, VENUE } from "@/lib/venue";
 import { cssString, DOT_DATE, isFacility, TONE_HEX, type PlaceInfo } from "./paper";
+import { timeLabel } from "@/lib/time-text";
 
 /*
  * 受付・本部の控え（紙）：お店・出し物の一覧、タイムテーブル、場所の索引。
@@ -114,7 +115,7 @@ function TimeTable({ rows, placeOf }: { rows: TimedRow[]; placeOf: (shopId: stri
       <tbody>
         {rows.map((r, i) => (
           <tr key={i} style={{ "--c": TONE_HEX[r.color as Tone] ?? TONE_HEX.brown } as CSSProperties}>
-            <td className="pst-doc-time">{r.time || "—"}</td>
+            <td className="pst-doc-time">{r.time ? timeLabel(r.time) : "—"}</td>
             <td>{r.text}</td>
             <td>
               {r.deptShort} ・ {r.shopName}

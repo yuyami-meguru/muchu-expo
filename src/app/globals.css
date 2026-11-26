@@ -216,6 +216,8 @@ h1, h2, h3, h4, legend, .ui-btn, .ui-badge, .ui-card-title, .ui-section-title, .
 /* 1 まとまりで読ませたい所。.nowrap は決して折り返さない（短い時刻「10:00〜14:00」など）。
    .keep は入るときは 1 行にまとめ、画面より長いときだけ中で折り返す（日付・住所の番地など。字を 200% にしてもはみ出さない） */
 .nowrap { white-space: nowrap; }
+/* 文の最後の行が 1〜2 字だけにならないように（「…ひと｜息」「…当て｜よう！」。対応していないブラウザは今までどおり） */
+p, li, dd, blockquote { text-wrap: pretty; }
 .keep { display: inline-block; max-width: 100%; }
 
 .t-h1 { font-size: 1.5rem; line-height: 1.4; font-weight: 900; }

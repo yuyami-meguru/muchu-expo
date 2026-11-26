@@ -26,15 +26,19 @@ export function nextOtherTime(mins: number[], i: number): number | null {
 /** 「まもなく」の札を出すのは、始まるこの分数前から */
 export const SOON_MIN = 15;
 
-/** 「いまやっている」とみなす長さ（終わりの時刻は無いので、次の予定まで・長くて 30 分）。ホームの「このあと」とタイムテーブルで同じ */
+/** 終わりの時刻が書いていない行を「いまやっている」とみなす長さ（次の予定まで・長くて 30 分）。ホームの「このあと」とタイムテーブルで同じ */
 export const NOW_MAX = 30;
 
 /**
- * 時刻の順に並んだ mins の i 番目の札：now＝いまやっている（始まってから、次のちがう時刻まで・長くて 30 分）、
- * done＝おわり（次のちがう時刻の予定が始まった。最後の行は始まって 30 分）。そのあいだ（30 分をこえて次がまだ）は札なし（分からないので言い切らない）
+ * 時刻の順に並んだ mins の i 番目の札。
+ * 終わりの時刻（end）が書いてある行（「10:00〜11:30」）：始まり ≦ いま ＜ 終わり は now（いまやっている）、終わってからは done（おわり）。
+ * 書いていない行（「11:00」）：now＝始まってから、次のちがう時刻まで・長くて 30 分。done＝次のちがう時刻の予定が始まった（最後の行は始まって 30 分）。
+ * そのあいだ（30 分をこえて次がまだ）は札なし（分からないので言い切らない）。
+ * 前は終わりの時刻を見ていなかったので、「10:00〜11:30」が 11:00 に「おわり」、「〜11:10」が 11:30 まで「いまやっている」になっていた（2026-11-26 の点検）
  */
-export function markOf(mins: number[], i: number, now: number | null): "now" | "done" | null {
+export function markOf(mins: number[], i: number, now: number | null, end: number | null = null): "now" | "done" | null {
   if (now === null || now < mins[i]) return null;
+  if (end !== null && end > mins[i]) return now < end ? "now" : "done";
   const next = nextOtherTime(mins, i);
   if (now < Math.min(next ?? Infinity, mins[i] + NOW_MAX)) return "now";
   return now >= (next ?? mins[i] + NOW_MAX) ? "done" : null;

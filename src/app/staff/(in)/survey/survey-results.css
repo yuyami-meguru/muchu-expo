@@ -2,7 +2,8 @@
 .sr { --bar: #23784a; }
 @media screen and (prefers-color-scheme: dark) { .sr { --bar: #4aa86c; } }
 .sr-top { display: grid; gap: 12px; }
-@media (min-width: 860px) { .sr-top { grid-template-columns: auto 1fr; align-items: stretch; } }
+/* 2 つの箱は同じ幅（前は回答の数の箱が広く、受付の箱が細くてボタンが 2 行になっていた。iPad で見た 2026-11-26 の点検） */
+@media (min-width: 860px) { .sr-top { grid-template-columns: 1fr 1fr; align-items: stretch; } }
 .sr-stat { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 16px 22px; }
 /* 「同じ端末の回答を 1 つに数えると N 件」（数の下に） */
 .sr-stat-alt { flex-basis: 100%; font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }

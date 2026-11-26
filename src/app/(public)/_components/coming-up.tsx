@@ -8,8 +8,8 @@ import { markOf, minutesToGo, useEventMinute } from "./clock";
 import { RowPlace } from "./row-place";
 
 /**
- * ホームの「このあと」（表紙の［このあと］の行き先なので id="next"）。当日は、始まってから次の（ちがう時刻の）予定まで（長くて 30 分）を
- * 「いまやっている」として先頭に、そのあとにこれからのものを 3 つ。始まる 15 分前からは「あと N 分」（端末の時計で）。
+ * ホームの「このあと」（表紙の［このあと］の行き先なので id="next"）。当日は、いまやっているもの（終わりの時刻があれば終わりまで。
+ * 無ければ次の（ちがう時刻の）予定まで・長くて 30 分。clock.ts の markOf）を先頭に、そのあとにこれからのものを 3 つ。始まる 15 分前からは「あと N 分」（端末の時計で）。
  * 開催前は「当日の予定」として最初の 3 つ。終了後は出さない。行には場所も（押すとマップ）
  */
 export function ComingUp({ rows }: { rows: TimedRow[] }) {
@@ -17,7 +17,7 @@ export function ComingUp({ rows }: { rows: TimedRow[] }) {
   const now = useEventMinute();
   if (!rows.length || phase === "after") return null;
   const mins = rows.map((r) => r.min ?? 0);
-  const isNow = (i: number) => markOf(mins, i, now) === "now";
+  const isNow = (i: number) => markOf(mins, i, now, rows[i].end) === "now";
   const current = rows.map((r, i) => ({ r, i })).filter(({ i }) => isNow(i));
   const later = rows
     .map((r, i) => ({ r, i }))
