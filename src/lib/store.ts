@@ -1124,6 +1124,105 @@ function tentMoveFix(r: Raw): string | null {
   return changed ? JSON.stringify({ items }) : null;
 }
 
+/** v0.26.1〜：11/27 の点検で見つけた仮の文などを直したか（このサーバーの中で） */
+let tidy1127Tried = false;
+/** ステージ発表の「音楽室」は、クラフトセンターの音楽室（パンフの会場マップ「クラフトセンター・音楽室」と、司会の台本） */
+const MUSIC_ROOM = "クラフトセンターの音楽室";
+const TIDY_1127 = {
+  yakisobaNote: { from: "屋外テント（予定）", to: "屋外テント" },
+  chiikiDesc: { from: "広島の魅力が伝わる企画を準備しています。", to: "エンカレマルシェで、地域のお米や野菜、たまご、飲み物などを販売します。" },
+  stageDesc: { from: "2F ロビーと音楽室で", to: `2F ロビーと、${MUSIC_ROOM}で` },
+  stageNote: { from: "2F ロビー（ピアノは音楽室）", to: `2F ロビー（ピアノは${MUSIC_ROOM}）` },
+  stageRows: { "ピアノ演奏（音楽室）": `ピアノ演奏（${MUSIC_ROOM}）`, "ピアノ弾き語り（音楽室）": `ピアノ弾き語り（${MUSIC_ROOM}）` } as Record<string, string>,
+  stageTagline: { from: "2Fロビーと音楽室で", to: `2Fロビーと${MUSIC_ROOM}で` },
+};
+/** 「10:00〜11:30」の始まりの分（読めなければ null） */
+function startMinOf(t: string) {
+  const m = t.normalize("NFKC").match(/(\d{1,2}):(\d{2})/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+/**
+ * 2026-11-27 の点検（ユーザー「全部未記入のものとか合わせて全部徹底的に確認」→「直して」）で見つけた所を、本番のデータに 1 度だけ直す（無ければ null）。
+ * サイトがはじめに入れた仮の文と、パンフで決まっていることだけ。どれも前の字のままの所だけ直す（実行委員・お店の人が書きかえていればそのまま）：
+ *  - 焼きそばの場所の補足「屋外テント（予定）」→「屋外テント」（パンフの会場マップで場所が決まっている）
+ *  - 地域のつくり手を紹介の説明の「広島の魅力が伝わる企画を準備しています。」→ メニューにある売り物（お米・野菜・たまご・飲み物）の文（場所がエンカレマルシェのときだけ）
+ *  - 押し花しおりづくりの当日の流れを、始まりの時刻の順に（行の中身は変えない。同じ時刻なら今の順のまま）
+ *  - ステージ発表の「音楽室」→「クラフトセンターの音楽室」（説明・場所の補足・当日の流れのかっこ・部門の見出し。知育館の中と読めていた）
+ * 変更の記録に残す
+ */
+function tidy1127Fix(r: Raw): { shop: Record<string, string>; dept: Record<string, string>; log: LogEntry[] } | null {
+  const at = Date.now();
+  const why = "（2026-11-27 の点検。サイトの更新 v0.26.1 で）";
+  const shop: Record<string, string> = {};
+  const dept: Record<string, string> = {};
+  const log: LogEntry[] = [];
+  const edit = (sid: string, f: (o: Record<string, unknown>, add: (field: string, before: string, after: string) => void) => Record<string, unknown> | null) => {
+    const o = objOf(r.shop[sid] ?? "");
+    if (!o) return;
+    const shopName = str(o.name) || sid;
+    const next = f(o, (field, before, after) => log.push({ at, by: "admin", shop: sid, shopName, field, before, after: `${after}${why}` }));
+    if (next) shop[sid] = JSON.stringify({ ...o, ...next, updatedAt: at });
+  };
+  const rowsOf = (o: Record<string, unknown>) => (Array.isArray(o.schedule) ? (o.schedule as unknown[]) : []).filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  const rowsText = (rows: Record<string, unknown>[]) => rows.map((x) => `${str(x.time)} ${str(x.text)}`.trim()).join("、");
+
+  edit("yakisoba", (o, add) => {
+    const t = TIDY_1127.yakisobaNote;
+    if (str(o.placeNote) !== t.from) return null;
+    add("場所の補足", t.from, t.to);
+    return { placeNote: t.to };
+  });
+  edit("chiiki", (o, add) => {
+    const t = TIDY_1127.chiikiDesc;
+    const d = str(o.description);
+    // 新しい文は「エンカレマルシェで」と言うので、場所がエンカレマルシェのときだけ（本番は 11/27 にそう。ほかへ動いていればそのまま）
+    if (!d.includes(t.from) || str(o.placeId) !== "out-marche") return null;
+    const next = d.replace(t.from, t.to);
+    add("どんなお店？", d, next);
+    return { description: next };
+  });
+  edit("oshibana", (o, add) => {
+    const rows = rowsOf(o);
+    const sorted = rows
+      .map((x, i) => ({ x, i, m: startMinOf(str(x.time)) }))
+      .sort((a, b) => (a.m ?? 9999) - (b.m ?? 9999) || a.i - b.i)
+      .map((v) => v.x);
+    if (sorted.every((x, i) => x === rows[i])) return null;
+    add("当日の流れ（並び順）", rowsText(rows), rowsText(sorted));
+    return { schedule: sorted };
+  });
+  edit("stage", (o, add) => {
+    const next: Record<string, unknown> = {};
+    const d = str(o.description);
+    if (d.includes(TIDY_1127.stageDesc.from)) {
+      const to = d.replace(TIDY_1127.stageDesc.from, TIDY_1127.stageDesc.to);
+      add("どんなお店？", d, to);
+      next.description = to;
+    }
+    if (str(o.placeNote) === TIDY_1127.stageNote.from) {
+      add("場所の補足", TIDY_1127.stageNote.from, TIDY_1127.stageNote.to);
+      next.placeNote = TIDY_1127.stageNote.to;
+    }
+    const rows = rowsOf(o);
+    if (rows.some((x) => TIDY_1127.stageRows[str(x.text)])) {
+      next.schedule = rows.map((x) => {
+        const to = TIDY_1127.stageRows[str(x.text)];
+        if (!to) return x;
+        add("当日の流れ", str(x.text), to);
+        return { ...x, text: to };
+      });
+    }
+    return Object.keys(next).length ? next : null;
+  });
+  const dp = objOf(r.dept.stage ?? "");
+  if (dp && str(dp.tagline) === TIDY_1127.stageTagline.from) {
+    dept.stage = JSON.stringify({ ...dp, tagline: TIDY_1127.stageTagline.to });
+    const st = objOf(r.shop.stage ?? "");
+    log.push({ at, by: "admin", shop: "stage", shopName: str(st?.name) || "ステージ発表", field: "部門の見出し", before: TIDY_1127.stageTagline.from, after: `${TIDY_1127.stageTagline.to}${why}` });
+  }
+  return Object.keys(shop).length || Object.keys(dept).length ? { shop, dept, log } : null;
+}
+
 /** Redis から全部の表を読む（はじめのデータがまだなら入れる） */
 async function loadRaw(): Promise<Raw> {
   const b = backend();
@@ -1327,6 +1426,22 @@ async function loadRaw(): Promise<Raw> {
     if (lay && (await b.flagOnce("fix:tent-row-1126b"))) {
       await b.hset("omap", { layout: lay });
       r = await b.readAll();
+    }
+  }
+  // v0.26.1（2026-11-27）：点検で見つけた、サイトが入れた仮の文とパンフで決まったことを 1 度だけ直す
+  // （tidy1127Fix、目印 muchu:fix:tidy-1127。前の字のままの所だけ。変更の記録にも残す）
+  if (!tidy1127Tried && storeReady()) {
+    tidy1127Tried = true;
+    const fix = tidy1127Fix(r);
+    if (fix && (await b.flagOnce("fix:tidy-1127"))) {
+      if (Object.keys(fix.shop).length) await b.hset("shop", fix.shop);
+      if (Object.keys(fix.dept).length) await b.hset("dept", fix.dept);
+      r = await b.readAll();
+      try {
+        if (fix.log.length) await addLog(fix.log);
+      } catch (e) {
+        console.error("変更の記録に失敗", e);
+      }
     }
   }
   return r;
