@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { Banner } from "@/components/ui/banner";
 import { PageHeader } from "@/components/ui/card";
+import { Switch } from "@/components/ui/field";
 import { SITE_URL } from "@/lib/site";
 import { loadAll, readHash, shopKey } from "@/lib/store";
 import { deptLookup } from "@/lib/types";
@@ -20,6 +21,7 @@ const PROD = process.env.VERCEL_ENV === "production";
 /**
  * お店ごとの編集用 QR（お店の人に配る QR）を印刷する。かぎは # のうしろに入れる（サーバーの記録に残らない）。
  * お客さん向けではないので、紙のいちばん上に「お店の人だけ」の黒い帯を付け、刷った時点も入れる（作り直した QR と前の紙を見分ける）。
+ * 紙は 1 つのお店で A4 1 枚（v0.26.0）。［1 枚に 4 つ並べて刷る］をオンにすると、前の 2 × 2（切って配る）になる（qr.css。CSS だけで切りかえる）。
  * かぎはまとめて 1 回で読む（お店ごとに読むと、40 店で Upstash を 80 回使っていた）。まだかぎの無いお店だけ、ここで作る。
  */
 export default async function StaffQrPage() {
@@ -60,6 +62,12 @@ export default async function StaffQrPage() {
           ここで刷った QR は、このサーバーでしか使えません。お店の人に配る紙は、本番のサイト（{SITE_URL.replace(/^https?:\/\//, "")}）のこの画面で刷ってください。
         </Banner>
       )}
+      <div className="pq-print st-noprint">
+        <p className="pq-print-t">
+          ［全部印刷する］で、お店ごとに A4 1 枚ずつ出ます（全部で {cards.length} 枚）。用紙は A4、倍率は 100%、余白は「デフォルト」のままで刷ってください。
+        </p>
+        <Switch id="pq-four" label="1 枚に 4 つ並べて刷る（切って配る）" hint={`紙を減らしたいとき（全部で ${Math.ceil(cards.length / 4)} 枚）`} />
+      </div>
       {cards.length > 6 && (
         <details className="pq-jump st-noprint">
           <summary>お店から選ぶ（{cards.length} 件）</summary>

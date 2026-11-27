@@ -22,6 +22,10 @@
 .pq-jump ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .pq-jump a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; font-weight: 700; font-size: 0.9rem; }
 
+/* 画面だけ：印刷のしかたと、1 枚に 4 つ並べるかどうか（v0.26.0） */
+.pq-print { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px 14px; display: grid; gap: 10px; }
+.pq-print-t { margin: 0; font-size: 0.9rem; line-height: 1.7; }
+
 @media print {
   /* ダークモードの端末から刷っても、紙のまわりが黒くならない（R9-4） */
   html:has(.pq-page) { background: #fff !important; color-scheme: light; }
@@ -30,18 +34,41 @@
   html:has(.pq-page) .shell-side { min-height: 0 !important; }
   /* 実行委員向けの説明は紙に要らない（紙の上の欄外に「お店の人に配る QR」と出る） */
   .pq-page .ui-page-head { display: none !important; }
-  .pq-page .st-qrs { gap: 6mm 8mm; }
-  /* 1 枚に 4 つ（2 × 2）。カード 1 つの高さは 130mm まで */
-  .st-qr.pq-card { --pad: 3.5mm; border-radius: 3mm; break-inside: avoid; page-break-inside: avoid; }
-  .pq-band { border-radius: 2.4mm 2.4mm 0 0; padding: 1.4mm 3mm; margin-bottom: 2mm; }
-  .pq-band strong { font-size: 13pt; }
-  .pq-band span { font-size: 9pt; }
-  .pq-card .st-qr-dept { font-size: 8.5pt; }
-  .pq-card .st-qr-name { font-size: 12.5pt; line-height: 1.3; margin: 0.5mm 0 1.5mm; }
-  .pq-img { width: 46mm; }
-  .pq-host { margin-top: 1mm; }
-  .pq-host, .pq-asof { font-size: 7.5pt; line-height: 1.4; }
-  .pq-how { margin-top: 2mm; gap: 1mm; font-size: 8.5pt; line-height: 1.4; }
-  .pq-how b { font-size: 7.5pt; line-height: 1.35; }
-  .pq-asof { margin-top: 2mm; }
+  /* 隠した説明の欄とのすき間（.st-stack の 16px）が残ると、1 枚目だけ下にずれる */
+  .pq-page > .st-qrs { margin-top: 0 !important; }
+  .st-qr.pq-card { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ふつう：1 つのお店を A4 1 枚に（v0.26.0。ユーザー「配るQRを全部一枚一枚A4で印刷したい」）。
+     紙の中（A4 から上下左右 12mm を引いた 186×273mm）に、高さ 265mm で収める（余白を「最小」「なし」にしても、ほかのブラウザで刷っても 2 枚に割れない）。
+     上に帯・部門・店名、まん中に QR（105mm 角）、下に使い方 */
+  html:not(:has(#pq-four:checked)) .pq-page .st-qrs { display: block; }
+  html:not(:has(#pq-four:checked)) .st-qr.pq-card { --pad: 8mm; height: 265mm; border: 0.5mm solid #b9a07a; border-radius: 4mm; break-after: page; page-break-after: always; }
+  /* 最後の 1 枚（「この 1 枚だけ印刷」では、その 1 枚）のうしろでは紙を送らない（白い紙が 1 枚出ないように） */
+  html:not(:has(#pq-four:checked)) .st-qrs > .pq-card:last-child,
+  html.st-print-one:not(:has(#pq-four:checked)) .st-qrs > .pq-card { break-after: auto; page-break-after: auto; }
+  html:not(:has(#pq-four:checked)) .pq-band { margin-bottom: 0; padding: 3.5mm 6mm; border-radius: 3.5mm 3.5mm 0 0; column-gap: 5mm; }
+  html:not(:has(#pq-four:checked)) .pq-band strong { font-size: 24pt; }
+  html:not(:has(#pq-four:checked)) .pq-band span { font-size: 14pt; }
+  html:not(:has(#pq-four:checked)) .pq-card .st-qr-dept { margin-top: 7mm; font-size: 14pt; }
+  html:not(:has(#pq-four:checked)) .pq-card .st-qr-name { font-size: 26pt; line-height: 1.3; margin: 1.5mm 0 0; }
+  /* QR と「読み取ると〜」を、店名と使い方のあいだの真ん中に */
+  html:not(:has(#pq-four:checked)) .pq-img { width: 105mm; margin-top: auto; }
+  html:not(:has(#pq-four:checked)) .pq-host { margin: 3mm 0 auto; font-size: 11pt; line-height: 1.4; }
+  html:not(:has(#pq-four:checked)) .pq-how { align-self: stretch; margin-top: 6mm; gap: 2.2mm; font-size: 13pt; line-height: 1.55; }
+  html:not(:has(#pq-four:checked)) .pq-how b { margin-right: 2.5mm; padding: 0 2mm; border-width: 0.4mm; border-radius: 1.2mm; font-size: 11pt; line-height: 1.4; }
+  html:not(:has(#pq-four:checked)) .pq-asof { margin-top: 4mm; font-size: 10pt; line-height: 1.4; }
+
+  /* 「1 枚に 4 つ並べて刷る」をオンにしたとき（v0.25.3 までの形）：2 × 2 で、切って配る。カード 1 つの高さは 130mm まで */
+  html:has(#pq-four:checked) .pq-page .st-qrs { gap: 6mm 8mm; }
+  html:has(#pq-four:checked) .st-qr.pq-card { --pad: 3.5mm; border-radius: 3mm; }
+  html:has(#pq-four:checked) .pq-band { border-radius: 2.4mm 2.4mm 0 0; padding: 1.4mm 3mm; margin-bottom: 2mm; }
+  html:has(#pq-four:checked) .pq-band strong { font-size: 13pt; }
+  html:has(#pq-four:checked) .pq-band span { font-size: 9pt; }
+  html:has(#pq-four:checked) .pq-card .st-qr-dept { font-size: 8.5pt; }
+  html:has(#pq-four:checked) .pq-card .st-qr-name { font-size: 12.5pt; line-height: 1.3; margin: 0.5mm 0 1.5mm; }
+  html:has(#pq-four:checked) .pq-img { width: 46mm; }
+  html:has(#pq-four:checked) .pq-host { margin-top: 1mm; font-size: 7.5pt; line-height: 1.4; }
+  html:has(#pq-four:checked) .pq-how { margin-top: 2mm; gap: 1mm; font-size: 8.5pt; line-height: 1.4; }
+  html:has(#pq-four:checked) .pq-how b { font-size: 7.5pt; line-height: 1.35; }
+  html:has(#pq-four:checked) .pq-asof { margin-top: 2mm; font-size: 7.5pt; line-height: 1.4; }
 }
