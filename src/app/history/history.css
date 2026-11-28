@@ -119,8 +119,9 @@ html:has(.hx), html:has(.hx) body { background: #0b0b0d; color-scheme: dark; }
 /* おわり */
 .hx-foot { padding: clamp(96px, 16vh, 160px) 0 calc(56px + env(safe-area-inset-bottom)); text-align: center; }
 .hx-thanks {
-  font-family: var(--hx-en); font-style: italic; font-size: clamp(3.4rem, 15vw, 8.4rem); line-height: 1; letter-spacing: -0.01em;
-  background: var(--hx-grad); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0.08em 0.06em;
+  font-family: var(--hx-en); font-style: italic; font-size: clamp(3.4rem, 15vw, 8.4rem); line-height: 1.1; letter-spacing: -0.01em;
+  /* 色は字の形で切り抜くので、y の下のはね（下に出る部分）まで箱に入れる（v0.28.1） */
+  background: var(--hx-grad); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0.12em 0.22em;
 }
 .hx-thanks-ja { margin-top: 16px !important; font-family: var(--hx-mincho); font-size: 1.05rem; letter-spacing: 0.2em; color: var(--hx-mute); }
 .hx-credits { display: grid; gap: 18px; max-width: 560px; margin: 64px auto 0 !important; padding-top: 32px; border-top: 1px solid var(--hx-line); text-align: left; }
