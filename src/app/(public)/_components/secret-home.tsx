@@ -120,7 +120,7 @@ export function SecretHome({ now, shopNames, deptCount, awardTitle }: { now: num
             あの日のページ
           </h2>
           <p className="hm-lead">お店・出し物やマップは、当日のまま見られます。</p>
-          <div className="hm-doors hm-doors--3">
+          <div className="hm-doors">
             <Link href="/shops" className="hm-door tone-green">
               <Sprite name="cube" size={40} />
               <span className="hm-door-t">お店・出し物</span>
@@ -136,6 +136,12 @@ export function SecretHome({ now, shopNames, deptCount, awardTitle }: { now: num
               <span className="hm-door-t">Instagram</span>
               <span className="hm-door-s">エンカレッジコースの Instagram（別の画面で開きます）</span>
             </a>
+            {/* v0.28.0：このサイトの更新の記録（万博とは別の見た目のページ） */}
+            <Link href="/history" className="hm-door tone-orange">
+              <Sprite name="paint" size={44} />
+              <span className="hm-door-t">サイトのあゆみ</span>
+              <span className="hm-door-s">このサイトの更新の記録（v0.1.0 から）</span>
+            </Link>
           </div>
         </div>
       </section>

@@ -290,6 +290,8 @@
 
 /* バージョンの表記（いちばん下の帯・左のメニューの下・その他のメニューの下） */
 .shell-version { display: inline-block; margin-left: 12px; font-size: 0.75rem; font-weight: 500; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.shell-version--link { color: inherit; text-underline-offset: 0.25em; }
+.shell-version--link:hover { opacity: 1; }
 .shell-version--side { display: block; margin: 8px 0 0; padding: 0 12px; color: var(--ink-3); opacity: 1; }
 .shell-version--menu { display: block; margin: 24px 0 0; text-align: center; color: var(--ink-3); opacity: 1; }
 

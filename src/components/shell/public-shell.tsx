@@ -95,7 +95,7 @@ export function PublicShell({
         </a>
         <MadeBy tone="dark" />
         <p className="shell-pfoot-copy">
-          主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ サイト制作：AVERIX ・ <AppVersion />
+          主催：{EVENT.organizer} ・ エンカレ夢中万博 実行委員会 ・ サイト制作：AVERIX ・ <AppVersion href="/history" />
         </p>
         {/* 印刷のときだけ出す 1 行（紙を見た人が、もう一度このサイトを開けるように） */}
         <p className="shell-pfoot-print">

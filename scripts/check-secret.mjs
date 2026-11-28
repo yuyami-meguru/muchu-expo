@@ -42,6 +42,21 @@ check("11/30 から先は「11 月 28 日は」", later.includes("ひみつの�
 check("次の日も、お店・出し物のページが開く", (await get("/shops", at("2026-11-29T09:00:00+09:00"))).includes("お店・出し物"));
 check("次の日も、マップが開く", (await get("/map?area=f2", at("2026-11-29T09:00:00+09:00"))).includes("知育館 2階"));
 
+// v0.28.0：サイトのあゆみ（/history）。CHANGELOG.md の版がすべて載っていること・入口があること
+const hist = await get("/history");
+const changelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
+const versions = [...changelog.matchAll(/^## v(\d+\.\d+\.\d+)/gm)].map((m) => m[1]);
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+check("サイトのあゆみが開く", hist.includes("あゆみ") && hist.includes("更新の記録") && hist.includes("大事にしたこと"));
+const missing = versions.filter((v) => !hist.includes(`v${v}<`));
+check("CHANGELOG.md の版が、サイトのあゆみにすべて載っている", versions.length > 0 && missing.length === 0, missing.length ? `ない版：${missing.join("・")}` : `${versions.length} 版`);
+check("いまの版（package.json）が、サイトのあゆみに載っている", hist.includes(`v${pkg.version}<`), `v${pkg.version}`);
+// （ページの中身の受け渡し（RSC）には、見つからないときの画面の枠が入るので、描いた HTML の class で見る）
+check("サイトのあゆみには、万博のまわりの枠（下のメニュー）が無い", !hist.includes('class="shell-tabs"'));
+const homeNow = await get("/", at("2026-11-28T15:00:00+09:00"));
+check("いちばん下の帯の版の番号から、サイトのあゆみへ行ける", homeNow.includes('href="/history"'));
+check("ひみつのホームから、サイトのあゆみへ行ける", next.includes('href="/history"') && next.includes("サイトのあゆみ"));
+
 // パンフの QR の転送（GitHub Pages の docs/）は、メニューを消す形（?solo=1）を付けない
 for (const dir of ["2f", "3f", "survey", "award"]) {
   const html = readFileSync(new URL(`../docs/${dir}/index.html`, import.meta.url), "utf8");
