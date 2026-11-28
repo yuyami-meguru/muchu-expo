@@ -247,10 +247,70 @@
   .hm-hero--day .hm-count, .hm-hero--day .hm-cta { margin-top: 10px; }
 }
 
+/* ───── ひみつのホーム（_components/secret-home.tsx。11/29 の 0:00 から）。hs- で始める ───── */
+.hs-hero { position: relative; overflow: hidden; padding: 28px 0 56px; }
+.hs-hero-in { position: relative; z-index: 1; }
+.hs-badge {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; padding: 6px 16px 6px 12px; border-radius: var(--r-pill);
+  background: var(--ink); color: var(--surface); font-family: var(--font-display); font-size: 1rem; line-height: 1.4; letter-spacing: 0.06em;
+}
+.hs-badge svg { flex: none; image-rendering: pixelated; }
+.hs-title { margin: 0; line-height: 1.12; }
+.hs-title span { display: block; width: fit-content; }
+.hs-title .t1 { font-size: clamp(1.7rem, 8.4vw, 3.4rem); }
+.hs-title .t2 { font-size: clamp(2.6rem, 13.5vw, 6.4rem); }
+.hs-when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 22px 0 0; font-family: var(--font-display); color: var(--date); font-size: clamp(1.4rem, 6.4vw, 2.2rem); line-height: 1.2; }
+.hs-when-t { font-size: 0.62em; }
+.hs-letter {
+  max-width: 640px; margin: 22px 0 0; padding: 16px 18px; background: var(--surface); border: 3px solid var(--title-edge); border-radius: var(--r-card);
+  box-shadow: 0 5px 0 var(--title-edge);
+}
+.hs-letter p { margin: 0; font-weight: 700; line-height: 1.8; word-break: auto-phrase; }
+.hs-letter p + p { margin-top: 8px; font-size: 0.92rem; color: var(--ink-2); }
+.hs-letter-t { font-size: 1.08rem; font-weight: 900 !important; }
+/* 小物は、題字・手紙と重ならない右側と下だけ */
+@media (max-width: 759px) {
+  .hs-hero { padding-bottom: 120px; }
+  .hs-badge { margin-right: 70px; }
+  /* 王冠は、下のボールとスケボーのあいだに（手紙の下にもぐらないように） */
+  .hs-hero .sp-cube { bottom: 34px; left: 40%; width: 46px; transform: rotate(-8deg); }
+}
+@media (min-width: 760px) and (max-width: 1099px) {
+  .hs-badge { margin-right: 140px; }
+}
+
+/* 白いバンダナ（押すと、1 枚ずつそれぞれの色に。_components/secret-parts.tsx） */
+.hs-band { background: var(--surface); }
+.hs-band-in { text-align: center; }
+.hs-band-h { word-break: keep-all; }
+.hs-band p { max-width: 36em; margin: 0 auto; font-size: 1.05rem; line-height: 1.9; word-break: auto-phrase; }
+.hs-dye { margin: 22px 0 24px; }
+.hs-bandanas { display: grid; grid-template-columns: repeat(4, minmax(0, 72px)); justify-content: center; gap: 14px 16px; }
+@media (min-width: 640px) { .hs-bandanas { grid-template-columns: repeat(8, minmax(0, 72px)); } }
+.hs-bandana {
+  display: block; width: 100%; height: auto; color: #fff; image-rendering: pixelated;
+  filter: drop-shadow(3px 4px 0 var(--pixel-shadow));
+  transition: color 0.36s steps(3, end); transition-delay: calc(var(--i) * 0.12s);
+}
+.hs-bandanas.is-dyed .hs-bandana { color: var(--c); animation: hs-hop 0.36s steps(2, end) 1; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes hs-hop { 50% { translate: 0 -10px; } }
+.hs-dye-btn { margin-top: 20px; cursor: pointer; font: inherit; font-family: var(--font-display); font-size: 1.1rem; }
+.hs-dye-btn[aria-pressed="true"] { background: var(--surface); color: var(--ink); border-color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
+
+/* あの日のきろく（数の札） */
+.hs-stats { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.hs-stats li {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 8px 12px; text-align: center;
+  background: var(--surface); border: 3px solid var(--ink); border-radius: var(--r-card); box-shadow: 0 4px 0 var(--ink);
+}
+.hs-stats b { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 10vw, 3.4rem); line-height: 1.1; color: var(--date); }
+.hs-stats span { font-weight: 900; font-size: 0.92rem; line-height: 1.4; word-break: auto-phrase; }
+.hs-stats small { display: block; font-weight: 700; font-size: 0.78rem; color: var(--ink-2); }
+
 /* 印刷：飾り（小物・流れる帯）と押す物（表紙のボタン・送るボタン）は出さない */
 @media print {
   /* 「いまやっている」「あと N 分」は紙では古くなる（地の色も刷られず、白い字が消える）ので出さない（タイムテーブルの印刷と同じ） */
-  .hm-sprites, .hm-marquee, .hm-cta, .hm-strip, .hm-share, .hm-about-sp, .hm-survey-wrap, .hm-next-all, .hm-next-place .mx-rowplace-go, .hm-next-now, .hm-next-soon { display: none !important; }
+  .hm-sprites, .hm-marquee, .hm-cta, .hm-strip, .hm-share, .hm-about-sp, .hm-survey-wrap, .hm-next-all, .hm-next-place .mx-rowplace-go, .hm-next-now, .hm-next-soon, .hs-dye-btn { display: none !important; }
   .hm-hero { min-height: 0; padding: 0 0 12px; }
   .hm-sec { padding: 16px 0; }
   .hm-pav, .hm-next, .hm-door { break-inside: avoid; }

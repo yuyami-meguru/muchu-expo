@@ -3,7 +3,6 @@ import { RADIO_SHOP } from "@/lib/radio-shop";
 import { outsideSpot } from "@/lib/outside-plan";
 import { loadAll } from "@/lib/store";
 import { AccessMap } from "@/components/access/map-buttons";
-import { isSolo, SoloPage } from "@/components/shell/solo-page";
 import { MapView } from "./map-view";
 import "./map.css";
 
@@ -20,9 +19,9 @@ function aboutOf(text: string) {
  * ピン・部屋の四角を押すと、その場所のお店と、どんなことをするかが出る。
  * /map?place=<id> でその場所を選んで（フロアの場所ならそのフロアで）、/map?area=<フロアの id> でそのフロアを開く（読むのは MapView）
  */
-export default async function MapPage({ searchParams }: { searchParams: Promise<{ place?: string; area?: string; solo?: string }> }) {
-  // ?place=・?area= は MapView が URL から読む（戻る・進むでも合わせるため）。?solo=1 はパンフの QR から開いたとき（メニューを出さない。solo-page.tsx）
-  const { solo } = await searchParams;
+export default async function MapPage() {
+  // ?place=・?area= は MapView が URL から読む（戻る・進むでも合わせるため）。
+  // v0.27.0：パンフの QR から開いたときにメニューを消す形（?solo=1）はやめた（ユーザー「QRも普通な感じに飛べるようにしよう」）
   const { shops, places, areas, depts, outLayout } = await loadAll();
   const visible = shops
     .filter((s) => !s.hidden)
@@ -40,7 +39,6 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
     .join("、");
   return (
     <div className="mp-wrap">
-      <SoloPage on={isSolo(solo)} />
       <header className="mp-head">
         <p className="mp-eyebrow">MAP</p>
         <h1 className="mp-h1">マップ</h1>

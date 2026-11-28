@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Fragment } from "react";
 import { Icon } from "@/components/icons";
 import { LiveShopBadges } from "@/components/live/live-parts";
@@ -15,19 +16,39 @@ import { NowSection } from "./_components/now-section";
 import { ShareButton } from "./_components/share-button";
 import { SurveyEntry } from "./_components/survey-entry";
 import { InPhase } from "./_components/in-phase";
+import { SecretHome } from "./_components/secret-home";
+import { SECRET_FROM } from "@/lib/ops";
 import "./home.css";
 
 // 学校のサイトにある PDF は、正しくはチラシ（パンフレットではない。2026-11-26 のユーザーの指摘）
 const FLYER = "https://www.kodaikoko.ed.jp/encourage/img/mutyubanpaku_261128.pdf";
 
 /**
- * ホーム。上から：（あれば）終了のごあいさつ・アワード・ON AIR → 表紙 → 流れる帯 → いまの様子 → 入口のカード → 部門 → 万博ってなに？。
+ * いまの時刻。手元（next dev）だけ、クッキー dev-now（日時の文字か、ミリ秒の数）で変えられる
+ * （ひみつのホームを前もって確かめるため。本番では読まない）
+ */
+async function homeNow() {
+  if (process.env.NODE_ENV !== "production") {
+    const v = (await cookies()).get("dev-now")?.value ?? "";
+    const t = /^\d+$/.test(v) ? Number(v) : Date.parse(v);
+    if (!Number.isNaN(t)) return t;
+  }
+  return Date.now();
+}
+
+/**
+ * ホーム。開催日の次の日（11/29）の 0:00 からは、ひみつのホーム（_components/secret-home.tsx）に替わる。
+ * ふだんは上から：（あれば）終了のごあいさつ・アワード・ON AIR → 表紙 → 流れる帯 → いまの様子 → 入口のカード → 部門 → 万博ってなに？。
  * 当日（朝・開催中）は表紙を低くし、ボタンを［マップ］［このあと］に、表紙の下に「売り切れ・次の送迎バス」の 1 行を出す
  */
 export default async function HomePage() {
-  const [{ shops, depts, places, areas }, awardRaw] = await Promise.all([loadAll(), getSetting(AWARD_KEY)]);
+  const [{ shops, depts, places, areas }, awardRaw, now] = await Promise.all([loadAll(), getSetting(AWARD_KEY), homeNow()]);
   const award = parseAward(awardRaw);
   const visible = shops.filter((s) => !s.hidden);
+  if (now >= SECRET_FROM) {
+    const deptCount = depts.filter((d) => visible.some((s) => s.dept === d.id)).length;
+    return <SecretHome now={now} shopNames={visible.map((s) => s.name)} deptCount={deptCount} awardTitle={award.title} />;
+  }
   // 校内ラジオを隠しているあいだは、入口のカードを出さない（radio-shop.ts）
   const radioOn = radioShown(shops);
   const names = Object.fromEntries(visible.map((s) => [s.id, { shop: s.name, items: Object.fromEntries(s.menu.map((m) => [m.id, m.name])) }]));

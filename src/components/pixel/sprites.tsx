@@ -26,6 +26,7 @@ const PAL: Record<string, string> = {
   T: "#8a5a22",
   p: "#8e7cf0", // 紫
   s: "#7fd0f5", // 水色
+  c: "currentColor", // 布（CSS の color で色を変える。ひみつのホームの白いバンダナ）
 };
 
 type Rows = readonly string[];
@@ -203,6 +204,41 @@ function cubeRows(): Rows {
   return rows;
 }
 
+/**
+ * 白いバンダナ（ひし形に広げた形。共通グッズ）。布は currentColor なので、CSS の color で好きな色に染められる。
+ * ふち＝紺、内側の点線とまん中の花＝明るい灰（白い布の上でも、色の付いた布の上でも見える）
+ */
+function bandanaRows(n = 17): Rows {
+  const c = (n - 1) / 2;
+  const rows: string[] = [];
+  for (let y = 0; y < n; y++) {
+    let line = "";
+    for (let x = 0; x < n; x++) {
+      const d = Math.abs(x - c) + Math.abs(y - c);
+      if (d > c) line += ".";
+      else if (d === c) line += "k";
+      else if (d === c - 3) line += x % 2 === 0 ? "l" : "c";
+      else if (d <= 1) line += "l";
+      else line += "c";
+    }
+    rows.push(line);
+  }
+  return rows;
+}
+
+/** きらっと光る印（ひみつのホームの札） */
+const SPARKLE: Rows = [
+  "....y....",
+  "....y....",
+  "...yyy...",
+  "..yywyy..",
+  "yyywwwyyy",
+  "..yywyy..",
+  "...yyy...",
+  "....y....",
+  "....y....",
+];
+
 /** バスケットボール（円と線を計算で描く） */
 function ballRows(n = 16): Rows {
   const c = (n - 1) / 2;
@@ -235,6 +271,8 @@ export const SPRITES = {
   crown: CROWN,
   cube: cubeRows(),
   ball: ballRows(),
+  bandana: bandanaRows(),
+  sparkle: SPARKLE,
 } as const;
 
 export type SpriteName = keyof typeof SPRITES;

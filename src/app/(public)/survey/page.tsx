@@ -6,7 +6,6 @@ import { getSetting, loadAll, surveyOpen } from "@/lib/store";
 import { AWARD_KEY, isAwardTarget, parseAward } from "../award/award-data";
 import { deptLookup } from "@/lib/types";
 import { ByPhase } from "../_components/in-phase";
-import { isSolo, SoloPage } from "@/components/shell/solo-page";
 import { SurveyForm } from "./survey-form";
 import "./survey.css";
 
@@ -16,9 +15,8 @@ export const metadata: Metadata = { title: "アンケート" };
  * 来てくれた人のアンケート（2023 年のエンカレ祭アンケートの 5 問をもとに）。はじめのあいさつは、送れたら隠すので SurveyForm の中。
  * 開催前は答えようがないので、問いは出さずに「当日からお願いします」（送る API でも断る。練習で表示の時期を「当日」にしたときは出る）
  */
-export default async function SurveyPage({ searchParams }: { searchParams: Promise<{ solo?: string }> }) {
-  // ?solo=1 はパンフの QR（アンケート・夢中アワード）から開いたとき。メニューを出さずにアンケートだけ（solo-page.tsx）
-  const { solo } = await searchParams;
+export default async function SurveyPage() {
+  // v0.27.0：パンフの QR から開いたときにメニューを消す形（?solo=1）はやめた。QR からも、ふつうのアンケートのページが開く
   const [{ shops, depts }, open, awardRaw, session] = await Promise.all([loadAll(), surveyOpen(), getSetting(AWARD_KEY), getSession()]);
   // 実行委員としてログインしている人は、開催前・受付を止めているあいだも下見できる（送っても保存しない）
   const preview = session?.role === "admin";
@@ -39,7 +37,6 @@ export default async function SurveyPage({ searchParams }: { searchParams: Promi
   const previewForm = <SurveyForm shops={choices} awards={awards} candidates={kojin.length ? kojin : choices} preview />;
   return (
     <div className="sv-wrap">
-      <SoloPage on={isSolo(solo)} />
       <header className="sv-head">
         <Sprite name="note" size={40} className="sv-sp" />
         <p className="sv-eyebrow" aria-hidden="true">

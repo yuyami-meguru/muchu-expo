@@ -49,11 +49,9 @@ check("各階にトイレのピンがある", ["f2", "f3", "f4"].every((id) => e
 const m2 = await page("/map?area=f2");
 check("お客さんの地図で 2 階を開ける", m2.includes("知育館 2階") && m2.includes("201 小講義室"));
 check("場所を指して開ける（?place=）", (await page("/map?place=f3-301")).includes("301 教室"));
-// v0.23.0：パンフの QR から開いたとき（?solo=1）は、メニューを出さない目印がページに入る（ふだんは入らない）
-check("QR から開いた 2 階の地図に、メニューを出さない目印がある", (await page("/map?area=f2&solo=1")).includes("data-solo-page"));
-check("ふだんの地図には目印が無い", !m2.includes("data-solo-page"));
-check("QR から開いたアンケートにも目印がある", (await page("/survey?solo=1")).includes("data-solo-page"));
-check("ふだんのアンケートには目印が無い", !(await page("/survey")).includes("data-solo-page"));
+// v0.27.0：パンフの QR から開いたときにメニューを消す形（?solo=1）はやめた。前の QR のアドレス（?solo=1 付き）で開いても、ふつうのページ
+check("前の QR のアドレス（?solo=1）で開いた 2 階の地図も、ふつうのページ", (await page("/map?area=f2&solo=1")).includes("知育館 2階") && !(await page("/map?area=f2&solo=1")).includes("data-solo-page"));
+check("前の QR のアドレス（?solo=1）で開いたアンケートも、ふつうのページ", !(await page("/survey?solo=1")).includes("data-solo-page"));
 const allMaps = (await page("/map?area=f2")) + (await page("/map?area=f3")) + (await page("/map?area=f4"));
 // 人の名前（見取り図のもとのデータの物品メモにあった）がフロアのページに出ていないこと。
 // 名前そのものはリポジトリに入れず、手元だけのファイル .data/private-names.json（.gitignore 済み）から読む

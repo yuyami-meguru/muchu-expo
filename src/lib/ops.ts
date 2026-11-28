@@ -15,6 +15,11 @@ export const OPEN_AT = Date.parse("2026-11-28T10:00:00+09:00");
 export const CLOSE_AT = Date.parse("2026-11-28T14:00:00+09:00");
 /** 開催日の次の日の 0:00（ここから先は「終了後」の中でも、もう当日ではない） */
 export const DAY_END = Date.parse("2026-11-29T00:00:00+09:00");
+/**
+ * ここから先は、ホームを「ひみつのホーム」にする（_components/secret-home.tsx）。開催日の次の日の 0:00 から。
+ * 2026-11-28 夜 ユーザー「翌日開いた人だけが見れる秘密のホームに変更しよう」
+ */
+export const SECRET_FROM = DAY_END;
 
 /** before＝開催日より前、morning＝当日の 10:00 まで、during＝10:00〜14:00、after＝14:00 から */
 export type Phase = "before" | "morning" | "during" | "after";
